@@ -487,8 +487,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
 
 <script type="module">
 // ⚙️ CONFIGURE AQUI
-const SUPABASE_URL = 'https://wbsxoffpugmajmzxofid.supabase.co'; // 'https://xxxx.supabase.co'
-const SUPABASE_KEY = 'sb_publishable_2qHQZTclYZFbskhwoumTvA__enYh_vx'; // 'eyJhbGci...'
+const SUPABASE_URL = 'https://wbsxoffpugmajmzxofid.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_2qHQZTclYZFbskhwoumTvA__enYh_vx';
 
 const DEMO_USERS = [
   {email:'operador@fabrica.com',senha:'1234',nome:'Operador',role:'operador'},
@@ -765,14 +765,14 @@ window.salvarProducao=async function(){
   showLoad('Registrando produção...');
   try{
     for(const it of itens){
-      const dados={data,funcionarioId:funcId,pecaId:it.pecaId,corId:it.corId,quantidade:it.quantidade,horaExtra:it.horaExtra,device_origin:'mobile'};
+      const dados={data,funcionarioid:funcId,pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,horaextra:it.horaExtra,device_origin:'mobile'};
       if(!S.demo&&S.sb&&S.online){
         const r=await sbInsert('Producoes',dados);
-        await sbInsert('Movimentacoes',{data,tipo:'entrada',pecaId:it.pecaId,corId:it.corId,quantidade:it.quantidade,origem:'Produção',producaoId:r?.id,funcionarioId:funcId,device_origin:'mobile'});
+        await sbInsert('Movimentacoes',{data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,origem:'Produção',producaoid:r?.id,funcionarioid:funcId,device_origin:'mobile'});
         const ea=S.estoqueArmacoes.find(e=>e.modeloId===it.pecaId);
         const nova=(ea?.quantidade||0)-it.quantidade;
         if(ea)await sbUpdate('EstoqueArmacoes',ea.id,{quantidade:nova});
-        else await sbInsert('EstoqueArmacoes',{modeloId:it.pecaId,quantidade:-it.quantidade});
+        else await sbInsert('EstoqueArmacoes',{modeloid:it.pecaId,quantidade:-it.quantidade});
         S.producoes.unshift({...dados,id:r?.id});
         S.movimentacoes.unshift({data,tipo:'entrada',pecaId:it.pecaId,corId:it.corId,quantidade:it.quantidade,id:Date.now()});
       }else{
@@ -867,7 +867,7 @@ window.salvarSaida=async function(){
   if(!quantidade||quantidade<1){toast('Informe a quantidade','error');return}
   const saldo=calcSaldo(pecaId,corId);
   if(saldo<quantidade&&!confirm(`⚠️ Saldo insuficiente!\nSaldo: ${saldo} | Falta: ${quantidade-saldo}\nRegistrar mesmo assim?`))return;
-  const dados={data,tipo:'saida',pecaId,corId,quantidade,origem:obs||'Saída via mobile',device_origin:'mobile'};
+  const dados={data,tipo:'saida',pecaid:pecaId,corid:corId,quantidade,origem:obs||'Saída via mobile',device_origin:'mobile'};
   showLoad('Registrando saída...');
   const p=byId(S.pecas,pecaId);const c=byId(S.cores,corId);
   try{
@@ -904,17 +904,17 @@ window.salvarArmacao=async function(){
   const quantidade=parseInt(S.aNum);
   if(!modeloId){toast('Selecione um modelo','error');return}
   if(!quantidade||quantidade<1){toast('Informe a quantidade','error');return}
-  const dados={data,modeloId,quantidade,device_origin:'mobile'};
+  const dados={data,modeloid:modeloId,quantidade,device_origin:'mobile'};
   showLoad('Registrando armação...');
   const p=byId(S.pecas,modeloId);
   try{
     if(!S.demo&&S.sb&&S.online){
       await sbInsert('Armacoes',dados);
-      const{data:allArm}=await S.sb.from('Armacoes').select('quantidade').eq('modeloId',modeloId);
+      const{data:allArm}=await S.sb.from('Armacoes').select('quantidade').eq('modeloid',modeloId);
       const total=(allArm||[]).reduce((a,r)=>a+r.quantidade,0);
       const ea=S.estoqueArmacoes.find(e=>e.modeloId===modeloId);
       if(ea){await sbUpdate('EstoqueArmacoes',ea.id,{quantidade:total});ea.quantidade=total;}
-      else{await sbInsert('EstoqueArmacoes',{modeloId,quantidade:total});S.estoqueArmacoes.push({modeloId,quantidade:total});}
+      else{await sbInsert('EstoqueArmacoes',{modeloid:modeloId,quantidade:total});S.estoqueArmacoes.push({modeloId,quantidade:total});}
       S.armacoes.unshift({...dados,id:Date.now()});
     }else{
       await idbAdd('fila',{tipo:'armacao',dados,ts:Date.now(),key:crypto.randomUUID()});
