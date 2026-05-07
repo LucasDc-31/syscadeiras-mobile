@@ -553,35 +553,6 @@ function idbAdd(store,data){return new Promise((res,rej)=>{const tx=S.idb.transa
 function idbAll(store){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readonly');const req=tx.objectStore(store).getAll();req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error)})}
 function idbDel(store,id){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readwrite');const req=tx.objectStore(store).delete(id);req.onsuccess=res;req.onerror=()=>rej(req.error)})}
 function idbClear(store){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readwrite');const req=tx.objectStore(store).clear();req.onsuccess=res;req.onerror=()=>rej(req.error)})}
-async function purgeHistAntigo(){
-  const hoje=new Date();hoje.setHours(0,0,0,0);const corte=hoje.getTime();
-  const all=await idbAll('hist');
-  // Remove registros de dias anteriores
-  for(const it of all){if(it.ts<corte)await idbDel('hist',it.id)}
-}
-
-// Limpa entradas do hist local que não existem mais no servidor
-async function purgeHistOrfaos(){
-  if(S.demo||!S.sb||!S.online)return;
-  const all=await idbAll('hist');
-  // Só verifica entradas que possuem producaoid (vinculadas ao servidor)
-  const comId=all.filter(h=>h.producaoid);
-  if(!comId.length)return;
-  const ids=comId.map(h=>h.producaoid);
-  try{
-    const{data}=await S.sb.from('Producoes').select('id').in('id',ids);
-    const existentes=new Set((data||[]).map(r=>r.id));
-    for(const h of comId){
-      if(!existentes.has(h.producaoid))await idbDel('hist',h.id);
-    }
-  }catch(e){console.warn('purgeHistOrfaos erro:',e)}
-}
-
-async function purgeHistPorProducao(producaoid){
-  if(!producaoid)return;
-  const all=await idbAll('hist');
-  for(const h of all){if(h.producaoid===producaoid)await idbDel('hist',h.id)}
-}
 
 async function updOQ(){
   const fila=await idbAll('fila');const n=fila.length;
@@ -703,22 +674,14 @@ function iniciarRealtime(){
   _rtChannel=S.sb.channel('mob-rt-v2',{config:{broadcast:{self:false}}})
     .on('postgres_changes',{event:'*',schema:'public',table:'Producoes'},async(payload)=>{
       await reloadT('Producoes');
-      if(payload.eventType==='DELETE'){
-        S.producoes=S.producoes.filter(r=>r.id!==payload.old?.id);
-        // Remove apenas o item deletado do hist, não limpa tudo
-        await purgeHistPorProducao(payload.old?.id);
-      }
+      if(payload.eventType==='DELETE'){S.producoes=S.producoes.filter(r=>r.id!==payload.old?.id)}
       renderProdHoje();atualizarHome();flash();
       if(payload.eventType==='INSERT')toast('🏭 Produção registrada pelo desktop','info');
       if(payload.eventType==='DELETE')toast('🗑 Produção removida pelo desktop','warn');
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'Movimentacoes'},async(payload)=>{
       await reloadT('Movimentacoes');
-      if(payload.eventType==='DELETE'){
-        S.movimentacoes=S.movimentacoes.filter(r=>r.id!==payload.old?.id);
-        // Limpa orphãos do hist se a movimentação era de origem de produção
-        if(payload.old?.producaoid)await purgeHistPorProducao(payload.old.producaoid);
-      }
+      if(payload.eventType==='DELETE'){S.movimentacoes=S.movimentacoes.filter(r=>r.id!==payload.old?.id)}
       renderEstoque();renderSaidas();atualizarHome();flash();
       if(payload.eventType==='INSERT')toast(`📦 Nova movimentação: ${payload.new?.tipo||''}`.trim(),'info');
       if(payload.eventType==='DELETE')toast('🗑 Movimentação removida','warn');
@@ -812,8 +775,6 @@ function iniciarApp(){
   atualizarHome();
   if(S.sb)iniciarRealtime();
   updOQ();
-  // Limpa entradas do hist local que já foram apagadas no servidor
-  purgeHistOrfaos().then(()=>atualizarHome());
   // auto-refresh é fallback — iniciarRealtime() o pausará se RT conectar
   if(S.sb&&!S.demo)arStart();
 }
@@ -846,13 +807,35 @@ async function atualizarHome(){
   document.getElementById('gTxt').textContent=`${sd}, ${(S.user?.nome||'Operador').split(' ')[0]}! 👋`;
   document.getElementById('gDate').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
   const hoje=hojeISO();
-  const ph=S.producoes.filter(p=>(p.data||'').substring(0,10)===hoje).reduce((a,p)=>a+(parseInt(p.quantidade)||0),0);
+  const ph=S.producoes.filter(p=>p.data===hoje).reduce((a,p)=>a+(parseInt(p.quantidade)||0),0);
   document.getElementById('sHoje').textContent=ph||'0';
   document.getElementById('sTotal').textContent=S.producoes.reduce((a,p)=>a+(parseInt(p.quantidade)||0),0);
   document.getElementById('sFunc').textContent=S.funcionarios.length;
   document.getElementById('sMov').textContent=S.movimentacoes.length;
-  const hist=await idbAll('hist');
-  const last=hist.sort((a,b)=>b.ts-a.ts).slice(0,5);
+
+  // Últimos lançamentos direto do Supabase (sem cache local)
+  const ultProd=(S.producoes||[]).slice(0,5).map(r=>({
+    tipo:'prod',
+    desc:(S.pecas.find(p=>p.id===r.peca_id)?.nome||r.peca_id||'?')+' · '+(S.cores.find(c=>c.id===r.cor_id)?.nome||r.cor_id||'?'),
+    sub:S.funcionarios.find(f=>f.id===r.funcionario_id)?.nome||'',
+    qtd:r.quantidade,
+    ts:new Date(r.created_at||r.data).getTime()
+  }));
+  const ultMov=(S.movimentacoes||[]).slice(0,5).map(r=>({
+    tipo:'saida',
+    desc:(S.pecas.find(p=>p.id===r.peca_id)?.nome||r.peca_id||'?')+' · '+(S.cores.find(c=>c.id===r.cor_id)?.nome||r.cor_id||'?'),
+    sub:r.obs||r.tipo||'',
+    qtd:r.quantidade,
+    ts:new Date(r.created_at||r.data).getTime()
+  }));
+  const ultArm=(S.armacoes||[]).slice(0,3).map(r=>({
+    tipo:'arm',
+    desc:'Armação: '+(S.pecas.find(p=>p.id===r.peca_id)?.nome||r.peca_id||'?'),
+    sub:'Chegada',
+    qtd:r.quantidade,
+    ts:new Date(r.created_at||r.data).getTime()
+  }));
+  const last=[...ultProd,...ultMov,...ultArm].sort((a,b)=>b.ts-a.ts).slice(0,5);
   document.getElementById('homeHist').innerHTML=last.length?last.map(histRow).join(''):'<div class="empty"><p>Nenhum lançamento ainda</p></div>';
   await updOQ();
 }
@@ -946,16 +929,13 @@ window.salvarProducao=async function(){
         else await sbInsert('EstoqueArmacoes',{modeloid:it.pecaId,quantidade:-it.quantidade});
         S.producoes.unshift({...dados,id:r?.id,pecaid:it.pecaId,corid:it.corId,funcionarioid:funcId,horaextra:it.horaExtra?1:0});
         S.movimentacoes.unshift({data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,id:Date.now()});
-        const func=byId(S.funcionarios,funcId);const peca=byId(S.pecas,it.pecaId);const cor=byId(S.cores,it.corId);
-        await idbAdd('hist',{tipo:'prod',desc:`${peca?.nome||'?'} · ${cor?.nome||'?'}`,sub:func?.nome||'',qtd:it.quantidade,sync:true,ts:Date.now(),producaoid:r?.id});
       }else{
         await idbAdd('fila',{tipo:'producao',dados,movDados:{data,tipo:'entrada',pecaId:it.pecaId,corId:it.corId,quantidade:it.quantidade,origem:'Produção',funcionarioId:funcId},ts:Date.now(),key:crypto.randomUUID()});
         S.producoes.unshift({...dados,id:Date.now(),pecaid:it.pecaId,corid:it.corId,funcionarioid:funcId});
         S.movimentacoes.unshift({data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,id:Date.now()});
-        const func=byId(S.funcionarios,funcId);const peca=byId(S.pecas,it.pecaId);const cor=byId(S.cores,it.corId);
-        // producaoid null pois ainda não foi ao servidor
-        await idbAdd('hist',{tipo:'prod',desc:`${peca?.nome||'?'} · ${cor?.nome||'?'}`,sub:func?.nome||'',qtd:it.quantidade,sync:false,ts:Date.now(),producaoid:null});
       }
+      const eaLocal=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);if(eaLocal)eaLocal.quantidade-=it.quantidade;
+      // hist removido — dados vêm do Supabase em tempo real
     }
     await updOQ();limparProd();atualizarHome();renderProdHoje();renderEstoque();
     hideLoad();toast(`✅ Produção registrada!${!S.online||S.demo?' (offline)':''}`,S.online&&!S.demo?'success':'warn');
@@ -975,7 +955,7 @@ window.limparProd=function(){
 };
 
 function renderProdHoje(){
-  const hoje=hojeISO();const prods=S.producoes.filter(p=>(p.data||'').substring(0,10)===hoje);
+  const hoje=hojeISO();const prods=S.producoes.filter(p=>p.data===hoje);
   const el=document.getElementById('prodHojeList');
   if(!prods.length){el.innerHTML='<div class="empty"><div class="ei">📋</div><p>Nenhum registro hoje</p></div>';return}
   let tot=0;
@@ -1047,7 +1027,6 @@ window.salvarSaida=async function(){
   try{
     if(!S.demo&&S.sb&&S.online){await sbInsert('Movimentacoes',dados);S.movimentacoes.unshift({...dados,pecaId,corId,id:Date.now()});}
     else{await idbAdd('fila',{tipo:'saida',dados,ts:Date.now(),key:crypto.randomUUID()});S.movimentacoes.unshift({...dados,pecaId,corId,id:Date.now()});}
-    await idbAdd('hist',{tipo:'saida',desc:`${p?.nome||'?'} · ${c?.nome||'?'}`,sub:obs||'',qtd:quantidade,sync:S.online&&!S.demo,ts:Date.now()});
     await updOQ();limparSaida();renderEstoque();renderSaidas();atualizarHome();
     hideLoad();toast(`✅ Saída registrada!${!S.online||S.demo?' (offline)':''}`,S.online&&!S.demo?'success':'warn');
     if(navigator.vibrate)navigator.vibrate([50,50,100]);
@@ -1096,7 +1075,6 @@ window.salvarArmacao=async function(){
       const eaOffline=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===modeloId);
       if(eaOffline){eaOffline.quantidade+=quantidade;}else S.estoqueArmacoes.push({modeloid:modeloId,quantidade});
     }
-    await idbAdd('hist',{tipo:'arm',desc:`Armação: ${p?.nome||'?'}`,sub:'Chegada',qtd:quantidade,sync:S.online&&!S.demo,ts:Date.now()});
     document.getElementById('aData').value=hojeISO();document.getElementById('aModelo').value='';
     S.aNum='0';document.getElementById('aVal').textContent='0';document.getElementById('aVal').classList.add('ph');document.getElementById('aDisp').classList.remove('has');
     await updOQ();renderArmacoes();atualizarHome();
@@ -1161,7 +1139,7 @@ window.relAba=function(aba,btn){
   document.querySelectorAll('#relPills .pill').forEach(p=>p.classList.remove('active'));btn.classList.add('active');
   ['Geral','Modelos','Estoque','Folha','Armacoes'].forEach(a=>{document.getElementById('rel'+a).style.display=aba===a.toLowerCase()?'block':'none'});
 };
-function filtrarProd(ini,fim,fId,pId,cId){return S.producoes.filter(p=>{if(ini&&p.data<ini)return false;if(fim&&p.data>fim)return false;if(fId&&(p.funcionarioid??p.funcionarioId)!=fId)return false;if(pId&&(p.pecaid??p.pecaId)!=pId)return false;if(cId&&(p.corid??p.corId)!=cId)return false;return true})}
+function filtrarProd(ini,fim,fId,pId,cId){return S.producoes.filter(p=>{if(ini&&p.data<ini)return false;if(fim&&p.data>fim)return false;if(fId&&p.funcionarioId!=fId)return false;if(pId&&p.pecaId!=pId)return false;if(cId&&p.corId!=cId)return false;return true})}
 window.gerarRelGeral=function(){
   const ini=document.getElementById('rg_ini').value,fim=document.getElementById('rg_fim').value;
   const fId=document.getElementById('rg_func').value,pId=document.getElementById('rg_peca').value,cId=document.getElementById('rg_cor').value;
@@ -1185,7 +1163,7 @@ window.gerarRelGeral=function(){
 window.gerarRelModelos=function(){
   const ini=document.getElementById('rm_ini').value,fim=document.getElementById('rm_fim').value;
   const prods=filtrarProd(ini,fim,'','','');const el=document.getElementById('relModelosResult');
-  const agrup={};prods.forEach(p=>{const _pid=p.pecaid??p.pecaId;const _cid=p.corid??p.corId;const k=`${_pid}-${_cid}`;if(!agrup[k])agrup[k]={pecaId:_pid,corId:_cid,quantidade:0};agrup[k].quantidade+=parseInt(p.quantidade)||0});
+  const agrup={};prods.forEach(p=>{const k=`${p.pecaId}-${p.corId}`;if(!agrup[k])agrup[k]={pecaId:p.pecaId,corId:p.corId,quantidade:0};agrup[k].quantidade+=p.quantidade});
   const rows=Object.values(agrup);if(!rows.length){el.innerHTML='<div class="empty"><p>Nenhum dado</p></div>';return}
   let tot=0;
   el.innerHTML=rows.map(r=>{const p=byId(S.pecas,r.pecaId);const c=byId(S.cores,r.corId);const vt=(p?.valor||0)*r.quantidade;tot+=vt;return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span class="valor">${fmtMoeda(vt)}</span></div><div class="mob-rf"><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${r.quantidade}</strong></div></div></div>`}).join('')+`<div class="total-row"><span class="tl">Total</span><span class="tv">${fmtMoeda(tot)}</span></div>`;
@@ -1193,11 +1171,11 @@ window.gerarRelModelos=function(){
 window.gerarRelEstoque=function(){
   const ini=document.getElementById('re_ini').value,fim=document.getElementById('re_fim').value;
   const tipo=document.getElementById('re_tipo').value,pId=document.getElementById('re_peca').value;
-  let movs=S.movimentacoes.filter(m=>{if(ini&&m.data<ini)return false;if(fim&&m.data>fim)return false;if(tipo&&m.tipo!==tipo)return false;if(pId&&(m.pecaid??m.pecaId)!=pId)return false;return true});
+  let movs=S.movimentacoes.filter(m=>{if(ini&&m.data<ini)return false;if(fim&&m.data>fim)return false;if(tipo&&m.tipo!==tipo)return false;if(pId&&m.pecaId!=pId)return false;return true});
   const el=document.getElementById('relEstoqueResult');
   if(!movs.length){el.innerHTML='<div class="empty"><p>Nenhuma movimentação</p></div>';return}
   let saldo=0;
-  el.innerHTML=movs.map(m=>{const p=byId(S.pecas,m.pecaid??m.pecaId);const c=byId(S.cores,m.corid??m.corId);saldo+=m.tipo==='entrada'?m.quantidade:-m.quantidade;return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span class="${m.tipo==='entrada'?'badge-e':'badge-s'}">${m.tipo==='entrada'?'Entrada':'Saída'}</span></div><div class="mob-rf"><div class="mob-fi">Data<strong>${fmtData(m.data)}</strong></div><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${m.quantidade}</strong></div><div class="mob-fi">Origem<strong>${m.origem||'–'}</strong></div></div></div>`}).join('')+`<div class="total-row"><span class="tl">Saldo do Período</span><span class="tv" style="color:${saldo>=0?'var(--green2)':'var(--red2)'}">${saldo}</span></div>`;
+  el.innerHTML=movs.map(m=>{const p=byId(S.pecas,m.pecaId);const c=byId(S.cores,m.corId);saldo+=m.tipo==='entrada'?m.quantidade:-m.quantidade;return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span class="${m.tipo==='entrada'?'badge-e':'badge-s'}">${m.tipo==='entrada'?'Entrada':'Saída'}</span></div><div class="mob-rf"><div class="mob-fi">Data<strong>${fmtData(m.data)}</strong></div><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${m.quantidade}</strong></div><div class="mob-fi">Origem<strong>${m.origem||'–'}</strong></div></div></div>`}).join('')+`<div class="total-row"><span class="tl">Saldo do Período</span><span class="tv" style="color:${saldo>=0?'var(--green2)':'var(--red2)'}">${saldo}</span></div>`;
 };
 window.gerarFolha=function(){
   const mesAno=document.getElementById('rf_mes').value;if(!mesAno){toast('Selecione o mês/ano','error');return}
@@ -1351,12 +1329,10 @@ window.arToggle=function(){
 // BOOT
 async function boot(){
   await openIDB();
-  await purgeHistAntigo();
+  await idbClear('hist'); // remove cache local antigo — dados vêm do Supabase agora
   await initSB();
   updBadge();
   if(S.demo)document.getElementById('demoBox').style.display='block';
-  // Após conectar ao Supabase, limpeza de orphãos é feita via purgeHistOrfaos
-  // chamada no iniciarApp() depois de carregarDados()
 }
 boot();
 </script>
