@@ -230,8 +230,13 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
       <div class="ico">🪑</div>
       <div><h1>SysCadeiras</h1><small id="userLbl">Operador</small></div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px">
+    <div style="display:flex;align-items:center;gap:6px">
       <button class="rbtn" id="rBtn" onclick="atualizarTudo()" title="Atualizar dados">🔄</button>
+      <div id="arBadge" style="display:flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:4px 9px;font-size:10px;font-weight:700;color:var(--muted)">
+        <span style="color:var(--green2);font-size:9px">⏱</span>
+        <span id="arCountdown" style="color:var(--text);min-width:18px;text-align:right">20s</span>
+        <button id="arToggleBtn" onclick="arToggle()" title="Pausar auto-refresh" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:10px;padding:0 0 0 2px;line-height:1">⏸</button>
+      </div>
       <div class="sbadge on" id="sBadge"><div class="dot"></div><span id="sTxt">Online</span></div>
     </div>
   </div>
@@ -599,16 +604,92 @@ async function carregarDados(){
   hideLoad();
 }
 
+function updRtBadge(status){
+  // status: 'connecting' | 'live' | 'error'
+  const badge=document.getElementById('sBadge');
+  const dot=badge?.querySelector('.dot');
+  const txt=document.getElementById('sTxt');
+  const arB=document.getElementById('arBadge');
+  if(status==='live'){
+    if(dot)dot.style.background='var(--green2)';
+    if(txt)txt.textContent='Ao Vivo';
+    if(arB)arB.title='Realtime ativo — auto-refresh em standby';
+    // Quando realtime está ativo, pausamos o auto-refresh (é redundante)
+    arStop();
+    const arEl=document.getElementById('arCountdown');
+    if(arEl)arEl.textContent='RT';
+    const arBtn=document.getElementById('arToggleBtn');
+    if(arBtn)arBtn.style.display='none';
+  }else if(status==='connecting'){
+    if(dot){dot.style.background='var(--amber)';dot.style.animation='none'}
+    if(txt)txt.textContent='Conectando';
+  }else{
+    // error — volta para auto-refresh
+    if(dot){dot.style.background='var(--muted)';dot.style.animation='none'}
+    if(txt)txt.textContent='Online';
+    const arEl=document.getElementById('arCountdown');
+    if(arEl)arEl.textContent='20s';
+    const arBtn=document.getElementById('arToggleBtn');
+    if(arBtn)arBtn.style.display='';
+    if(S.online&&S.sb&&!S.demo)arStart();
+  }
+}
+
+let _rtChannel=null;
 function iniciarRealtime(){
   if(!S.sb)return;
-  S.sb.channel('mob-rt')
-    .on('postgres_changes',{event:'*',schema:'public',table:'Producoes'},async()=>{await reloadT('Producoes');renderProdHoje();atualizarHome()})
-    .on('postgres_changes',{event:'*',schema:'public',table:'Movimentacoes'},async()=>{await reloadT('Movimentacoes');renderEstoque();renderSaidas()})
-    .on('postgres_changes',{event:'*',schema:'public',table:'Pecas'},async()=>{await reloadT('Pecas');fillSelects()})
-    .on('postgres_changes',{event:'*',schema:'public',table:'Cores'},async()=>{await reloadT('Cores');fillSelects()})
-    .on('postgres_changes',{event:'*',schema:'public',table:'Funcionarios'},async()=>{await reloadT('Funcionarios');fillSelects()})
-    .on('postgres_changes',{event:'*',schema:'public',table:'Armacoes'},async()=>{await reloadT('Armacoes');await reloadT('EstoqueArmacoes');renderArmacoes()})
-    .subscribe();
+  if(_rtChannel){try{S.sb.removeChannel(_rtChannel)}catch(e){};_rtChannel=null}
+  updRtBadge('connecting');
+
+  const flash=()=>{
+    // pisca levemente a topbar para sinalizar dado novo
+    const tb=document.querySelector('.topbar');
+    if(!tb)return;
+    tb.style.transition='background .15s';
+    tb.style.background='rgba(39,174,96,.18)';
+    setTimeout(()=>{tb.style.background=''},400);
+  };
+
+  _rtChannel=S.sb.channel('mob-rt-v2',{config:{broadcast:{self:false}}})
+    .on('postgres_changes',{event:'*',schema:'public',table:'Producoes'},async(payload)=>{
+      await reloadT('Producoes');renderProdHoje();atualizarHome();flash();
+      if(payload.eventType!=='DELETE')toast('🏭 Produção atualizada pelo desktop','info');
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'Movimentacoes'},async(payload)=>{
+      await reloadT('Movimentacoes');renderEstoque();renderSaidas();atualizarHome();flash();
+      if(payload.eventType==='INSERT')toast(`📦 Nova movimentação: ${payload.new?.tipo||''}`.trim(),'info');
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'Pecas'},async()=>{
+      await reloadT('Pecas');fillSelects();renderEstoque();flash();
+      toast('🪑 Modelos atualizados','info');
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'Cores'},async()=>{
+      await reloadT('Cores');fillSelects();flash();
+      toast('🎨 Cores atualizadas','info');
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'Funcionarios'},async()=>{
+      await reloadT('Funcionarios');fillSelects();flash();
+      toast('👤 Funcionários atualizados','info');
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'Armacoes'},async(payload)=>{
+      await reloadT('Armacoes');await reloadT('EstoqueArmacoes');renderArmacoes();atualizarHome();flash();
+      if(payload.eventType==='INSERT')toast('🔩 Nova chegada de armação','info');
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'EstoqueArmacoes'},async()=>{
+      await reloadT('EstoqueArmacoes');renderArmacoes();renderEstoque();
+    })
+    .subscribe((status,err)=>{
+      if(status==='SUBSCRIBED'){
+        updRtBadge('live');
+        console.log('[RT] Canal ativo — atualizações em tempo real');
+      }else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
+        updRtBadge('error');
+        console.warn('[RT] Falha no canal, reconectando em 5s…',err);
+        setTimeout(()=>{if(S.online&&S.sb&&!S.demo)iniciarRealtime()},5000);
+      }else if(status==='CLOSED'){
+        updRtBadge('error');
+      }
+    });
 }
 
 async function reloadT(tabela){
@@ -652,6 +733,8 @@ function iniciarApp(){
   atualizarHome();
   if(S.sb)iniciarRealtime();
   updOQ();
+  // auto-refresh é fallback — iniciarRealtime() o pausará se RT conectar
+  if(S.sb&&!S.demo)arStart();
 }
 
 function fillSelects(){
@@ -1078,9 +1161,20 @@ window.syncFila=async function(){
 };
 
 // ONLINE/OFFLINE
-window.addEventListener('online',async()=>{S.online=true;updBadge();toast('✅ Conexão restaurada!','success');await syncFila()});
-window.addEventListener('offline',()=>{S.online=false;updBadge();toast('📴 Modo offline ativo','warn')});
-function updBadge(){const b=document.getElementById('sBadge');b.className='sbadge '+(S.online?'on':'off');document.getElementById('sTxt').textContent=S.online?'Online':'Offline'}
+window.addEventListener('online',async()=>{S.online=true;updBadge();toast('✅ Conexão restaurada!','success');await syncFila();if(S.sb&&!S.demo)iniciarRealtime()});
+window.addEventListener('offline',()=>{S.online=false;updBadge();toast('📴 Modo offline ativo','warn');arStop();const el=document.getElementById('arCountdown');if(el)el.textContent='–'});
+function updBadge(){
+  const b=document.getElementById('sBadge');
+  if(!S.online){
+    b.className='sbadge off';
+    document.getElementById('sTxt').textContent='Offline';
+  }else if(_rtChannel){
+    // deixa updRtBadge cuidar quando realtime está ativo
+  }else{
+    b.className='sbadge on';
+    document.getElementById('sTxt').textContent='Online';
+  }
+}
 
 // NAVEGAÇÃO
 window.nav=function(nome){
@@ -1123,6 +1217,52 @@ window.atualizarTudo=async function(){
     toast('✅ Dados atualizados!','success');
   }catch(e){toast('❌ Erro ao atualizar','error')}
   finally{btn.classList.remove('spin')}
+};
+
+// AUTO REFRESH
+let _arTimer=null,_arCount=20,_arRunning=false;
+function arTick(){
+  _arCount--;
+  const el=document.getElementById('arCountdown');
+  if(el)el.textContent=_arCount+'s';
+  if(_arCount<=0){
+    _arCount=20;
+    if(el)el.textContent='20s';
+    arRefresh();
+  }
+}
+async function arRefresh(){
+  if(_arRunning||!S.sb||S.demo||!S.online)return;
+  _arRunning=true;
+  try{
+    await carregarDados();
+    fillSelects();
+    const pagina=document.querySelector('.page.active');
+    if(pagina){
+      const id=pagina.id;
+      if(id==='pageHome')atualizarHome();
+      else if(id==='pageEstoque')renderEstoque();
+      else if(id==='pageProducao')renderProdHoje();
+      else if(id==='pageSaidas')renderSaidas();
+      else if(id==='pageArmacoes')renderArmacoes();
+    }
+    const el=document.getElementById('arLastUp');
+    if(el){const now=new Date();el.textContent=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0')+':'+now.getSeconds().toString().padStart(2,'0')}
+  }catch(e){console.warn('Auto-refresh falhou:',e)}
+  finally{_arRunning=false}
+}
+function arStart(){
+  if(_arTimer)return;
+  _arCount=20;
+  _arTimer=setInterval(arTick,1000);
+}
+function arStop(){
+  if(_arTimer){clearInterval(_arTimer);_arTimer=null}
+}
+window.arToggle=function(){
+  const btn=document.getElementById('arToggleBtn');
+  if(_arTimer){arStop();if(btn){btn.textContent='▶';btn.title='Iniciar auto-refresh'}}
+  else{arStart();if(btn){btn.textContent='⏸';btn.title='Pausar auto-refresh'}}
 };
 
 // BOOT
