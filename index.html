@@ -40,15 +40,11 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
 .tlogo small{display:block;font-size:10px;color:var(--muted)}
 .top-actions{display:flex;align-items:center;gap:6px}
 .rbtn{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:6px;border-radius:50%;transition:all .2s;line-height:1;display:flex;align-items:center;justify-content:center}
-.rbtn:active{background:var(--bg3);color:var(--green2)}
-.rbtn.spin{animation:spinIcon .7s linear infinite;color:var(--green2)}
-.reset-btn{color:#e74c3c;font-size:18px}
-.reset-btn:active{background:rgba(231,76,60,.2);color:#e74c3c}
+.rbtn:active{background:var(--bg3);color:var(--red2)}
 .sbadge{display:flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 11px;font-size:11px;font-weight:700;transition:all .3s}
 .sbadge .dot{width:7px;height:7px;border-radius:50%;background:var(--green2);animation:pulse 2s infinite}
 .sbadge.off .dot{background:var(--amber);animation:none}
 .sbadge.off{color:var(--amber)}.sbadge.on{color:var(--green2)}
-@keyframes spinIcon{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
 
 /* NAV */
@@ -133,9 +129,6 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
 .oq-t{font-size:13px;font-weight:700;color:var(--amber)}
 .oq-s{font-size:11px;color:var(--muted)}
 .oq-btn{background:var(--amber);color:#fff;border:none;border-radius:9px;padding:7px 13px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0}
-.diag-btn{background:rgba(52,152,219,.2);color:#3498db;margin-left:6px;padding:4px 8px;font-size:11px}
-.diag-btn:active{background:rgba(52,152,219,.4)}
-
 /* HISTORY */
 .hi-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(36,51,68,.6)}
 .hi-row:last-child{border-bottom:none}
@@ -236,9 +229,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
       <div><h1>SysCadeiras</h1><small id="userLbl">Operador</small></div>
     </div>
     <div class="top-actions">
-      <button class="rbtn diag-btn" onclick="diagnostico()" title="Diagnóstico">🔍</button>
-      <button class="rbtn" id="rBtn" onclick="atualizarTudo()" title="Atualizar dados">🔄</button>
-      <button class="rbtn reset-btn" id="resetBtn" onclick="apagarBancoDados()" title="Apagar banco de dados">🗑️</button>
+      <button class="rbtn" onclick="abrirBackup()" title="Backup">🗑️</button>
       <div class="sbadge on" id="sBadge"><div class="dot"></div><span id="sTxt">Online</span></div>
     </div>
   </div>
@@ -499,6 +490,30 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
 <div class="load-ov hidden" id="lOv"><div class="spinner"></div><div class="load-t" id="lTxt">Carregando...</div></div>
 <div class="toast-wrap" id="toastWrap"></div>
 
+<!-- MODAL BACKUP -->
+<div id="modalBackup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9500;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:18px;width:100%;max-width:360px;overflow:hidden;">
+    <div style="background:var(--red2);padding:18px 20px;">
+      <div style="font-size:16px;font-weight:800;color:#fff;">🗑️ Apagar Banco de Dados</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:3px;">Digite a senha para confirmar</div>
+    </div>
+    <div style="padding:20px;">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6;">
+        Remove <strong style="color:var(--text)">todos os dados locais</strong>. Os dados no servidor Supabase são preservados e resincronizados ao reabrir.
+      </div>
+      <div class="fg">
+        <div class="fl">🔑 Senha</div>
+        <input class="fi" type="password" id="backupSenha" placeholder="••••••••" onkeydown="if(event.key==='Enter')confirmarBackup()">
+        <div id="backupErro" style="color:var(--red2);font-size:12px;min-height:18px;margin-top:6px;"></div>
+      </div>
+      <div class="row-btns" style="margin-top:8px;">
+        <button class="btn btn-sec" onclick="fecharBackup()">Cancelar</button>
+        <button class="btn btn-r" onclick="confirmarBackup()">🗑️ Apagar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 // ⚙️ CONFIGURE AQUI
 const SUPABASE_URL = 'https://wbsxoffpugmajmzxofid.supabase.co';
@@ -564,81 +579,53 @@ async function updOQ(){
   document.getElementById('oqCard').classList.toggle('hidden',n===0);
 }
 
-// APAGAR BANCO DE DADOS
-window.apagarBancoDados = async function() {
-  if(!confirm('⚠️ ATENÇÃO!\n\nIsso irá apagar TODOS os dados locais:\n\n• Cache local (IndexedDB)\n• Fila de sincronização offline\n• Preferências do dispositivo\n• Service Worker e cache\n\nOs dados no servidor Supabase serão preservados e resincronizados ao reabrir.\n\nTem certeza que deseja continuar?')) return;
+// BACKUP COM SENHA
+const SENHA_BACKUP = 'dantas3101';
 
-  showLoad('Apagando banco de dados...');
-
-  try {
-    // 1. Fechar e deletar IndexedDB
-    if(S.idb) {
-      S.idb.close();
-      S.idb = null;
-    }
-    const dbs = ['syscad_m', 'SysCadeiras'];
-    for(const dbName of dbs) {
-      try {
-        await new Promise((resolve, reject) => {
-          const req = indexedDB.deleteDatabase(dbName);
-          req.onsuccess = () => resolve();
-          req.onerror = () => reject();
-          req.onblocked = () => resolve();
-        });
-        console.log(`🗑️ Database ${dbName} deletado`);
-      } catch(e) { console.log(`${dbName} não encontrado`); }
-    }
-
-    // 2. Limpar localStorage e sessionStorage
-    localStorage.clear();
-    sessionStorage.clear();
-
-    // 3. Limpar Service Workers
-    if('serviceWorker' in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for(let reg of registrations) await reg.unregister();
-    }
-
-    // 4. Limpar caches do browser
-    if(window.caches) {
-      const keys = await caches.keys();
-      for(const key of keys) await caches.delete(key);
-    }
-
-    toast('✅ Banco de dados apagado! Reabrindo...', 'success');
-    setTimeout(() => window.location.reload(true), 2000);
-
-  } catch(e) {
-    hideLoad();
-    toast('❌ Erro ao apagar: ' + e.message, 'error');
-  }
+window.abrirBackup = function() {
+  document.getElementById('backupSenha').value = '';
+  document.getElementById('backupErro').textContent = '';
+  const m = document.getElementById('modalBackup');
+  m.style.display = 'flex';
+  setTimeout(() => document.getElementById('backupSenha').focus(), 100);
 };
 
-// DIAGNÓSTICO
-window.diagnostico = async function() {
-  let filaCount = 0;
-  if(S.idb) {
-    const fila = await idbAll('fila');
-    filaCount = fila.length;
+window.fecharBackup = function() {
+  document.getElementById('modalBackup').style.display = 'none';
+};
+
+window.confirmarBackup = async function() {
+  const senha = document.getElementById('backupSenha').value;
+  if (senha !== SENHA_BACKUP) {
+    document.getElementById('backupErro').textContent = '❌ Senha incorreta';
+    return;
   }
-  
-  const status = {
-    'Modo Demo': S.demo,
-    'Online': S.online,
-    'Supabase Conectado': !!S.sb,
-    'Produções Locais': S.producoes?.length || 0,
-    'Movimentações Locais': S.movimentacoes?.length || 0,
-    'Fila Offline': filaCount,
-    'Cache IDB': S.idb ? 'Ativo' : 'Inativo'
-  };
-  
-  let msg = '📊 DIAGNÓSTICO SYSMOBILE 📊\n\n';
-  for(const [k,v] of Object.entries(status)) {
-    msg += `${k}: ${v}\n`;
+  fecharBackup();
+  showLoad('Apagando banco de dados...');
+  try {
+    if (S.idb) { S.idb.close(); S.idb = null; }
+    for (const dbName of ['syscad_m', 'SysCadeiras']) {
+      await new Promise(res => {
+        const r = indexedDB.deleteDatabase(dbName);
+        r.onsuccess = r.onerror = r.onblocked = res;
+      });
+    }
+    localStorage.clear();
+    sessionStorage.clear();
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const r of regs) await r.unregister();
+    }
+    if (window.caches) {
+      const keys = await caches.keys();
+      for (const k of keys) await caches.delete(k);
+    }
+    toast('✅ Banco apagado! Reabrindo...', 'success');
+    setTimeout(() => window.location.reload(true), 2000);
+  } catch(e) {
+    hideLoad();
+    toast('❌ Erro: ' + e.message, 'error');
   }
-  msg += '\n💡 Se houver dados fantasmas, acesse a aba 🗄️ Backup e apague o banco.';
-  alert(msg);
-  console.table(status);
 };
 
 // Supabase
@@ -1323,23 +1310,6 @@ window.toast=function(msg,tipo='info'){
 };
 function showLoad(t='Carregando...'){document.getElementById('lTxt').textContent=t;document.getElementById('lOv').classList.remove('hidden')}
 function hideLoad(){document.getElementById('lOv').classList.add('hidden')}
-
-// ATUALIZAR TUDO
-window.atualizarTudo=async function(){
-  const btn=document.getElementById('rBtn');
-  btn.classList.add('spin');
-  try{
-    await carregarDados(true);
-    fillSelects();
-    renderProdHoje();
-    renderEstoque();
-    renderSaidas();
-    renderArmacoes();
-    await atualizarHome();
-    toast('✅ Dados atualizados do servidor!','success');
-  }catch(e){toast('❌ Erro ao atualizar: '+e.message,'error')}
-  finally{btn.classList.remove('spin')}
-};
 
 // BOOT
 async function boot(){
