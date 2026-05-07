@@ -842,10 +842,18 @@ window.salvarProducao=async function(){
         if(eaArm)await sbUpdate('EstoqueArmacoes',eaArm.id,{quantidade:nova});
         else await sbInsert('EstoqueArmacoes',{modeloid:it.pecaId,quantidade:-it.quantidade});
       }else{
-        await idbAdd('fila',{tipo:'producao',dados,movDados:{data,tipo:'entrada',pecaId:it.pecaId,corId:it.corId,quantidade:it.quantidade,origem:'Produção',funcionarioId:funcId},ts:Date.now(),key:crypto.randomUUID()});
+        // Offline: salvar na fila e atualizar arrays locais
+        await idbAdd('fila',{
+          tipo:'producao',
+          dados,
+          movDados:{data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,origem:'Produção',funcionarioid:funcId},
+          ts:Date.now(),
+          key:crypto.randomUUID()
+        });
         S.producoes.unshift({...dados,id:Date.now(),pecaid:it.pecaId,corid:it.corId,funcionarioid:funcId});
-        S.movimentacoes.unshift({data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,id:Date.now()});
-        const eaLocal=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);if(eaLocal)eaLocal.quantidade-=it.quantidade;
+        S.movimentacoes.unshift({data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,id:Date.now(),origem:'Produção'});
+        const eaLocal=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);
+        if(eaLocal)eaLocal.quantidade-=it.quantidade;
       }
     }
     await updOQ();limparProd();atualizarHome();renderProdHoje();renderEstoque();
@@ -937,7 +945,7 @@ window.salvarSaida=async function(){
   const p=byId(S.pecas,pecaId);const c=byId(S.cores,corId);
   try{
     if(!S.demo&&S.sb&&S.online){
-      await sbInsert('Movimentacoes',dados); // Realtime atualiza o estado
+      await sbInsert('Movimentacoes',dados);
     }else{
       await idbAdd('fila',{tipo:'saida',dados,ts:Date.now(),key:crypto.randomUUID()});
       S.movimentacoes.unshift({...dados,pecaId,corId,id:Date.now()});
@@ -977,7 +985,6 @@ window.salvarArmacao=async function(){
   const p=byId(S.pecas,modeloId);
   try{
     if(!S.demo&&S.sb&&S.online){
-      // Salva no banco — Realtime atualiza o estado local
       await sbInsert('Armacoes',dadosArm);
       const eaArm2=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===modeloId);
       const novoSaldo=(eaArm2?.quantidade||0)+quantidade;
@@ -1124,13 +1131,22 @@ window.syncFila=async function(){
   const fila=await idbAll('fila');let ok=0,fail=0;
   for(const item of fila){
     try{
-      if(item.tipo==='producao'){const r=await sbInsert('Producoes',item.dados);if(item.movDados)await sbInsert('Movimentacoes',{...item.movDados,producaoid:r?.id})}
-      else if(item.tipo==='saida'||item.tipo==='movimentacao')await sbInsert('Movimentacoes',item.dados);
+      if(item.tipo==='producao'){const r=await sbInsert('Producoes',item.dados);if(item.movDados)await sbInsert('Movimentacoes',item.movDados)}
+      else if(item.tipo==='saida')await sbInsert('Movimentacoes',item.dados);
       else if(item.tipo==='armacao')await sbInsert('Armacoes',item.dados);
       await idbDel('fila',item.id);ok++;
     }catch(e){fail++}
   }
-  await updOQ();hideLoad();
+  await updOQ();
+  // Recarregar dados para refletir as mudanças
+  await carregarDados();
+  fillSelects();
+  renderProdHoje();
+  renderEstoque();
+  renderSaidas();
+  renderArmacoes();
+  atualizarHome();
+  hideLoad();
   if(ok>0)toast(`✅ ${ok} item(ns) sincronizados!`,'success');
   if(fail>0)toast(`⚠️ ${fail} falha(s)`,'warn');
 };
@@ -1186,7 +1202,7 @@ window.atualizarTudo=async function(){
 // BOOT
 async function boot(){
   await openIDB();
-  await idbClear('hist'); // limpa cache antigo — dados vêm 100% do Supabase
+  // CORREÇÃO: função idbClear removida - não existe
   await initSB();
   updBadge();
   if(S.demo)document.getElementById('demoBox').style.display='block';
