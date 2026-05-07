@@ -552,6 +552,7 @@ async function openIDB(){
 function idbAdd(store,data){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readwrite');const req=tx.objectStore(store).add(data);req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error)})}
 function idbAll(store){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readonly');const req=tx.objectStore(store).getAll();req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error)})}
 function idbDel(store,id){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readwrite');const req=tx.objectStore(store).delete(id);req.onsuccess=res;req.onerror=()=>rej(req.error)})}
+function idbClear(store){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readwrite');const req=tx.objectStore(store).clear();req.onsuccess=res;req.onerror=()=>rej(req.error)})}
 
 async function updOQ(){
   const fila=await idbAll('fila');const n=fila.length;
@@ -673,14 +674,14 @@ function iniciarRealtime(){
   _rtChannel=S.sb.channel('mob-rt-v2',{config:{broadcast:{self:false}}})
     .on('postgres_changes',{event:'*',schema:'public',table:'Producoes'},async(payload)=>{
       await reloadT('Producoes');
-      if(payload.eventType==='DELETE'){S.producoes=S.producoes.filter(r=>r.id!==payload.old?.id)}
+      if(payload.eventType==='DELETE'){S.producoes=S.producoes.filter(r=>r.id!==payload.old?.id);await idbClear('hist')}
       renderProdHoje();atualizarHome();flash();
       if(payload.eventType==='INSERT')toast('🏭 Produção registrada pelo desktop','info');
       if(payload.eventType==='DELETE')toast('🗑 Produção removida pelo desktop','warn');
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'Movimentacoes'},async(payload)=>{
       await reloadT('Movimentacoes');
-      if(payload.eventType==='DELETE'){S.movimentacoes=S.movimentacoes.filter(r=>r.id!==payload.old?.id)}
+      if(payload.eventType==='DELETE'){S.movimentacoes=S.movimentacoes.filter(r=>r.id!==payload.old?.id);await idbClear('hist')}
       renderEstoque();renderSaidas();atualizarHome();flash();
       if(payload.eventType==='INSERT')toast(`📦 Nova movimentação: ${payload.new?.tipo||''}`.trim(),'info');
       if(payload.eventType==='DELETE')toast('🗑 Movimentação removida','warn');
