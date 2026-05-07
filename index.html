@@ -557,14 +557,12 @@ async function updOQ(){
 // Supabase
 async function initSB(){
   if(S.demo)return;
-  for(let i=0;i<3;i++){
-    try{
-      const{createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
-      S.sb=createClient(SUPABASE_URL,SUPABASE_KEY);
-      return;
-    }catch(e){console.warn(`SB init tentativa ${i+1} falhou:`,e);await new Promise(r=>setTimeout(r,1000))}
+  try{
+    const{createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
+    S.sb=createClient(SUPABASE_URL,SUPABASE_KEY);
+  }catch(e){
+    console.warn('SB init falhou:',e);
   }
-  console.error('Falha ao inicializar Supabase após 3 tentativas');
 }
 
 async function sbInsert(tabela,dados){
@@ -837,7 +835,6 @@ window.salvarProducao=async function(){
     for(const it of itens){
       const dados={data,funcionarioid:funcId,pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,horaextra:it.horaExtra?1:0,device_origin:'mobile'};
       if(!S.demo&&S.sb&&S.online){
-        // Salva no banco — Realtime cuida de atualizar o estado local
         const r=await sbInsert('Producoes',dados);
         await sbInsert('Movimentacoes',{data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,origem:'Produção',producaoid:r?.id,funcionarioid:funcId,device_origin:'mobile'});
         const eaArm=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);
@@ -850,7 +847,7 @@ window.salvarProducao=async function(){
         S.movimentacoes.unshift({data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,id:Date.now()});
         const eaLocal=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);if(eaLocal)eaLocal.quantidade-=it.quantidade;
       }
-      const func=byId(S.funcionarios,funcId);const peca=byId(S.pecas,it.pecaId);const cor=byId(S.cores,it.corId);
+    }
     await updOQ();limparProd();atualizarHome();renderProdHoje();renderEstoque();
     hideLoad();toast(`✅ Produção registrada!${!S.online||S.demo?' (offline)':''}`,S.online&&!S.demo?'success':'warn');
     if(navigator.vibrate)navigator.vibrate([50,50,100]);
