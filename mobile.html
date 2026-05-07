@@ -497,7 +497,7 @@ const DEMO_USERS = [
 
 const S = {
   user:null,sb:null,online:navigator.onLine,
-  demo:!SUPABASE_URL||!SUPABASE_KEY,idb:null,
+  demo:!SUPABASE_URL||!SUPABASE_KEY||!SUPABASE_URL.startsWith('http'),idb:null,
   pecas:[],cores:[],funcionarios:[],producoes:[],
   movimentacoes:[],armacoes:[],estoqueArmacoes:[],
   prodNums:{},prodHE:{},sNum:'0',aNum:'0',
@@ -675,9 +675,9 @@ async function atualizarHome(){
   document.getElementById('gTxt').textContent=`${sd}, ${(S.user?.nome||'Operador').split(' ')[0]}! 👋`;
   document.getElementById('gDate').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
   const hoje=hojeISO();
-  const ph=S.producoes.filter(p=>p.data===hoje).reduce((a,p)=>a+p.quantidade,0);
+  const ph=S.producoes.filter(p=>p.data===hoje).reduce((a,p)=>a+(parseInt(p.quantidade)||0),0);
   document.getElementById('sHoje').textContent=ph||'0';
-  document.getElementById('sTotal').textContent=S.producoes.reduce((a,p)=>a+p.quantidade,0);
+  document.getElementById('sTotal').textContent=S.producoes.reduce((a,p)=>a+(parseInt(p.quantidade)||0),0);
   document.getElementById('sFunc').textContent=S.funcionarios.length;
   document.getElementById('sMov').textContent=S.movimentacoes.length;
   const hist=await idbAll('hist');
@@ -765,22 +765,22 @@ window.salvarProducao=async function(){
   showLoad('Registrando produção...');
   try{
     for(const it of itens){
-      const dados={data,funcionarioid:funcId,pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,horaextra:it.horaExtra,device_origin:'mobile'};
+      const dados={data,funcionarioid:funcId,pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,horaextra:it.horaExtra?1:0,device_origin:'mobile'};
       if(!S.demo&&S.sb&&S.online){
         const r=await sbInsert('Producoes',dados);
         await sbInsert('Movimentacoes',{data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,origem:'Produção',producaoid:r?.id,funcionarioid:funcId,device_origin:'mobile'});
-        const ea=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);
-        const nova=(ea?.quantidade||0)-it.quantidade;
-        if(ea)await sbUpdate('EstoqueArmacoes',ea.id,{quantidade:nova});
+        const eaArm=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);
+        const nova=(eaArm?.quantidade||0)-it.quantidade;
+        if(eaArm){await sbUpdate('EstoqueArmacoes',eaArm.id,{quantidade:nova});eaArm.quantidade=nova;}
         else await sbInsert('EstoqueArmacoes',{modeloid:it.pecaId,quantidade:-it.quantidade});
-        S.producoes.unshift({...dados,id:r?.id});
-        S.movimentacoes.unshift({data,tipo:'entrada',pecaId:it.pecaId,corId:it.corId,quantidade:it.quantidade,id:Date.now()});
+        S.producoes.unshift({...dados,id:r?.id,pecaid:it.pecaId,corid:it.corId,funcionarioid:funcId,horaextra:it.horaExtra?1:0});
+        S.movimentacoes.unshift({data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,id:Date.now()});
       }else{
-        await idbAdd('fila',{tipo:'producao',dados,movDados:{data,tipo:'entrada',pecaId:it.pecaId,corId:it.corId,quantidade:it.quantidade,origem:'Produção',funcionarioId:funcId},ts:Date.now(),key:crypto.randomUUID()});
-        S.producoes.unshift({...dados,id:Date.now()});
-        S.movimentacoes.unshift({data,tipo:'entrada',pecaId:it.pecaId,corId:it.corId,quantidade:it.quantidade,id:Date.now()});
+        await idbAdd('fila',{tipo:'producao',dados,movDados:{data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,origem:'Produção',funcionarioid:funcId},ts:Date.now(),key:crypto.randomUUID()});
+        S.producoes.unshift({...dados,id:Date.now(),pecaid:it.pecaId,corid:it.corId,funcionarioid:funcId});
+        S.movimentacoes.unshift({data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,id:Date.now()});
       }
-      const ea=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);if(ea)ea.quantidade-=it.quantidade;
+      const eaLocal=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);if(eaLocal)eaLocal.quantidade-=it.quantidade;
       const func=byId(S.funcionarios,funcId);const peca=byId(S.pecas,it.pecaId);const cor=byId(S.cores,it.corId);
       await idbAdd('hist',{tipo:'prod',desc:`${peca?.nome||'?'} · ${cor?.nome||'?'}`,sub:func?.nome||'',qtd:it.quantidade,sync:S.online&&!S.demo,ts:Date.now()});
     }
@@ -808,7 +808,7 @@ function renderProdHoje(){
   let tot=0;
   el.innerHTML=prods.map(p=>{
     const f=byId(S.funcionarios,p.funcionarioid??p.funcionarioId);const pc=byId(S.pecas,p.pecaid??p.pecaId);const c=byId(S.cores,p.corid??p.corId);
-    const vu=pc?((p.horaextra??p.horaExtra)?pc.valor*1.5:pc.valor):0;const vt=vu*p.quantidade;tot+=vt;
+    const vu=pc?((p.horaextra??p.horaExtra)?pc.valor*1.5:pc.valor):0;const vt=vu*(parseInt(p.quantidade)||0);tot+=vt;
     return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${pc?.nome||'N/A'}</span>${(p.horaextra??p.horaExtra)?'<span class="badge-he">⏰ HE</span>':''}</div>
       <div class="mob-rf"><div class="mob-fi">Funcionário<strong>${f?.nome||'N/A'}</strong></div><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div>
       <div class="mob-fi">Quantidade<strong>${p.quantidade}</strong></div><div class="mob-fi">Valor<strong class="valor">${fmtMoeda(vt)}</strong></div></div></div>`;
@@ -823,9 +823,10 @@ window.renderEstoque=function(){
   const q=document.getElementById('estPesq').value.toLowerCase();
   const saldos={};
   S.movimentacoes.forEach(m=>{
-    if(pId&&(m.pecaid??m.pecaId)!==pId)return;if(cId&&(m.corid??m.corId)!==cId)return;
-    const k=`${m.pecaid??m.pecaId}-${m.corid??m.corId}`;
-    if(!saldos[k])saldos[k]={pecaId:m.pecaid??m.pecaId,corId:m.corid??m.corId,saldo:0};
+    const _mp=m.pecaid??m.pecaId;const _mc=m.corid??m.corId;
+    if(pId&&_mp!==pId)return;if(cId&&_mc!==cId)return;
+    const k=`${_mp}-${_mc}`;
+    if(!saldos[k])saldos[k]={pecaId:_mp,corId:_mc,saldo:0};
     saldos[k].saldo+=m.tipo==='entrada'?m.quantidade:-m.quantidade;
   });
   let rows=Object.values(saldos);
@@ -871,8 +872,8 @@ window.salvarSaida=async function(){
   showLoad('Registrando saída...');
   const p=byId(S.pecas,pecaId);const c=byId(S.cores,corId);
   try{
-    if(!S.demo&&S.sb&&S.online){await sbInsert('Movimentacoes',dados);S.movimentacoes.unshift({...dados,id:Date.now()});}
-    else{await idbAdd('fila',{tipo:'saida',dados,ts:Date.now(),key:crypto.randomUUID()});S.movimentacoes.unshift({...dados,id:Date.now()});}
+    if(!S.demo&&S.sb&&S.online){await sbInsert('Movimentacoes',dados);S.movimentacoes.unshift({...dados,pecaId,corId,id:Date.now()});}
+    else{await idbAdd('fila',{tipo:'saida',dados,ts:Date.now(),key:crypto.randomUUID()});S.movimentacoes.unshift({...dados,pecaId,corId,id:Date.now()});}
     await idbAdd('hist',{tipo:'saida',desc:`${p?.nome||'?'} · ${c?.nome||'?'}`,sub:obs||'',qtd:quantidade,sync:S.online&&!S.demo,ts:Date.now()});
     await updOQ();limparSaida();renderEstoque();renderSaidas();atualizarHome();
     hideLoad();toast(`✅ Saída registrada!${!S.online||S.demo?' (offline)':''}`,S.online&&!S.demo?'success':'warn');
@@ -904,23 +905,23 @@ window.salvarArmacao=async function(){
   const quantidade=parseInt(S.aNum);
   if(!modeloId){toast('Selecione um modelo','error');return}
   if(!quantidade||quantidade<1){toast('Informe a quantidade','error');return}
-  const dados={data,modeloid:modeloId,quantidade,device_origin:'mobile'};
+  const dadosArm={data,modeloid:modeloId,quantidade,device_origin:'mobile'};
   showLoad('Registrando armação...');
   const p=byId(S.pecas,modeloId);
   try{
     if(!S.demo&&S.sb&&S.online){
-      await sbInsert('Armacoes',dados);
-      const{data:allArm}=await S.sb.from('Armacoes').select('quantidade').eq('modeloid',modeloId);
-      const total=(allArm||[]).reduce((a,r)=>a+r.quantidade,0);
-      const ea=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===modeloId);
-      if(ea){await sbUpdate('EstoqueArmacoes',ea.id,{quantidade:total});ea.quantidade=total;}
-      else{await sbInsert('EstoqueArmacoes',{modeloid:modeloId,quantidade:total});S.estoqueArmacoes.push({modeloid:modeloId,quantidade:total});}
-      S.armacoes.unshift({...dados,id:Date.now()});
+      await sbInsert('Armacoes',dadosArm);
+      const eaArm2=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===modeloId);
+      const saldoAtual=eaArm2?.quantidade||0;
+      const novoSaldo=saldoAtual+quantidade;
+      if(eaArm2){await sbUpdate('EstoqueArmacoes',eaArm2.id,{quantidade:novoSaldo});eaArm2.quantidade=novoSaldo;}
+      else{await sbInsert('EstoqueArmacoes',{modeloid:modeloId,quantidade:novoSaldo});S.estoqueArmacoes.push({modeloid:modeloId,quantidade:novoSaldo});}
+      S.armacoes.unshift({...dadosArm,id:Date.now()});
     }else{
-      await idbAdd('fila',{tipo:'armacao',dados,ts:Date.now(),key:crypto.randomUUID()});
-      S.armacoes.unshift({...dados,id:Date.now()});
-      const ea=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===modeloId);
-      if(ea)ea.quantidade+=quantidade;else S.estoqueArmacoes.push({modeloid:modeloId,quantidade});
+      await idbAdd('fila',{tipo:'armacao',dados:dadosArm,ts:Date.now(),key:crypto.randomUUID()});
+      S.armacoes.unshift({...dadosArm,id:Date.now()});
+      const eaOffline=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===modeloId);
+      if(eaOffline){eaOffline.quantidade+=quantidade;}else S.estoqueArmacoes.push({modeloid:modeloId,quantidade});
     }
     await idbAdd('hist',{tipo:'arm',desc:`Armação: ${p?.nome||'?'}`,sub:'Chegada',qtd:quantidade,sync:S.online&&!S.demo,ts:Date.now()});
     document.getElementById('aData').value=hojeISO();document.getElementById('aModelo').value='';
@@ -1001,7 +1002,7 @@ window.gerarRelGeral=function(){
   </div>`;
   el.innerHTML=grid+prods.map(p=>{
     const f=byId(S.funcionarios,p.funcionarioid??p.funcionarioId);const pc=byId(S.pecas,p.pecaid??p.pecaId);const c=byId(S.cores,p.corid??p.corId);
-    const vu=pc?((p.horaextra??p.horaExtra)?pc.valor*1.5:pc.valor):0;const vt=vu*p.quantidade;tot+=vt;
+    const vu=pc?((p.horaextra??p.horaExtra)?pc.valor*1.5:pc.valor):0;const vt=vu*(parseInt(p.quantidade)||0);tot+=vt;
     return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${pc?.nome||'N/A'}</span>${(p.horaextra??p.horaExtra)?'<span class="badge-he">HE</span>':''}</div>
       <div class="mob-rf"><div class="mob-fi">Funcionário<strong>${f?.nome||'N/A'}</strong></div><div class="mob-fi">Data<strong>${fmtData(p.data)}</strong></div>
       <div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${p.quantidade}</strong></div>
@@ -1011,10 +1012,10 @@ window.gerarRelGeral=function(){
 window.gerarRelModelos=function(){
   const ini=document.getElementById('rm_ini').value,fim=document.getElementById('rm_fim').value;
   const prods=filtrarProd(ini,fim,'','','');const el=document.getElementById('relModelosResult');
-  const agrup={};prods.forEach(p=>{const k=`${p.pecaid??p.pecaId}-${p.corid??p.corId}`;if(!agrup[k])agrup[k]={pecaId:p.pecaid??p.pecaId,corId:p.corid??p.corId,quantidade:0};agrup[k].quantidade+=p.quantidade});
+  const agrup={};prods.forEach(p=>{const k=`${p.pecaId}-${p.corId}`;if(!agrup[k])agrup[k]={pecaId:p.pecaId,corId:p.corId,quantidade:0};agrup[k].quantidade+=p.quantidade});
   const rows=Object.values(agrup);if(!rows.length){el.innerHTML='<div class="empty"><p>Nenhum dado</p></div>';return}
   let tot=0;
-  el.innerHTML=rows.map(r=>{const p=byId(S.pecas,r.pecaId??r.pecaid);const c=byId(S.cores,r.corId??r.corid);const vt=(p?.valor||0)*r.quantidade;tot+=vt;return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span class="valor">${fmtMoeda(vt)}</span></div><div class="mob-rf"><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${r.quantidade}</strong></div></div></div>`}).join('')+`<div class="total-row"><span class="tl">Total</span><span class="tv">${fmtMoeda(tot)}</span></div>`;
+  el.innerHTML=rows.map(r=>{const p=byId(S.pecas,r.pecaId);const c=byId(S.cores,r.corId);const vt=(p?.valor||0)*r.quantidade;tot+=vt;return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span class="valor">${fmtMoeda(vt)}</span></div><div class="mob-rf"><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${r.quantidade}</strong></div></div></div>`}).join('')+`<div class="total-row"><span class="tl">Total</span><span class="tv">${fmtMoeda(tot)}</span></div>`;
 };
 window.gerarRelEstoque=function(){
   const ini=document.getElementById('re_ini').value,fim=document.getElementById('re_fim').value;
@@ -1023,7 +1024,7 @@ window.gerarRelEstoque=function(){
   const el=document.getElementById('relEstoqueResult');
   if(!movs.length){el.innerHTML='<div class="empty"><p>Nenhuma movimentação</p></div>';return}
   let saldo=0;
-  el.innerHTML=movs.map(m=>{const p=byId(S.pecas,m.pecaid??m.pecaId);const c=byId(S.cores,m.corid??m.corId);saldo+=m.tipo==='entrada'?m.quantidade:-m.quantidade;return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span class="${m.tipo==='entrada'?'badge-e':'badge-s'}">${m.tipo==='entrada'?'Entrada':'Saída'}</span></div><div class="mob-rf"><div class="mob-fi">Data<strong>${fmtData(m.data)}</strong></div><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${m.quantidade}</strong></div><div class="mob-fi">Origem<strong>${m.origem||'–'}</strong></div></div></div>`}).join('')+`<div class="total-row"><span class="tl">Saldo do Período</span><span class="tv" style="color:${saldo>=0?'var(--green2)':'var(--red2)'}">${saldo}</span></div>`;
+  el.innerHTML=movs.map(m=>{const p=byId(S.pecas,m.pecaId);const c=byId(S.cores,m.corId);saldo+=m.tipo==='entrada'?m.quantidade:-m.quantidade;return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span class="${m.tipo==='entrada'?'badge-e':'badge-s'}">${m.tipo==='entrada'?'Entrada':'Saída'}</span></div><div class="mob-rf"><div class="mob-fi">Data<strong>${fmtData(m.data)}</strong></div><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${m.quantidade}</strong></div><div class="mob-fi">Origem<strong>${m.origem||'–'}</strong></div></div></div>`}).join('')+`<div class="total-row"><span class="tl">Saldo do Período</span><span class="tv" style="color:${saldo>=0?'var(--green2)':'var(--red2)'}">${saldo}</span></div>`;
 };
 window.gerarFolha=function(){
   const mesAno=document.getElementById('rf_mes').value;if(!mesAno){toast('Selecione o mês/ano','error');return}
@@ -1032,7 +1033,7 @@ window.gerarFolha=function(){
   const el=document.getElementById('relFolhaResult');
   if(!prods.length){el.innerHTML='<div class="empty"><p>Nenhuma produção no período</p></div>';return}
   const por={};
-  prods.forEach(p=>{const _fid=p.funcionarioid??p.funcionarioId;if(!por[_fid])por[_fid]={total:0,itens:0,registros:0,he:0};const pc=byId(S.pecas,p.pecaId);const vu=pc?((p.horaextra??p.horaExtra)?pc.valor*1.5:pc.valor):0;por[p.funcionarioId].total+=vu*p.quantidade;por[p.funcionarioId].itens+=p.quantidade;por[p.funcionarioId].registros++;if(p.horaExtra)por[p.funcionarioId].he++});
+  prods.forEach(p=>{const _fid=p.funcionarioid??p.funcionarioId;const _pid=p.pecaid??p.pecaId;if(!por[_fid])por[_fid]={total:0,itens:0,registros:0,he:0};const pc=byId(S.pecas,_pid);const vu=pc?((p.horaextra??p.horaExtra)?pc.valor*1.5:pc.valor):0;por[_fid].total+=vu*(parseInt(p.quantidade)||0);por[_fid].itens+=(parseInt(p.quantidade)||0);por[_fid].registros++;if(p.horaextra??p.horaExtra)por[_fid].he++});
   let totGeral=0;
   el.innerHTML=`<div class="mob-row" style="margin-bottom:14px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--green2)">${Object.keys(por).length} funcionários</div><div style="font-size:12px;color:var(--muted)">Folha ${mes}/${ano}</div></div>`+
   Object.entries(por).map(([fId,d])=>{const f=byId(S.funcionarios,parseInt(fId));totGeral+=d.total;return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${f?.nome||'N/A'}</span><span class="valor">${fmtMoeda(d.total)}</span></div><div class="mob-rf"><div class="mob-fi">Itens<strong>${d.itens}</strong></div><div class="mob-fi">Registros<strong>${d.registros}</strong></div><div class="mob-fi">H.Extras<strong>${d.he}</strong></div></div></div>`}).join('')+
@@ -1058,7 +1059,7 @@ window.syncFila=async function(){
   const fila=await idbAll('fila');let ok=0,fail=0;
   for(const item of fila){
     try{
-      if(item.tipo==='producao'){const r=await sbInsert('Producoes',item.dados);if(item.movDados)await sbInsert('Movimentacoes',{...item.movDados,producaoId:r?.id})}
+      if(item.tipo==='producao'){const r=await sbInsert('Producoes',item.dados);if(item.movDados)await sbInsert('Movimentacoes',{...item.movDados,producaoid:r?.id})}
       else if(item.tipo==='saida'||item.tipo==='movimentacao')await sbInsert('Movimentacoes',item.dados);
       else if(item.tipo==='armacao')await sbInsert('Armacoes',item.dados);
       await idbDel('fila',item.id);ok++;
