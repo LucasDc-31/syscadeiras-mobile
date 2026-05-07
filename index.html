@@ -636,8 +636,28 @@ function updRtBadge(status){
 }
 
 let _rtChannel=null;
+async function diagRealtime(){
+  // Verifica se as tabelas estão na publication
+  try{
+    const{data}=await S.sb.rpc('check_rt_tables').catch(()=>({data:null}));
+    if(!data){
+      // rpc não existe, tenta query direta
+      const{data:rows}=await S.sb
+        .from('pg_publication_tables')
+        .select('tablename')
+        .eq('pubname','supabase_realtime')
+        .catch(()=>({data:null}));
+      if(rows)console.log('[RT] Tabelas na publication:',rows.map(r=>r.tablename));
+      else console.log('[RT] Não foi possível verificar pg_publication_tables (normal em projetos com RLS)');
+    }
+  }catch(e){}
+  // Verifica sessão ativa
+  const{data:{session}}=await S.sb.auth.getSession();
+  console.log('[RT] Sessão ativa:', session?`user: ${session.user.email}`:'❌ SEM SESSÃO — isso bloqueia o Realtime!');
+}
 function iniciarRealtime(){
   if(!S.sb)return;
+  diagRealtime(); // diagnóstico no console
   if(_rtChannel){try{S.sb.removeChannel(_rtChannel)}catch(e){};_rtChannel=null}
   updRtBadge('connecting');
 
@@ -652,12 +672,18 @@ function iniciarRealtime(){
 
   _rtChannel=S.sb.channel('mob-rt-v2',{config:{broadcast:{self:false}}})
     .on('postgres_changes',{event:'*',schema:'public',table:'Producoes'},async(payload)=>{
-      await reloadT('Producoes');renderProdHoje();atualizarHome();flash();
-      if(payload.eventType!=='DELETE')toast('🏭 Produção atualizada pelo desktop','info');
+      await reloadT('Producoes');
+      if(payload.eventType==='DELETE'){S.producoes=S.producoes.filter(r=>r.id!==payload.old?.id)}
+      renderProdHoje();atualizarHome();flash();
+      if(payload.eventType==='INSERT')toast('🏭 Produção registrada pelo desktop','info');
+      if(payload.eventType==='DELETE')toast('🗑 Produção removida pelo desktop','warn');
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'Movimentacoes'},async(payload)=>{
-      await reloadT('Movimentacoes');renderEstoque();renderSaidas();atualizarHome();flash();
+      await reloadT('Movimentacoes');
+      if(payload.eventType==='DELETE'){S.movimentacoes=S.movimentacoes.filter(r=>r.id!==payload.old?.id)}
+      renderEstoque();renderSaidas();atualizarHome();flash();
       if(payload.eventType==='INSERT')toast(`📦 Nova movimentação: ${payload.new?.tipo||''}`.trim(),'info');
+      if(payload.eventType==='DELETE')toast('🗑 Movimentação removida','warn');
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'Pecas'},async()=>{
       await reloadT('Pecas');fillSelects();renderEstoque();flash();
@@ -678,20 +704,35 @@ function iniciarRealtime(){
     .on('postgres_changes',{event:'*',schema:'public',table:'EstoqueArmacoes'},async()=>{
       await reloadT('EstoqueArmacoes');renderArmacoes();renderEstoque();
     })
-    .subscribe((status,err)=>{
+    .subscribe(async(status,err)=>{
+      console.log('[RT] status:', status, err||'');
       if(status==='SUBSCRIBED'){
         updRtBadge('live');
-        console.log('[RT] Canal ativo — atualizações em tempo real');
-      }else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
+        refreshTudo(); // sincroniza estado atual ao conectar
+        console.log('[RT] ✅ Canal ativo — atualizações em tempo real');
+      }else if(status==='CHANNEL_ERROR'){
         updRtBadge('error');
-        console.warn('[RT] Falha no canal, reconectando em 5s…',err);
+        console.error('[RT] ❌ Erro no canal:', err);
+        setTimeout(()=>{if(S.online&&S.sb&&!S.demo)iniciarRealtime()},5000);
+      }else if(status==='TIMED_OUT'){
+        updRtBadge('error');
+        console.warn('[RT] ⏱ Timeout, reconectando em 5s…');
         setTimeout(()=>{if(S.online&&S.sb&&!S.demo)iniciarRealtime()},5000);
       }else if(status==='CLOSED'){
         updRtBadge('error');
+        console.warn('[RT] Canal fechado');
       }
     });
 }
 
+async function refreshTudo(){
+  await Promise.all([
+    reloadT('Producoes'),reloadT('Movimentacoes'),
+    reloadT('Pecas'),reloadT('Cores'),
+    reloadT('Funcionarios'),reloadT('Armacoes'),reloadT('EstoqueArmacoes')
+  ]);
+  fillSelects();renderProdHoje();renderEstoque();renderSaidas();renderArmacoes();atualizarHome();
+}
 async function reloadT(tabela){
   if(!S.sb)return;
   const map={Pecas:'pecas',Cores:'cores',Funcionarios:'funcionarios',Producoes:'producoes',Movimentacoes:'movimentacoes',Armacoes:'armacoes',EstoqueArmacoes:'estoqueArmacoes'};
