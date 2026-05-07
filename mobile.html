@@ -42,6 +42,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
 .sbadge .dot{width:7px;height:7px;border-radius:50%;background:var(--green2);animation:pulse 2s infinite}
 .sbadge.off .dot{background:var(--amber);animation:none}
 .sbadge.off{color:var(--amber)}.sbadge.on{color:var(--green2)}
+.rbtn{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:6px;border-radius:50%;transition:all .2s;line-height:1;display:flex;align-items:center;justify-content:center}
+.rbtn:active{background:var(--bg3);color:var(--green2)}
+.rbtn.spin{animation:spinIcon .7s linear infinite;color:var(--green2)}
+@keyframes spinIcon{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
 
 /* NAV */
@@ -226,7 +230,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
       <div class="ico">🪑</div>
       <div><h1>SysCadeiras</h1><small id="userLbl">Operador</small></div>
     </div>
-    <div class="sbadge on" id="sBadge"><div class="dot"></div><span id="sTxt">Online</span></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="rbtn" id="rBtn" onclick="atualizarTudo()" title="Atualizar dados">🔄</button>
+      <div class="sbadge on" id="sBadge"><div class="dot"></div><span id="sTxt">Online</span></div>
+    </div>
   </div>
 
   <div class="main">
@@ -776,7 +783,7 @@ window.salvarProducao=async function(){
         S.producoes.unshift({...dados,id:r?.id,pecaid:it.pecaId,corid:it.corId,funcionarioid:funcId,horaextra:it.horaExtra?1:0});
         S.movimentacoes.unshift({data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,id:Date.now()});
       }else{
-        await idbAdd('fila',{tipo:'producao',dados,movDados:{data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,origem:'Produção',funcionarioid:funcId},ts:Date.now(),key:crypto.randomUUID()});
+        await idbAdd('fila',{tipo:'producao',dados,movDados:{data,tipo:'entrada',pecaId:it.pecaId,corId:it.corId,quantidade:it.quantidade,origem:'Produção',funcionarioId:funcId},ts:Date.now(),key:crypto.randomUUID()});
         S.producoes.unshift({...dados,id:Date.now(),pecaid:it.pecaId,corid:it.corId,funcionarioid:funcId});
         S.movimentacoes.unshift({data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,id:Date.now()});
       }
@@ -1099,6 +1106,24 @@ window.toast=function(msg,tipo='info'){
 };
 function showLoad(t='Carregando...'){document.getElementById('lTxt').textContent=t;document.getElementById('lOv').classList.remove('hidden')}
 function hideLoad(){document.getElementById('lOv').classList.add('hidden')}
+
+// ATUALIZAR TUDO
+window.atualizarTudo=async function(){
+  if(!S.sb||S.demo){toast('Sem conexão com o servidor','warn');return}
+  const btn=document.getElementById('rBtn');
+  btn.classList.add('spin');
+  try{
+    await carregarDados();
+    fillSelects();
+    renderProdHoje();
+    renderEstoque();
+    renderSaidas();
+    renderArmacoes();
+    atualizarHome();
+    toast('✅ Dados atualizados!','success');
+  }catch(e){toast('❌ Erro ao atualizar','error')}
+  finally{btn.classList.remove('spin')}
+};
 
 // BOOT
 async function boot(){
