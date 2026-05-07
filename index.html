@@ -553,6 +553,12 @@ function idbAdd(store,data){return new Promise((res,rej)=>{const tx=S.idb.transa
 function idbAll(store){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readonly');const req=tx.objectStore(store).getAll();req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error)})}
 function idbDel(store,id){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readwrite');const req=tx.objectStore(store).delete(id);req.onsuccess=res;req.onerror=()=>rej(req.error)})}
 function idbClear(store){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readwrite');const req=tx.objectStore(store).clear();req.onsuccess=res;req.onerror=()=>rej(req.error)})}
+async function purgeHistAntigo(){
+  // Remove entradas do hist com mais de 24h (meia-noite do dia atual)
+  const hoje=new Date();hoje.setHours(0,0,0,0);const corte=hoje.getTime();
+  const all=await idbAll('hist');
+  for(const it of all){if(it.ts<corte)await idbDel('hist',it.id)}
+}
 
 async function updOQ(){
   const fila=await idbAll('fila');const n=fila.length;
@@ -1310,6 +1316,7 @@ window.arToggle=function(){
 // BOOT
 async function boot(){
   await openIDB();
+  await purgeHistAntigo();
   await initSB();
   updBadge();
   if(S.demo)document.getElementById('demoBox').style.display='block';
