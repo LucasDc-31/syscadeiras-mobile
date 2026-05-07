@@ -556,7 +556,31 @@ function idbClear(store){return new Promise((res,rej)=>{const tx=S.idb.transacti
 async function purgeHistAntigo(){
   const hoje=new Date();hoje.setHours(0,0,0,0);const corte=hoje.getTime();
   const all=await idbAll('hist');
+  // Remove registros de dias anteriores
   for(const it of all){if(it.ts<corte)await idbDel('hist',it.id)}
+}
+
+// Limpa entradas do hist local que não existem mais no servidor
+async function purgeHistOrfaos(){
+  if(S.demo||!S.sb||!S.online)return;
+  const all=await idbAll('hist');
+  // Só verifica entradas que possuem producaoid (vinculadas ao servidor)
+  const comId=all.filter(h=>h.producaoid);
+  if(!comId.length)return;
+  const ids=comId.map(h=>h.producaoid);
+  try{
+    const{data}=await S.sb.from('Producoes').select('id').in('id',ids);
+    const existentes=new Set((data||[]).map(r=>r.id));
+    for(const h of comId){
+      if(!existentes.has(h.producaoid))await idbDel('hist',h.id);
+    }
+  }catch(e){console.warn('purgeHistOrfaos erro:',e)}
+}
+
+async function purgeHistPorProducao(producaoid){
+  if(!producaoid)return;
+  const all=await idbAll('hist');
+  for(const h of all){if(h.producaoid===producaoid)await idbDel('hist',h.id)}
 }
 
 async function updOQ(){
@@ -679,14 +703,22 @@ function iniciarRealtime(){
   _rtChannel=S.sb.channel('mob-rt-v2',{config:{broadcast:{self:false}}})
     .on('postgres_changes',{event:'*',schema:'public',table:'Producoes'},async(payload)=>{
       await reloadT('Producoes');
-      if(payload.eventType==='DELETE'){S.producoes=S.producoes.filter(r=>r.id!==payload.old?.id);await idbClear('hist')}
+      if(payload.eventType==='DELETE'){
+        S.producoes=S.producoes.filter(r=>r.id!==payload.old?.id);
+        // Remove apenas o item deletado do hist, não limpa tudo
+        await purgeHistPorProducao(payload.old?.id);
+      }
       renderProdHoje();atualizarHome();flash();
       if(payload.eventType==='INSERT')toast('🏭 Produção registrada pelo desktop','info');
       if(payload.eventType==='DELETE')toast('🗑 Produção removida pelo desktop','warn');
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'Movimentacoes'},async(payload)=>{
       await reloadT('Movimentacoes');
-      if(payload.eventType==='DELETE'){S.movimentacoes=S.movimentacoes.filter(r=>r.id!==payload.old?.id);await idbClear('hist')}
+      if(payload.eventType==='DELETE'){
+        S.movimentacoes=S.movimentacoes.filter(r=>r.id!==payload.old?.id);
+        // Limpa orphãos do hist se a movimentação era de origem de produção
+        if(payload.old?.producaoid)await purgeHistPorProducao(payload.old.producaoid);
+      }
       renderEstoque();renderSaidas();atualizarHome();flash();
       if(payload.eventType==='INSERT')toast(`📦 Nova movimentação: ${payload.new?.tipo||''}`.trim(),'info');
       if(payload.eventType==='DELETE')toast('🗑 Movimentação removida','warn');
@@ -780,6 +812,8 @@ function iniciarApp(){
   atualizarHome();
   if(S.sb)iniciarRealtime();
   updOQ();
+  // Limpa entradas do hist local que já foram apagadas no servidor
+  purgeHistOrfaos().then(()=>atualizarHome());
   // auto-refresh é fallback — iniciarRealtime() o pausará se RT conectar
   if(S.sb&&!S.demo)arStart();
 }
@@ -912,14 +946,16 @@ window.salvarProducao=async function(){
         else await sbInsert('EstoqueArmacoes',{modeloid:it.pecaId,quantidade:-it.quantidade});
         S.producoes.unshift({...dados,id:r?.id,pecaid:it.pecaId,corid:it.corId,funcionarioid:funcId,horaextra:it.horaExtra?1:0});
         S.movimentacoes.unshift({data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,id:Date.now()});
+        const func=byId(S.funcionarios,funcId);const peca=byId(S.pecas,it.pecaId);const cor=byId(S.cores,it.corId);
+        await idbAdd('hist',{tipo:'prod',desc:`${peca?.nome||'?'} · ${cor?.nome||'?'}`,sub:func?.nome||'',qtd:it.quantidade,sync:true,ts:Date.now(),producaoid:r?.id});
       }else{
         await idbAdd('fila',{tipo:'producao',dados,movDados:{data,tipo:'entrada',pecaId:it.pecaId,corId:it.corId,quantidade:it.quantidade,origem:'Produção',funcionarioId:funcId},ts:Date.now(),key:crypto.randomUUID()});
         S.producoes.unshift({...dados,id:Date.now(),pecaid:it.pecaId,corid:it.corId,funcionarioid:funcId});
         S.movimentacoes.unshift({data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,id:Date.now()});
+        const func=byId(S.funcionarios,funcId);const peca=byId(S.pecas,it.pecaId);const cor=byId(S.cores,it.corId);
+        // producaoid null pois ainda não foi ao servidor
+        await idbAdd('hist',{tipo:'prod',desc:`${peca?.nome||'?'} · ${cor?.nome||'?'}`,sub:func?.nome||'',qtd:it.quantidade,sync:false,ts:Date.now(),producaoid:null});
       }
-      const eaLocal=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);if(eaLocal)eaLocal.quantidade-=it.quantidade;
-      const func=byId(S.funcionarios,funcId);const peca=byId(S.pecas,it.pecaId);const cor=byId(S.cores,it.corId);
-      await idbAdd('hist',{tipo:'prod',desc:`${peca?.nome||'?'} · ${cor?.nome||'?'}`,sub:func?.nome||'',qtd:it.quantidade,sync:S.online&&!S.demo,ts:Date.now()});
     }
     await updOQ();limparProd();atualizarHome();renderProdHoje();renderEstoque();
     hideLoad();toast(`✅ Produção registrada!${!S.online||S.demo?' (offline)':''}`,S.online&&!S.demo?'success':'warn');
@@ -1319,6 +1355,8 @@ async function boot(){
   await initSB();
   updBadge();
   if(S.demo)document.getElementById('demoBox').style.display='block';
+  // Após conectar ao Supabase, limpeza de orphãos é feita via purgeHistOrfaos
+  // chamada no iniciarApp() depois de carregarDados()
 }
 boot();
 </script>
