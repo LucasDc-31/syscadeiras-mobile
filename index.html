@@ -481,7 +481,31 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
         <button class="btn btn-b" onclick="gerarRelArmacoes()" style="margin-bottom:14px;">📊 Gerar Relatório</button>
         <div id="relArmacoesResult"></div>
       </div>
+      <div class="page" id="pageBackup">
+      <div class="ph2">🗄️ Backup</div>
+      <div class="ps">Gerenciamento de dados locais</div>
+
+      <div class="card" style="border-color:rgba(231,76,60,.3);background:rgba(192,57,43,.06);">
+        <div class="ctit"><div class="cico cr">⚠️</div>Apagar Banco de Dados</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6;">Remove <strong style="color:var(--text)">todos os dados locais</strong> do dispositivo: produções, movimentações, estoque, fila offline e cache. Os dados no servidor (Supabase) são preservados e serão resincronizados ao reabrir o app.</p>
+        <div style="background:rgba(243,156,18,.08);border:1px solid rgba(243,156,18,.25);border-radius:10px;padding:12px 14px;margin-bottom:16px;">
+          <div style="font-size:12px;color:var(--amber);font-weight:700;margin-bottom:5px;">⚠️ O que será apagado:</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.8;">• Todo o cache local (IndexedDB)<br>• Fila de sincronização offline<br>• Preferências salvas no dispositivo<br>• Service Worker e cache de arquivos</div>
+        </div>
+        <div style="background:rgba(39,174,96,.07);border:1px solid rgba(39,174,96,.2);border-radius:10px;padding:12px 14px;margin-bottom:18px;">
+          <div style="font-size:12px;color:var(--green2);font-weight:700;margin-bottom:4px;">✅ O que é preservado:</div>
+          <div style="font-size:12px;color:var(--muted);">Dados no servidor Supabase (sincronizados automaticamente ao reabrir)</div>
+        </div>
+        <button class="btn btn-r" onclick="apagarBancoDados()" id="btnApagarBanco">🗑️ Apagar Banco de Dados</button>
+      </div>
+
+      <div class="card" id="backupStatusCard" style="display:none;">
+        <div class="ctit"><div class="cico cg">ℹ️</div>Status</div>
+        <div id="backupStatusMsg" style="font-size:13px;color:var(--muted);"></div>
+      </div>
     </div>
+
+  </div>
 
   </div>
 
@@ -493,6 +517,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
     <button class="nb" id="navArmacoes" onclick="nav('Armacoes')"><span class="ni">🔩</span><span>Armações</span></button>
     <button class="nb" id="navCadastros" onclick="nav('Cadastros')"><span class="ni">⚙️</span><span>Cadastros</span></button>
     <button class="nb" id="navRelatorios" onclick="nav('Relatorios')"><span class="ni">📊</span><span>Relatórios</span></button>
+    <button class="nb" id="navBackup" onclick="nav('Backup')"><span class="ni">🗄️</span><span>Backup</span></button>
   </div>
 </div>
 
@@ -608,6 +633,65 @@ window.resetCompleto = async function() {
   } catch(e) {
     hideLoad();
     toast('❌ Erro no reset: ' + e.message, 'error');
+  }
+};
+// APAGAR BANCO DE DADOS (página Backup)
+window.apagarBancoDados = async function() {
+  if(!confirm('⚠️ ATENÇÃO!\n\nIsso irá apagar TODOS os dados locais:\n\n• Cache local (IndexedDB)\n• Fila de sincronização offline\n• Preferências do dispositivo\n• Service Worker e cache\n\nOs dados no servidor Supabase serão preservados e resincronizados ao reabrir.\n\nTem certeza que deseja continuar?')) return;
+
+  const btn = document.getElementById('btnApagarBanco');
+  if(btn) { btn.disabled = true; btn.textContent = '⏳ Apagando...'; }
+  showLoad('Apagando banco de dados...');
+
+  try {
+    // 1. Fechar e deletar IndexedDB
+    if(S.idb) {
+      S.idb.close();
+      S.idb = null;
+    }
+    const dbs = ['syscad_m', 'SysCadeiras'];
+    for(const dbName of dbs) {
+      try {
+        await new Promise((resolve, reject) => {
+          const req = indexedDB.deleteDatabase(dbName);
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject();
+          req.onblocked = () => resolve();
+        });
+        console.log(`🗑️ Database ${dbName} deletado`);
+      } catch(e) { console.log(`${dbName} não encontrado`); }
+    }
+
+    // 2. Limpar localStorage e sessionStorage
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // 3. Limpar Service Workers
+    if('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for(let reg of registrations) await reg.unregister();
+    }
+
+    // 4. Limpar caches do browser
+    if(window.caches) {
+      const keys = await caches.keys();
+      for(const key of keys) await caches.delete(key);
+    }
+
+    toast('✅ Banco de dados apagado! Reabrindo...', 'success');
+    const sc = document.getElementById('backupStatusCard');
+    const sm = document.getElementById('backupStatusMsg');
+    if(sc && sm) {
+      sc.style.display = 'block';
+      sm.innerHTML = '✅ Banco de dados apagado com sucesso. O app será recarregado e os dados do servidor serão resincronizados.';
+      sm.style.color = 'var(--green2)';
+    }
+    setTimeout(() => window.location.reload(true), 2000);
+
+  } catch(e) {
+    hideLoad();
+    toast('❌ Erro ao apagar: ' + e.message, 'error');
+    if(btn) { btn.disabled = false; btn.textContent = '🗑️ Apagar Banco de Dados'; }
   }
 };
 
