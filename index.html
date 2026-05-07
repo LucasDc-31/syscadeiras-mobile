@@ -557,8 +557,14 @@ async function updOQ(){
 // Supabase
 async function initSB(){
   if(S.demo)return;
-  try{const{createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');S.sb=createClient(SUPABASE_URL,SUPABASE_KEY)}
-  catch(e){console.warn('SB erro:',e)}
+  for(let i=0;i<3;i++){
+    try{
+      const{createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
+      S.sb=createClient(SUPABASE_URL,SUPABASE_KEY);
+      return;
+    }catch(e){console.warn(`SB init tentativa ${i+1} falhou:`,e);await new Promise(r=>setTimeout(r,1000))}
+  }
+  console.error('Falha ao inicializar Supabase após 3 tentativas');
 }
 
 async function sbInsert(tabela,dados){
@@ -599,16 +605,68 @@ async function carregarDados(){
   hideLoad();
 }
 
+let _rtChannel=null;
+function updRtBadge(status){
+  const badge=document.getElementById('sBadge');
+  const dot=badge?.querySelector('.dot');
+  const txt=document.getElementById('sTxt');
+  if(status==='live'){
+    if(dot)dot.style.background='var(--green2)';
+    if(txt)txt.textContent='Ao Vivo';
+  }else if(status==='connecting'){
+    if(dot){dot.style.background='var(--amber)';dot.style.animation='none'}
+    if(txt)txt.textContent='Conectando';
+  }else{
+    if(dot){dot.style.background='var(--muted)';dot.style.animation='none'}
+    if(txt)txt.textContent='Online';
+  }
+}
 function iniciarRealtime(){
   if(!S.sb)return;
-  S.sb.channel('mob-rt')
-    .on('postgres_changes',{event:'*',schema:'public',table:'Producoes'},async()=>{await reloadT('Producoes');renderProdHoje();atualizarHome()})
-    .on('postgres_changes',{event:'*',schema:'public',table:'Movimentacoes'},async()=>{await reloadT('Movimentacoes');renderEstoque();renderSaidas()})
-    .on('postgres_changes',{event:'*',schema:'public',table:'Pecas'},async()=>{await reloadT('Pecas');fillSelects()})
-    .on('postgres_changes',{event:'*',schema:'public',table:'Cores'},async()=>{await reloadT('Cores');fillSelects()})
-    .on('postgres_changes',{event:'*',schema:'public',table:'Funcionarios'},async()=>{await reloadT('Funcionarios');fillSelects()})
-    .on('postgres_changes',{event:'*',schema:'public',table:'Armacoes'},async()=>{await reloadT('Armacoes');await reloadT('EstoqueArmacoes');renderArmacoes()})
-    .subscribe();
+  if(_rtChannel){try{S.sb.removeChannel(_rtChannel)}catch(e){}_rtChannel=null}
+  updRtBadge('connecting');
+  const flash=()=>{const tb=document.querySelector('.topbar');if(!tb)return;tb.style.transition='background .15s';tb.style.background='rgba(39,174,96,.18)';setTimeout(()=>{tb.style.background=''},400)};
+  _rtChannel=S.sb.channel('mob-rt-v3',{config:{broadcast:{self:false}}})
+    .on('postgres_changes',{event:'*',schema:'public',table:'Producoes'},async(payload)=>{
+      await reloadT('Producoes');renderProdHoje();atualizarHome();flash();
+      if(payload.eventType==='INSERT')toast('🏭 Produção atualizada','info');
+      if(payload.eventType==='DELETE')toast('🗑 Produção removida','warn');
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'Movimentacoes'},async(payload)=>{
+      await reloadT('Movimentacoes');renderEstoque();renderSaidas();atualizarHome();flash();
+      if(payload.eventType==='INSERT')toast(`📦 Movimentação: ${payload.new?.tipo||''}`.trim(),'info');
+      if(payload.eventType==='DELETE')toast('🗑 Movimentação removida','warn');
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'Pecas'},async()=>{
+      await reloadT('Pecas');fillSelects();renderEstoque();flash();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'Cores'},async()=>{
+      await reloadT('Cores');fillSelects();flash();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'Funcionarios'},async()=>{
+      await reloadT('Funcionarios');fillSelects();flash();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'Armacoes'},async(payload)=>{
+      await reloadT('Armacoes');await reloadT('EstoqueArmacoes');renderArmacoes();atualizarHome();flash();
+      if(payload.eventType==='INSERT')toast('🔩 Armação registrada','info');
+      if(payload.eventType==='DELETE')toast('🗑 Armação removida','warn');
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'EstoqueArmacoes'},async()=>{
+      await reloadT('EstoqueArmacoes');renderArmacoes();renderEstoque();
+    })
+    .subscribe((status,err)=>{
+      console.log('[RT] status:',status,err||'');
+      if(status==='SUBSCRIBED'){
+        updRtBadge('live');
+        console.log('[RT] ✅ Realtime ativo');
+      }else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
+        updRtBadge('error');
+        console.warn('[RT] Reconectando em 5s…',err);
+        setTimeout(()=>{if(S.online&&S.sb&&!S.demo)iniciarRealtime()},5000);
+      }else if(status==='CLOSED'){
+        updRtBadge('error');
+      }
+    });
 }
 
 async function reloadT(tabela){
@@ -633,6 +691,7 @@ window.doLogin=async function(){
       if(!u){hideLoad();errEl.textContent='❌ Usuário ou senha incorretos';return}
       S.user=u;
     }else{
+      if(!S.sb){hideLoad();errEl.textContent='❌ Erro de conexão com o servidor. Recarregue a página.';return}
       const{error}=await S.sb.auth.signInWithPassword({email,password:senha});
       if(error){hideLoad();errEl.textContent='❌ Usuário ou senha incorretos';return}
       S.user={email,nome:email.split('@')[0],role:'operador'};
@@ -687,13 +746,12 @@ async function atualizarHome(){
   document.getElementById('sTotal').textContent=S.producoes.reduce((a,p)=>a+(parseInt(p.quantidade)||0),0);
   document.getElementById('sFunc').textContent=S.funcionarios.length;
   document.getElementById('sMov').textContent=S.movimentacoes.length;
-
   // Últimos lançamentos 100% do Supabase — sem cache local
-  const id=v=>v.pecaid??v.pecaId;const ic=v=>v.corid??v.corId;const ifunc=v=>v.funcionarioid??v.funcionarioId;const im=v=>v.modeloid??v.modeloId;
-  const ts=v=>new Date(v.created_at||v.data+'T00:00:00').getTime();
-  const ultProd=(S.producoes||[]).slice(0,5).map(r=>({tipo:'prod',desc:(S.pecas.find(p=>p.id===id(r))?.nome||'?')+' · '+(S.cores.find(c=>c.id===ic(r))?.nome||'?'),sub:S.funcionarios.find(f=>f.id===ifunc(r))?.nome||'',qtd:r.quantidade,ts:ts(r)}));
-  const ultMov=(S.movimentacoes||[]).filter(r=>r.tipo==='saida').slice(0,5).map(r=>({tipo:'saida',desc:(S.pecas.find(p=>p.id===id(r))?.nome||'?')+' · '+(S.cores.find(c=>c.id===ic(r))?.nome||'?'),sub:r.obs||r.origem||'',qtd:r.quantidade,ts:ts(r)}));
-  const ultArm=(S.armacoes||[]).slice(0,3).map(r=>({tipo:'arm',desc:'Armação: '+(S.pecas.find(p=>p.id===im(r))?.nome||'?'),sub:'Chegada',qtd:r.quantidade,ts:ts(r)}));
+  const gid=v=>v.pecaid??v.pecaId;const gic=v=>v.corid??v.corId;const gif=v=>v.funcionarioid??v.funcionarioId;const gim=v=>v.modeloid??v.modeloId;
+  const gts=v=>{try{return new Date(v.created_at||v.data+'T00:00:00').getTime()}catch{return 0}};
+  const ultProd=(S.producoes||[]).slice(0,5).map(r=>({tipo:'prod',desc:(S.pecas.find(p=>p.id===gid(r))?.nome||'?')+' · '+(S.cores.find(c=>c.id===gic(r))?.nome||'?'),sub:S.funcionarios.find(f=>f.id===gif(r))?.nome||'',qtd:r.quantidade,ts:gts(r)}));
+  const ultMov=(S.movimentacoes||[]).filter(r=>r.tipo==='saida').slice(0,5).map(r=>({tipo:'saida',desc:(S.pecas.find(p=>p.id===gid(r))?.nome||'?')+' · '+(S.cores.find(c=>c.id===gic(r))?.nome||'?'),sub:r.obs||r.origem||'',qtd:r.quantidade,ts:gts(r)}));
+  const ultArm=(S.armacoes||[]).slice(0,3).map(r=>({tipo:'arm',desc:'Armação: '+(S.pecas.find(p=>p.id===gim(r))?.nome||'?'),sub:'Chegada',qtd:r.quantidade,ts:gts(r)}));
   const last=[...ultProd,...ultMov,...ultArm].sort((a,b)=>b.ts-a.ts).slice(0,5);
   document.getElementById('homeHist').innerHTML=last.length?last.map(histRow).join(''):'<div class="empty"><p>Nenhum lançamento ainda</p></div>';
   await updOQ();
@@ -779,23 +837,20 @@ window.salvarProducao=async function(){
     for(const it of itens){
       const dados={data,funcionarioid:funcId,pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,horaextra:it.horaExtra?1:0,device_origin:'mobile'};
       if(!S.demo&&S.sb&&S.online){
-        // Salva no banco — o Realtime cuida de atualizar o estado local automaticamente
+        // Salva no banco — Realtime cuida de atualizar o estado local
         const r=await sbInsert('Producoes',dados);
         await sbInsert('Movimentacoes',{data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,origem:'Produção',producaoid:r?.id,funcionarioid:funcId,device_origin:'mobile'});
         const eaArm=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);
         const nova=(eaArm?.quantidade||0)-it.quantidade;
         if(eaArm)await sbUpdate('EstoqueArmacoes',eaArm.id,{quantidade:nova});
         else await sbInsert('EstoqueArmacoes',{modeloid:it.pecaId,quantidade:-it.quantidade});
-        // NÃO atualiza S.producoes/S.movimentacoes aqui — o Realtime traz os dados corretos
       }else{
-        // Offline: sem Realtime, atualiza estado local para o usuário ver feedback
         await idbAdd('fila',{tipo:'producao',dados,movDados:{data,tipo:'entrada',pecaId:it.pecaId,corId:it.corId,quantidade:it.quantidade,origem:'Produção',funcionarioId:funcId},ts:Date.now(),key:crypto.randomUUID()});
         S.producoes.unshift({...dados,id:Date.now(),pecaid:it.pecaId,corid:it.corId,funcionarioid:funcId});
         S.movimentacoes.unshift({data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,id:Date.now()});
-        const eaLocal=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);
-        if(eaLocal)eaLocal.quantidade-=it.quantidade;
+        const eaLocal=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);if(eaLocal)eaLocal.quantidade-=it.quantidade;
       }
-    }
+      const func=byId(S.funcionarios,funcId);const peca=byId(S.pecas,it.pecaId);const cor=byId(S.cores,it.corId);
     await updOQ();limparProd();atualizarHome();renderProdHoje();renderEstoque();
     hideLoad();toast(`✅ Produção registrada!${!S.online||S.demo?' (offline)':''}`,S.online&&!S.demo?'success':'warn');
     if(navigator.vibrate)navigator.vibrate([50,50,100]);
@@ -885,11 +940,8 @@ window.salvarSaida=async function(){
   const p=byId(S.pecas,pecaId);const c=byId(S.cores,corId);
   try{
     if(!S.demo&&S.sb&&S.online){
-      // Salva no banco — o Realtime cuida de atualizar o estado local
-      await sbInsert('Movimentacoes',dados);
-      // NÃO atualiza S.movimentacoes aqui
-    }
-    else{
+      await sbInsert('Movimentacoes',dados); // Realtime atualiza o estado
+    }else{
       await idbAdd('fila',{tipo:'saida',dados,ts:Date.now(),key:crypto.randomUUID()});
       S.movimentacoes.unshift({...dados,pecaId,corId,id:Date.now()});
     }
@@ -928,14 +980,12 @@ window.salvarArmacao=async function(){
   const p=byId(S.pecas,modeloId);
   try{
     if(!S.demo&&S.sb&&S.online){
-      // Salva no banco — o Realtime cuida de atualizar o estado local
+      // Salva no banco — Realtime atualiza o estado local
       await sbInsert('Armacoes',dadosArm);
       const eaArm2=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===modeloId);
-      const saldoAtual=eaArm2?.quantidade||0;
-      const novoSaldo=saldoAtual+quantidade;
+      const novoSaldo=(eaArm2?.quantidade||0)+quantidade;
       if(eaArm2)await sbUpdate('EstoqueArmacoes',eaArm2.id,{quantidade:novoSaldo});
       else await sbInsert('EstoqueArmacoes',{modeloid:modeloId,quantidade:novoSaldo});
-      // NÃO atualiza S.armacoes / S.estoqueArmacoes aqui — o Realtime traz os dados corretos
     }else{
       await idbAdd('fila',{tipo:'armacao',dados:dadosArm,ts:Date.now(),key:crypto.randomUUID()});
       S.armacoes.unshift({...dadosArm,id:Date.now()});
@@ -1139,7 +1189,7 @@ window.atualizarTudo=async function(){
 // BOOT
 async function boot(){
   await openIDB();
-  await idbClear('hist'); // limpa cache antigo — dados vêm 100% do Supabase agora
+  await idbClear('hist'); // limpa cache antigo — dados vêm 100% do Supabase
   await initSB();
   updBadge();
   if(S.demo)document.getElementById('demoBox').style.display='block';
