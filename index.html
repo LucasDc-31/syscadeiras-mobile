@@ -230,13 +230,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
       <div class="ico">🪑</div>
       <div><h1>SysCadeiras</h1><small id="userLbl">Operador</small></div>
     </div>
-    <div style="display:flex;align-items:center;gap:6px">
+    <div style="display:flex;align-items:center;gap:8px">
       <button class="rbtn" id="rBtn" onclick="atualizarTudo()" title="Atualizar dados">🔄</button>
-      <div id="arBadge" style="display:flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:4px 9px;font-size:10px;font-weight:700;color:var(--muted)">
-        <span style="color:var(--green2);font-size:9px">⏱</span>
-        <span id="arCountdown" style="color:var(--text);min-width:18px;text-align:right">20s</span>
-        <button id="arToggleBtn" onclick="arToggle()" title="Pausar auto-refresh" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:10px;padding:0 0 0 2px;line-height:1">⏸</button>
-      </div>
       <div class="sbadge on" id="sBadge"><div class="dot"></div><span id="sTxt">Online</span></div>
     </div>
   </div>
@@ -552,7 +547,6 @@ async function openIDB(){
 function idbAdd(store,data){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readwrite');const req=tx.objectStore(store).add(data);req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error)})}
 function idbAll(store){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readonly');const req=tx.objectStore(store).getAll();req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error)})}
 function idbDel(store,id){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readwrite');const req=tx.objectStore(store).delete(id);req.onsuccess=res;req.onerror=()=>rej(req.error)})}
-function idbClear(store){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readwrite');const req=tx.objectStore(store).clear();req.onsuccess=res;req.onerror=()=>rej(req.error)})}
 
 async function updOQ(){
   const fila=await idbAll('fila');const n=fila.length;
@@ -605,135 +599,18 @@ async function carregarDados(){
   hideLoad();
 }
 
-function updRtBadge(status){
-  // status: 'connecting' | 'live' | 'error'
-  const badge=document.getElementById('sBadge');
-  const dot=badge?.querySelector('.dot');
-  const txt=document.getElementById('sTxt');
-  const arB=document.getElementById('arBadge');
-  if(status==='live'){
-    if(dot)dot.style.background='var(--green2)';
-    if(txt)txt.textContent='Ao Vivo';
-    if(arB)arB.title='Realtime ativo — auto-refresh em standby';
-    // Quando realtime está ativo, pausamos o auto-refresh (é redundante)
-    arStop();
-    const arEl=document.getElementById('arCountdown');
-    if(arEl)arEl.textContent='RT';
-    const arBtn=document.getElementById('arToggleBtn');
-    if(arBtn)arBtn.style.display='none';
-  }else if(status==='connecting'){
-    if(dot){dot.style.background='var(--amber)';dot.style.animation='none'}
-    if(txt)txt.textContent='Conectando';
-  }else{
-    // error — volta para auto-refresh
-    if(dot){dot.style.background='var(--muted)';dot.style.animation='none'}
-    if(txt)txt.textContent='Online';
-    const arEl=document.getElementById('arCountdown');
-    if(arEl)arEl.textContent='20s';
-    const arBtn=document.getElementById('arToggleBtn');
-    if(arBtn)arBtn.style.display='';
-    if(S.online&&S.sb&&!S.demo)arStart();
-  }
-}
-
-let _rtChannel=null;
-async function diagRealtime(){
-  // Verifica se as tabelas estão na publication
-  try{
-    const{data}=await S.sb.rpc('check_rt_tables').catch(()=>({data:null}));
-    if(!data){
-      // rpc não existe, tenta query direta
-      const{data:rows}=await S.sb
-        .from('pg_publication_tables')
-        .select('tablename')
-        .eq('pubname','supabase_realtime')
-        .catch(()=>({data:null}));
-      if(rows)console.log('[RT] Tabelas na publication:',rows.map(r=>r.tablename));
-      else console.log('[RT] Não foi possível verificar pg_publication_tables (normal em projetos com RLS)');
-    }
-  }catch(e){}
-  // Verifica sessão ativa
-  const{data:{session}}=await S.sb.auth.getSession();
-  console.log('[RT] Sessão ativa:', session?`user: ${session.user.email}`:'❌ SEM SESSÃO — isso bloqueia o Realtime!');
-}
 function iniciarRealtime(){
   if(!S.sb)return;
-  diagRealtime(); // diagnóstico no console
-  if(_rtChannel){try{S.sb.removeChannel(_rtChannel)}catch(e){};_rtChannel=null}
-  updRtBadge('connecting');
-
-  const flash=()=>{
-    // pisca levemente a topbar para sinalizar dado novo
-    const tb=document.querySelector('.topbar');
-    if(!tb)return;
-    tb.style.transition='background .15s';
-    tb.style.background='rgba(39,174,96,.18)';
-    setTimeout(()=>{tb.style.background=''},400);
-  };
-
-  _rtChannel=S.sb.channel('mob-rt-v2',{config:{broadcast:{self:false}}})
-    .on('postgres_changes',{event:'*',schema:'public',table:'Producoes'},async(payload)=>{
-      await reloadT('Producoes');
-      if(payload.eventType==='DELETE'){S.producoes=S.producoes.filter(r=>r.id!==payload.old?.id)}
-      renderProdHoje();atualizarHome();flash();
-      if(payload.eventType==='INSERT')toast('🏭 Produção registrada pelo desktop','info');
-      if(payload.eventType==='DELETE')toast('🗑 Produção removida pelo desktop','warn');
-    })
-    .on('postgres_changes',{event:'*',schema:'public',table:'Movimentacoes'},async(payload)=>{
-      await reloadT('Movimentacoes');
-      if(payload.eventType==='DELETE'){S.movimentacoes=S.movimentacoes.filter(r=>r.id!==payload.old?.id)}
-      renderEstoque();renderSaidas();atualizarHome();flash();
-      if(payload.eventType==='INSERT')toast(`📦 Nova movimentação: ${payload.new?.tipo||''}`.trim(),'info');
-      if(payload.eventType==='DELETE')toast('🗑 Movimentação removida','warn');
-    })
-    .on('postgres_changes',{event:'*',schema:'public',table:'Pecas'},async()=>{
-      await reloadT('Pecas');fillSelects();renderEstoque();flash();
-      toast('🪑 Modelos atualizados','info');
-    })
-    .on('postgres_changes',{event:'*',schema:'public',table:'Cores'},async()=>{
-      await reloadT('Cores');fillSelects();flash();
-      toast('🎨 Cores atualizadas','info');
-    })
-    .on('postgres_changes',{event:'*',schema:'public',table:'Funcionarios'},async()=>{
-      await reloadT('Funcionarios');fillSelects();flash();
-      toast('👤 Funcionários atualizados','info');
-    })
-    .on('postgres_changes',{event:'*',schema:'public',table:'Armacoes'},async(payload)=>{
-      await reloadT('Armacoes');await reloadT('EstoqueArmacoes');renderArmacoes();atualizarHome();flash();
-      if(payload.eventType==='INSERT')toast('🔩 Nova chegada de armação','info');
-    })
-    .on('postgres_changes',{event:'*',schema:'public',table:'EstoqueArmacoes'},async()=>{
-      await reloadT('EstoqueArmacoes');renderArmacoes();renderEstoque();
-    })
-    .subscribe(async(status,err)=>{
-      console.log('[RT] status:', status, err||'');
-      if(status==='SUBSCRIBED'){
-        updRtBadge('live');
-        refreshTudo(); // sincroniza estado atual ao conectar
-        console.log('[RT] ✅ Canal ativo — atualizações em tempo real');
-      }else if(status==='CHANNEL_ERROR'){
-        updRtBadge('error');
-        console.error('[RT] ❌ Erro no canal:', err);
-        setTimeout(()=>{if(S.online&&S.sb&&!S.demo)iniciarRealtime()},5000);
-      }else if(status==='TIMED_OUT'){
-        updRtBadge('error');
-        console.warn('[RT] ⏱ Timeout, reconectando em 5s…');
-        setTimeout(()=>{if(S.online&&S.sb&&!S.demo)iniciarRealtime()},5000);
-      }else if(status==='CLOSED'){
-        updRtBadge('error');
-        console.warn('[RT] Canal fechado');
-      }
-    });
+  S.sb.channel('mob-rt')
+    .on('postgres_changes',{event:'*',schema:'public',table:'Producoes'},async()=>{await reloadT('Producoes');renderProdHoje();atualizarHome()})
+    .on('postgres_changes',{event:'*',schema:'public',table:'Movimentacoes'},async()=>{await reloadT('Movimentacoes');renderEstoque();renderSaidas()})
+    .on('postgres_changes',{event:'*',schema:'public',table:'Pecas'},async()=>{await reloadT('Pecas');fillSelects()})
+    .on('postgres_changes',{event:'*',schema:'public',table:'Cores'},async()=>{await reloadT('Cores');fillSelects()})
+    .on('postgres_changes',{event:'*',schema:'public',table:'Funcionarios'},async()=>{await reloadT('Funcionarios');fillSelects()})
+    .on('postgres_changes',{event:'*',schema:'public',table:'Armacoes'},async()=>{await reloadT('Armacoes');await reloadT('EstoqueArmacoes');renderArmacoes()})
+    .subscribe();
 }
 
-async function refreshTudo(){
-  await Promise.all([
-    reloadT('Producoes'),reloadT('Movimentacoes'),
-    reloadT('Pecas'),reloadT('Cores'),
-    reloadT('Funcionarios'),reloadT('Armacoes'),reloadT('EstoqueArmacoes')
-  ]);
-  fillSelects();renderProdHoje();renderEstoque();renderSaidas();renderArmacoes();atualizarHome();
-}
 async function reloadT(tabela){
   if(!S.sb)return;
   const map={Pecas:'pecas',Cores:'cores',Funcionarios:'funcionarios',Producoes:'producoes',Movimentacoes:'movimentacoes',Armacoes:'armacoes',EstoqueArmacoes:'estoqueArmacoes'};
@@ -775,8 +652,6 @@ function iniciarApp(){
   atualizarHome();
   if(S.sb)iniciarRealtime();
   updOQ();
-  // auto-refresh é fallback — iniciarRealtime() o pausará se RT conectar
-  if(S.sb&&!S.demo)arStart();
 }
 
 function fillSelects(){
@@ -813,28 +688,12 @@ async function atualizarHome(){
   document.getElementById('sFunc').textContent=S.funcionarios.length;
   document.getElementById('sMov').textContent=S.movimentacoes.length;
 
-  // Últimos lançamentos direto do Supabase (sem cache local)
-  const ultProd=(S.producoes||[]).slice(0,5).map(r=>({
-    tipo:'prod',
-    desc:(S.pecas.find(p=>p.id===r.peca_id)?.nome||r.peca_id||'?')+' · '+(S.cores.find(c=>c.id===r.cor_id)?.nome||r.cor_id||'?'),
-    sub:S.funcionarios.find(f=>f.id===r.funcionario_id)?.nome||'',
-    qtd:r.quantidade,
-    ts:new Date(r.created_at||r.data).getTime()
-  }));
-  const ultMov=(S.movimentacoes||[]).slice(0,5).map(r=>({
-    tipo:'saida',
-    desc:(S.pecas.find(p=>p.id===r.peca_id)?.nome||r.peca_id||'?')+' · '+(S.cores.find(c=>c.id===r.cor_id)?.nome||r.cor_id||'?'),
-    sub:r.obs||r.tipo||'',
-    qtd:r.quantidade,
-    ts:new Date(r.created_at||r.data).getTime()
-  }));
-  const ultArm=(S.armacoes||[]).slice(0,3).map(r=>({
-    tipo:'arm',
-    desc:'Armação: '+(S.pecas.find(p=>p.id===r.peca_id)?.nome||r.peca_id||'?'),
-    sub:'Chegada',
-    qtd:r.quantidade,
-    ts:new Date(r.created_at||r.data).getTime()
-  }));
+  // Últimos lançamentos 100% do Supabase — sem cache local
+  const id=v=>v.pecaid??v.pecaId;const ic=v=>v.corid??v.corId;const ifunc=v=>v.funcionarioid??v.funcionarioId;const im=v=>v.modeloid??v.modeloId;
+  const ts=v=>new Date(v.created_at||v.data+'T00:00:00').getTime();
+  const ultProd=(S.producoes||[]).slice(0,5).map(r=>({tipo:'prod',desc:(S.pecas.find(p=>p.id===id(r))?.nome||'?')+' · '+(S.cores.find(c=>c.id===ic(r))?.nome||'?'),sub:S.funcionarios.find(f=>f.id===ifunc(r))?.nome||'',qtd:r.quantidade,ts:ts(r)}));
+  const ultMov=(S.movimentacoes||[]).filter(r=>r.tipo==='saida').slice(0,5).map(r=>({tipo:'saida',desc:(S.pecas.find(p=>p.id===id(r))?.nome||'?')+' · '+(S.cores.find(c=>c.id===ic(r))?.nome||'?'),sub:r.obs||r.origem||'',qtd:r.quantidade,ts:ts(r)}));
+  const ultArm=(S.armacoes||[]).slice(0,3).map(r=>({tipo:'arm',desc:'Armação: '+(S.pecas.find(p=>p.id===im(r))?.nome||'?'),sub:'Chegada',qtd:r.quantidade,ts:ts(r)}));
   const last=[...ultProd,...ultMov,...ultArm].sort((a,b)=>b.ts-a.ts).slice(0,5);
   document.getElementById('homeHist').innerHTML=last.length?last.map(histRow).join(''):'<div class="empty"><p>Nenhum lançamento ainda</p></div>';
   await updOQ();
@@ -843,10 +702,9 @@ async function atualizarHome(){
 function histRow(it){
   const isProd=it.tipo==='prod';const isAr=it.tipo==='arm';
   const hora=new Date(it.ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  const badge=it.sync?'<span class="hbadge hb-syn">✓sync</span>':'<span class="hbadge hb-off">offline</span>';
   const cls=isProd?'ip':isAr?'ia':'is';
   const ico=isProd?'🏭':isAr?'🔩':'📤';
-  return`<div class="hi-row"><div class="hi-ic ${cls}">${ico}</div><div class="hi-inf"><div class="hi-t">${it.desc||'–'}${badge}</div><div class="hi-s">${it.sub||''} · ${hora}</div></div><div class="hi-q${isProd||isAr?'':' neg'}">${isProd||isAr?'+':'–'}${it.qtd}</div></div>`;
+  return`<div class="hi-row"><div class="hi-ic ${cls}">${ico}</div><div class="hi-inf"><div class="hi-t">${it.desc||'–'}</div><div class="hi-s">${it.sub||''} · ${hora}</div></div><div class="hi-q${isProd||isAr?'':' neg'}">${isProd||isAr?'+':'–'}${it.qtd}</div></div>`;
 }
 
 // NUMPAD
@@ -921,21 +779,22 @@ window.salvarProducao=async function(){
     for(const it of itens){
       const dados={data,funcionarioid:funcId,pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,horaextra:it.horaExtra?1:0,device_origin:'mobile'};
       if(!S.demo&&S.sb&&S.online){
+        // Salva no banco — o Realtime cuida de atualizar o estado local automaticamente
         const r=await sbInsert('Producoes',dados);
         await sbInsert('Movimentacoes',{data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,origem:'Produção',producaoid:r?.id,funcionarioid:funcId,device_origin:'mobile'});
         const eaArm=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);
         const nova=(eaArm?.quantidade||0)-it.quantidade;
-        if(eaArm){await sbUpdate('EstoqueArmacoes',eaArm.id,{quantidade:nova});eaArm.quantidade=nova;}
+        if(eaArm)await sbUpdate('EstoqueArmacoes',eaArm.id,{quantidade:nova});
         else await sbInsert('EstoqueArmacoes',{modeloid:it.pecaId,quantidade:-it.quantidade});
-        S.producoes.unshift({...dados,id:r?.id,pecaid:it.pecaId,corid:it.corId,funcionarioid:funcId,horaextra:it.horaExtra?1:0});
-        S.movimentacoes.unshift({data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,id:Date.now()});
+        // NÃO atualiza S.producoes/S.movimentacoes aqui — o Realtime traz os dados corretos
       }else{
+        // Offline: sem Realtime, atualiza estado local para o usuário ver feedback
         await idbAdd('fila',{tipo:'producao',dados,movDados:{data,tipo:'entrada',pecaId:it.pecaId,corId:it.corId,quantidade:it.quantidade,origem:'Produção',funcionarioId:funcId},ts:Date.now(),key:crypto.randomUUID()});
         S.producoes.unshift({...dados,id:Date.now(),pecaid:it.pecaId,corid:it.corId,funcionarioid:funcId});
         S.movimentacoes.unshift({data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,id:Date.now()});
+        const eaLocal=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);
+        if(eaLocal)eaLocal.quantidade-=it.quantidade;
       }
-      const eaLocal=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);if(eaLocal)eaLocal.quantidade-=it.quantidade;
-      // hist removido — dados vêm do Supabase em tempo real
     }
     await updOQ();limparProd();atualizarHome();renderProdHoje();renderEstoque();
     hideLoad();toast(`✅ Produção registrada!${!S.online||S.demo?' (offline)':''}`,S.online&&!S.demo?'success':'warn');
@@ -1025,8 +884,15 @@ window.salvarSaida=async function(){
   showLoad('Registrando saída...');
   const p=byId(S.pecas,pecaId);const c=byId(S.cores,corId);
   try{
-    if(!S.demo&&S.sb&&S.online){await sbInsert('Movimentacoes',dados);S.movimentacoes.unshift({...dados,pecaId,corId,id:Date.now()});}
-    else{await idbAdd('fila',{tipo:'saida',dados,ts:Date.now(),key:crypto.randomUUID()});S.movimentacoes.unshift({...dados,pecaId,corId,id:Date.now()});}
+    if(!S.demo&&S.sb&&S.online){
+      // Salva no banco — o Realtime cuida de atualizar o estado local
+      await sbInsert('Movimentacoes',dados);
+      // NÃO atualiza S.movimentacoes aqui
+    }
+    else{
+      await idbAdd('fila',{tipo:'saida',dados,ts:Date.now(),key:crypto.randomUUID()});
+      S.movimentacoes.unshift({...dados,pecaId,corId,id:Date.now()});
+    }
     await updOQ();limparSaida();renderEstoque();renderSaidas();atualizarHome();
     hideLoad();toast(`✅ Saída registrada!${!S.online||S.demo?' (offline)':''}`,S.online&&!S.demo?'success':'warn');
     if(navigator.vibrate)navigator.vibrate([50,50,100]);
@@ -1062,13 +928,14 @@ window.salvarArmacao=async function(){
   const p=byId(S.pecas,modeloId);
   try{
     if(!S.demo&&S.sb&&S.online){
+      // Salva no banco — o Realtime cuida de atualizar o estado local
       await sbInsert('Armacoes',dadosArm);
       const eaArm2=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===modeloId);
       const saldoAtual=eaArm2?.quantidade||0;
       const novoSaldo=saldoAtual+quantidade;
-      if(eaArm2){await sbUpdate('EstoqueArmacoes',eaArm2.id,{quantidade:novoSaldo});eaArm2.quantidade=novoSaldo;}
-      else{await sbInsert('EstoqueArmacoes',{modeloid:modeloId,quantidade:novoSaldo});S.estoqueArmacoes.push({modeloid:modeloId,quantidade:novoSaldo});}
-      S.armacoes.unshift({...dadosArm,id:Date.now()});
+      if(eaArm2)await sbUpdate('EstoqueArmacoes',eaArm2.id,{quantidade:novoSaldo});
+      else await sbInsert('EstoqueArmacoes',{modeloid:modeloId,quantidade:novoSaldo});
+      // NÃO atualiza S.armacoes / S.estoqueArmacoes aqui — o Realtime traz os dados corretos
     }else{
       await idbAdd('fila',{tipo:'armacao',dados:dadosArm,ts:Date.now(),key:crypto.randomUUID()});
       S.armacoes.unshift({...dadosArm,id:Date.now()});
@@ -1222,20 +1089,9 @@ window.syncFila=async function(){
 };
 
 // ONLINE/OFFLINE
-window.addEventListener('online',async()=>{S.online=true;updBadge();toast('✅ Conexão restaurada!','success');await syncFila();if(S.sb&&!S.demo)iniciarRealtime()});
-window.addEventListener('offline',()=>{S.online=false;updBadge();toast('📴 Modo offline ativo','warn');arStop();const el=document.getElementById('arCountdown');if(el)el.textContent='–'});
-function updBadge(){
-  const b=document.getElementById('sBadge');
-  if(!S.online){
-    b.className='sbadge off';
-    document.getElementById('sTxt').textContent='Offline';
-  }else if(_rtChannel){
-    // deixa updRtBadge cuidar quando realtime está ativo
-  }else{
-    b.className='sbadge on';
-    document.getElementById('sTxt').textContent='Online';
-  }
-}
+window.addEventListener('online',async()=>{S.online=true;updBadge();toast('✅ Conexão restaurada!','success');await syncFila()});
+window.addEventListener('offline',()=>{S.online=false;updBadge();toast('📴 Modo offline ativo','warn')});
+function updBadge(){const b=document.getElementById('sBadge');b.className='sbadge '+(S.online?'on':'off');document.getElementById('sTxt').textContent=S.online?'Online':'Offline'}
 
 // NAVEGAÇÃO
 window.nav=function(nome){
@@ -1280,56 +1136,10 @@ window.atualizarTudo=async function(){
   finally{btn.classList.remove('spin')}
 };
 
-// AUTO REFRESH
-let _arTimer=null,_arCount=20,_arRunning=false;
-function arTick(){
-  _arCount--;
-  const el=document.getElementById('arCountdown');
-  if(el)el.textContent=_arCount+'s';
-  if(_arCount<=0){
-    _arCount=20;
-    if(el)el.textContent='20s';
-    arRefresh();
-  }
-}
-async function arRefresh(){
-  if(_arRunning||!S.sb||S.demo||!S.online)return;
-  _arRunning=true;
-  try{
-    await carregarDados();
-    fillSelects();
-    const pagina=document.querySelector('.page.active');
-    if(pagina){
-      const id=pagina.id;
-      if(id==='pageHome')atualizarHome();
-      else if(id==='pageEstoque')renderEstoque();
-      else if(id==='pageProducao')renderProdHoje();
-      else if(id==='pageSaidas')renderSaidas();
-      else if(id==='pageArmacoes')renderArmacoes();
-    }
-    const el=document.getElementById('arLastUp');
-    if(el){const now=new Date();el.textContent=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0')+':'+now.getSeconds().toString().padStart(2,'0')}
-  }catch(e){console.warn('Auto-refresh falhou:',e)}
-  finally{_arRunning=false}
-}
-function arStart(){
-  if(_arTimer)return;
-  _arCount=20;
-  _arTimer=setInterval(arTick,1000);
-}
-function arStop(){
-  if(_arTimer){clearInterval(_arTimer);_arTimer=null}
-}
-window.arToggle=function(){
-  const btn=document.getElementById('arToggleBtn');
-  if(_arTimer){arStop();if(btn){btn.textContent='▶';btn.title='Iniciar auto-refresh'}}
-  else{arStart();if(btn){btn.textContent='⏸';btn.title='Pausar auto-refresh'}}
-};
-
 // BOOT
 async function boot(){
   await openIDB();
-  await idbClear('hist'); // remove cache local antigo — dados vêm do Supabase agora
+  await idbClear('hist'); // limpa cache antigo — dados vêm 100% do Supabase agora
   await initSB();
   updBadge();
   if(S.demo)document.getElementById('demoBox').style.display='block';
