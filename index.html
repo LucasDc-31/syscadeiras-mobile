@@ -25,7 +25,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
 .lt{font-size:28px;font-weight:800;color:#fff;margin-bottom:4px}
 .ls{font-size:14px;color:var(--muted);margin-bottom:32px}
 .lcard{width:100%;max-width:380px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px 24px}
-.demo-box{background:rgba(41,128,185,.08);border:1px solid rgba(41,128,185,.3);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#7fb3d3;line-height:1.7}
+.demo-box{background:rgba(41,128,185,.08);border:1px solid rgba(41,128,185,.3);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#7fb3d3;line-height:1.7;display:none}
 .demo-box strong{display:block;color:var(--blue);font-size:13px;margin-bottom:2px}
 .lbl{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:7px}
 .inp{width:100%;background:var(--bg3);border:2px solid var(--border);border-radius:12px;padding:14px 16px;font-size:16px;color:var(--text);margin-bottom:14px;-webkit-appearance:none;transition:border-color .2s}
@@ -38,13 +38,14 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
 .tlogo .ico{width:36px;height:36px;background:linear-gradient(135deg,var(--green),var(--blue));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
 .tlogo h1{font-size:16px;font-weight:800;color:#fff}
 .tlogo small{display:block;font-size:10px;color:var(--muted)}
-.top-actions{display:flex;align-items:center;gap:6px}
-.rbtn{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:6px;border-radius:50%;transition:all .2s;line-height:1;display:flex;align-items:center;justify-content:center}
-.rbtn:active{background:var(--bg3);color:var(--red2)}
 .sbadge{display:flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 11px;font-size:11px;font-weight:700;transition:all .3s}
 .sbadge .dot{width:7px;height:7px;border-radius:50%;background:var(--green2);animation:pulse 2s infinite}
 .sbadge.off .dot{background:var(--amber);animation:none}
 .sbadge.off{color:var(--amber)}.sbadge.on{color:var(--green2)}
+.rbtn{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:6px;border-radius:50%;transition:all .2s;line-height:1;display:flex;align-items:center;justify-content:center}
+.rbtn:active{background:var(--bg3);color:var(--green2)}
+.rbtn.spin{animation:spinIcon .7s linear infinite;color:var(--green2)}
+@keyframes spinIcon{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
 
 /* NAV */
@@ -129,6 +130,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
 .oq-t{font-size:13px;font-weight:700;color:var(--amber)}
 .oq-s{font-size:11px;color:var(--muted)}
 .oq-btn{background:var(--amber);color:#fff;border:none;border-radius:9px;padding:7px 13px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0}
+
 /* HISTORY */
 .hi-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(36,51,68,.6)}
 .hi-row:last-child{border-bottom:none}
@@ -181,6 +183,27 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
 .load-ov.hidden{display:none}
 .load-t{font-size:14px;color:var(--muted)}
 
+/* MODAL APAGAR DADOS */
+.del-modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:10000;display:none;align-items:flex-end;justify-content:center}
+.del-modal-ov.open{display:flex}
+.del-modal{background:var(--bg2);border:1px solid var(--border);border-radius:22px 22px 0 0;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 10px)}
+.del-modal-hd{background:linear-gradient(135deg,#c0392b,#e74c3c);padding:20px 20px 18px;border-radius:22px 22px 0 0;position:sticky;top:0;z-index:1}
+.del-modal-hd h3{margin:0;color:#fff;font-size:17px;font-weight:800}
+.del-modal-hd p{margin:4px 0 0;color:rgba(255,255,255,.8);font-size:12px}
+.del-modal-body{padding:18px 16px}
+.del-step{display:none}.del-step.active{display:block}
+.del-pw-inp{width:100%;background:var(--bg3);border:2px solid var(--border);border-radius:12px;padding:14px 15px;font-size:16px;color:var(--text);margin-bottom:8px;-webkit-appearance:none;transition:border-color .2s}
+.del-pw-inp:focus{outline:none;border-color:var(--red2)}
+.del-err{color:var(--red2);font-size:12px;min-height:16px;margin-bottom:12px;font-weight:600}
+.del-all-row{background:rgba(243,156,18,.08);border:1px solid rgba(243,156,18,.3);border-radius:11px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer}
+.del-all-row label{font-size:13px;font-weight:700;color:var(--amber);cursor:pointer;margin:0}
+.del-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:16px}
+.del-chk-lbl{display:flex;align-items:center;gap:10px;background:var(--card);border:2px solid var(--border);border-radius:12px;padding:13px 12px;cursor:pointer;transition:border-color .2s,background .2s}
+.del-chk-lbl.sel{border-color:var(--red2);background:rgba(231,76,60,.08)}
+.del-chk-lbl input[type=checkbox]{width:18px;height:18px;cursor:pointer;accent-color:var(--red2);flex-shrink:0}
+.del-chk-lbl span{font-size:12px;font-weight:700;color:var(--text);line-height:1.3}
+.del-row-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+
 /* MISC */
 .ph2{font-size:20px;font-weight:800;color:#fff;letter-spacing:-.4px;margin-bottom:3px}
 .ps{font-size:12px;color:var(--muted);margin-bottom:18px}
@@ -228,8 +251,13 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
       <div class="ico">🪑</div>
       <div><h1>SysCadeiras</h1><small id="userLbl">Operador</small></div>
     </div>
-    <div class="top-actions">
-      <button class="rbtn" onclick="abrirBackup()" title="Backup">🗑️</button>
+    <div style="display:flex;align-items:center;gap:6px">
+      <button class="rbtn" id="rBtn" onclick="atualizarTudo()" title="Atualizar dados">🔄</button>
+      <div id="arBadge" style="display:flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:4px 9px;font-size:10px;font-weight:700;color:var(--muted)">
+        <span style="color:var(--green2);font-size:9px">⏱</span>
+        <span id="arCountdown" style="color:var(--text);min-width:18px;text-align:right">20s</span>
+        <button id="arToggleBtn" onclick="arToggle()" title="Pausar auto-refresh" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:10px;padding:0 0 0 2px;line-height:1">⏸</button>
+      </div>
       <div class="sbadge on" id="sBadge"><div class="dot"></div><span id="sTxt">Online</span></div>
     </div>
   </div>
@@ -424,6 +452,87 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
         <div class="sec-lbl">Cores</div>
         <div id="coresList"><div class="empty"><div class="ei">🎨</div><p>Carregando...</p></div></div>
       </div>
+
+      <!-- ZONA DE PERIGO -->
+      <div class="sep"></div>
+      <div class="sec-lbl" style="color:var(--red2);">⚠️ Zona de Perigo</div>
+      <div class="card" style="border-color:rgba(231,76,60,.3);background:rgba(231,76,60,.05);">
+        <div class="ctit"><div class="cico cr">🗑️</div>Apagar Dados do Sistema</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6;">Remove registros permanentemente do banco de dados. A ação não pode ser desfeita.</p>
+        <button class="btn btn-r" onclick="abrirModalApagar()">🗑️ Apagar Dados Selecionados</button>
+      </div>
+    </div>
+
+    <!-- MODAL APAGAR DADOS -->
+    <div class="del-modal-ov" id="delModalOv" onclick="fecharModalApagar(event)">
+      <div class="del-modal" id="delModal">
+        <div class="del-modal-hd">
+          <h3>🗑️ Apagar Dados do Sistema</h3>
+          <p>Esta ação é <strong>irreversível</strong>. Prossiga com cuidado.</p>
+        </div>
+        <div class="del-modal-body">
+
+          <!-- ETAPA 1: SENHA -->
+          <div class="del-step active" id="delStep1">
+            <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6;">Digite a senha de administrador para desbloquear as opções de exclusão:</p>
+            <input class="del-pw-inp" type="password" id="delSenhaInp" placeholder="Senha de confirmação"
+              onkeydown="if(event.key==='Enter')confirmarSenhaApagar()"
+              onfocus="this.style.borderColor='var(--red2)'"
+              onblur="this.style.borderColor='var(--border)'">
+            <div class="del-err" id="delErrSenha"></div>
+            <div class="del-row-btns">
+              <button class="btn btn-sec" onclick="fecharModalApagarBtn()">Cancelar</button>
+              <button class="btn btn-r" onclick="confirmarSenhaApagar()">Próximo →</button>
+            </div>
+          </div>
+
+          <!-- ETAPA 2: SELEÇÃO -->
+          <div class="del-step" id="delStep2">
+            <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6;">Selecione quais dados deseja apagar:</p>
+
+            <!-- Selecionar tudo -->
+            <div class="del-all-row" onclick="toggleTudoApagarMob()">
+              <input type="checkbox" id="delChkTudo" style="width:18px;height:18px;cursor:pointer;accent-color:var(--amber);flex-shrink:0;" onclick="event.stopPropagation();toggleTudoApagarMob()">
+              <label for="delChkTudo">☑️ Selecionar / Desmarcar Tudo</label>
+            </div>
+
+            <!-- Grid de categorias -->
+            <div class="del-grid">
+              <label class="del-chk-lbl" id="delLblProducoes">
+                <input type="checkbox" id="delChkProducoes" onchange="atualizarDelCheckTudo();atualizarDelEstilo('delChkProducoes','delLblProducoes')">
+                <span>🏭<br>Produções</span>
+              </label>
+              <label class="del-chk-lbl" id="delLblMovimentacoes">
+                <input type="checkbox" id="delChkMovimentacoes" onchange="atualizarDelCheckTudo();atualizarDelEstilo('delChkMovimentacoes','delLblMovimentacoes')">
+                <span>📊<br>Movimentações</span>
+              </label>
+              <label class="del-chk-lbl" id="delLblArmacoes">
+                <input type="checkbox" id="delChkArmacoes" onchange="atualizarDelCheckTudo();atualizarDelEstilo('delChkArmacoes','delLblArmacoes')">
+                <span>🔩<br>Armações</span>
+              </label>
+              <label class="del-chk-lbl" id="delLblPecas">
+                <input type="checkbox" id="delChkPecas" onchange="atualizarDelCheckTudo();atualizarDelEstilo('delChkPecas','delLblPecas')">
+                <span>🪑<br>Modelos/Peças</span>
+              </label>
+              <label class="del-chk-lbl" id="delLblFuncionarios">
+                <input type="checkbox" id="delChkFuncionarios" onchange="atualizarDelCheckTudo();atualizarDelEstilo('delChkFuncionarios','delLblFuncionarios')">
+                <span>👷<br>Funcionários</span>
+              </label>
+              <label class="del-chk-lbl" id="delLblCores">
+                <input type="checkbox" id="delChkCores" onchange="atualizarDelCheckTudo();atualizarDelEstilo('delChkCores','delLblCores')">
+                <span>🎨<br>Cores</span>
+              </label>
+            </div>
+
+            <div class="del-err" id="delErrSelecao"></div>
+            <div class="del-row-btns">
+              <button class="btn btn-sec" onclick="fecharModalApagarBtn()">Cancelar</button>
+              <button class="btn btn-r" onclick="executarApagarMob()">🗑️ Apagar</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
     </div>
 
     <!-- RELATÓRIOS -->
@@ -490,34 +599,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
 <div class="load-ov hidden" id="lOv"><div class="spinner"></div><div class="load-t" id="lTxt">Carregando...</div></div>
 <div class="toast-wrap" id="toastWrap"></div>
 
-<!-- MODAL BACKUP -->
-<div id="modalBackup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9500;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:18px;width:100%;max-width:360px;overflow:hidden;">
-    <div style="background:var(--red2);padding:18px 20px;">
-      <div style="font-size:16px;font-weight:800;color:#fff;">🗑️ Apagar Banco de Dados</div>
-      <div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:3px;">Digite a senha para confirmar</div>
-    </div>
-    <div style="padding:20px;">
-      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6;">
-        Remove <strong style="color:var(--text)">todos os dados locais</strong>. Os dados no servidor Supabase são preservados e resincronizados ao reabrir.
-      </div>
-      <div class="fg">
-        <div class="fl">🔑 Senha</div>
-        <input class="fi" type="password" id="backupSenha" placeholder="••••••••" onkeydown="if(event.key==='Enter')confirmarBackup()">
-        <div id="backupErro" style="color:var(--red2);font-size:12px;min-height:18px;margin-top:6px;"></div>
-      </div>
-      <div class="row-btns" style="margin-top:8px;">
-        <button class="btn btn-sec" onclick="fecharBackup()">Cancelar</button>
-        <button class="btn btn-r" onclick="confirmarBackup()">🗑️ Apagar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script type="module">
 // ⚙️ CONFIGURE AQUI
 const SUPABASE_URL = 'https://wbsxoffpugmajmzxofid.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indic3hvZmZwdWdtYWptenhvZmlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NjMxNTcsImV4cCI6MjA5MzUzOTE1N30.Qf-B6lUioqLkYwr5r_8Dy8cQGBzK_R5nVV7i4Dz8K4k';
+const SUPABASE_KEY = 'sb_publishable_2qHQZTclYZFbskhwoumTvA__enYh_vx';
 
 const DEMO_USERS = [
   {email:'operador@fabrica.com',senha:'1234',nome:'Operador',role:'operador'},
@@ -525,13 +610,12 @@ const DEMO_USERS = [
 ];
 
 const S = {
-  user:null, sb:null, online:navigator.onLine,
-  demo: false, // FORÇADO para false - SEMPRE modo real
-  idb:null,
-  pecas:[], cores:[], funcionarios:[], producoes:[],
-  movimentacoes:[], armacoes:[], estoqueArmacoes:[],
-  prodNums:{}, prodHE:{}, sNum:'0', aNum:'0',
-  filtEst:'todos', itemCount:1,
+  user:null,sb:null,online:navigator.onLine,
+  demo:!SUPABASE_URL||!SUPABASE_KEY||!SUPABASE_URL.startsWith('http'),idb:null,
+  pecas:[],cores:[],funcionarios:[],producoes:[],
+  movimentacoes:[],armacoes:[],estoqueArmacoes:[],
+  prodNums:{},prodHE:{},sNum:'0',aNum:'0',
+  filtEst:'todos',itemCount:1,
 };
 
 const DD = {
@@ -551,13 +635,13 @@ const DD = {
 function hojeISO(){return new Date().toISOString().split('T')[0]}
 function fmtData(d){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('pt-BR')}
 function fmtMoeda(v){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v||0)}
-function calcSaldo(pId,cId){return S.movimentacoes.filter(m=>(m.pecaid??m.pecaId)===pId && (m.corid??m.corId)===cId).reduce((a,m)=>a+(m.tipo==='entrada'?m.quantidade:-m.quantidade),0)}
+function calcSaldo(pId,cId){return S.movimentacoes.filter(m=>(m.pecaid??m.pecaId)===pId&&(m.corid??m.corId)===cId).reduce((a,m)=>a+(m.tipo==='entrada'?m.quantidade:-m.quantidade),0)}
 function byId(arr,id){return arr.find(x=>x.id===parseInt(id))}
 
 // IDB
 async function openIDB(){
   return new Promise((res,rej)=>{
-    const r=indexedDB.open('syscad_m',3);
+    const r=indexedDB.open('syscad_m',2);
     r.onupgradeneeded=e=>{
       const db=e.target.result;
       if(!db.objectStoreNames.contains('fila'))db.createObjectStore('fila',{keyPath:'id',autoIncrement:true});
@@ -571,74 +655,47 @@ function idbAdd(store,data){return new Promise((res,rej)=>{const tx=S.idb.transa
 function idbAll(store){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readonly');const req=tx.objectStore(store).getAll();req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error)})}
 function idbDel(store,id){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readwrite');const req=tx.objectStore(store).delete(id);req.onsuccess=res;req.onerror=()=>rej(req.error)})}
 function idbClear(store){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readwrite');const req=tx.objectStore(store).clear();req.onsuccess=res;req.onerror=()=>rej(req.error)})}
+async function purgeHistAntigo(){
+  const hoje=new Date();hoje.setHours(0,0,0,0);const corte=hoje.getTime();
+  const all=await idbAll('hist');
+  // Remove registros de dias anteriores
+  for(const it of all){if(it.ts<corte)await idbDel('hist',it.id)}
+}
+
+// Limpa entradas do hist local que não existem mais no servidor
+async function purgeHistOrfaos(){
+  if(S.demo||!S.sb||!S.online)return;
+  const all=await idbAll('hist');
+  // Só verifica entradas que possuem producaoid (vinculadas ao servidor)
+  const comId=all.filter(h=>h.producaoid);
+  if(!comId.length)return;
+  const ids=comId.map(h=>h.producaoid);
+  try{
+    const{data}=await S.sb.from('Producoes').select('id').in('id',ids);
+    const existentes=new Set((data||[]).map(r=>r.id));
+    for(const h of comId){
+      if(!existentes.has(h.producaoid))await idbDel('hist',h.id);
+    }
+  }catch(e){console.warn('purgeHistOrfaos erro:',e)}
+}
+
+async function purgeHistPorProducao(producaoid){
+  if(!producaoid)return;
+  const all=await idbAll('hist');
+  for(const h of all){if(h.producaoid===producaoid)await idbDel('hist',h.id)}
+}
 
 async function updOQ(){
-  if(!S.idb) return;
   const fila=await idbAll('fila');const n=fila.length;
   document.getElementById('oqN').textContent=n;
   document.getElementById('oqCard').classList.toggle('hidden',n===0);
 }
 
-// BACKUP COM SENHA
-const SENHA_BACKUP = 'dantas3101';
-
-window.abrirBackup = function() {
-  document.getElementById('backupSenha').value = '';
-  document.getElementById('backupErro').textContent = '';
-  const m = document.getElementById('modalBackup');
-  m.style.display = 'flex';
-  setTimeout(() => document.getElementById('backupSenha').focus(), 100);
-};
-
-window.fecharBackup = function() {
-  document.getElementById('modalBackup').style.display = 'none';
-};
-
-window.confirmarBackup = async function() {
-  const senha = document.getElementById('backupSenha').value;
-  if (senha !== SENHA_BACKUP) {
-    document.getElementById('backupErro').textContent = '❌ Senha incorreta';
-    return;
-  }
-  fecharBackup();
-  showLoad('Apagando banco de dados...');
-  try {
-    if (S.idb) { S.idb.close(); S.idb = null; }
-    for (const dbName of ['syscad_m', 'SysCadeiras']) {
-      await new Promise(res => {
-        const r = indexedDB.deleteDatabase(dbName);
-        r.onsuccess = r.onerror = r.onblocked = res;
-      });
-    }
-    localStorage.clear();
-    sessionStorage.clear();
-    if ('serviceWorker' in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      for (const r of regs) await r.unregister();
-    }
-    if (window.caches) {
-      const keys = await caches.keys();
-      for (const k of keys) await caches.delete(k);
-    }
-    toast('✅ Banco apagado! Reabrindo...', 'success');
-    setTimeout(() => window.location.reload(true), 2000);
-  } catch(e) {
-    hideLoad();
-    toast('❌ Erro: ' + e.message, 'error');
-  }
-};
-
 // Supabase
 async function initSB(){
   if(S.demo)return;
-  try{
-    const{createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
-    S.sb=createClient(SUPABASE_URL,SUPABASE_KEY);
-    console.log('✅ Supabase client inicializado');
-  }catch(e){
-    console.warn('SB init falhou:',e);
-    S.demo = true;
-  }
+  try{const{createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');S.sb=createClient(SUPABASE_URL,SUPABASE_KEY)}
+  catch(e){console.warn('SB erro:',e)}
 }
 
 async function sbInsert(tabela,dados){
@@ -657,149 +714,171 @@ async function sbDelete(tabela,id){
   if(error)throw error;
 }
 
-// CARREGAR DADOS - VERSÃO SEM CACHE
-async function carregarDados(forceReload = true) {
-  if(forceReload) {
-    S.pecas = [];
-    S.cores = [];
-    S.funcionarios = [];
-    S.producoes = [];
-    S.movimentacoes = [];
-    S.armacoes = [];
-    S.estoqueArmacoes = [];
+async function carregarDados(){
+  if(S.demo||!S.sb){
+    Object.assign(S,{pecas:DD.pecas,cores:DD.cores,funcionarios:DD.funcionarios,producoes:DD.producoes,movimentacoes:DD.movimentacoes,armacoes:DD.armacoes,estoqueArmacoes:DD.estoqueArmacoes});return;
   }
-  
-  if(S.demo || !S.sb) {
-    if(S.demo) {
-      console.log('📱 Modo demo ativo - usando dados locais');
-      Object.assign(S,{
-        pecas:DD.pecas, cores:DD.cores, funcionarios:DD.funcionarios,
-        producoes:DD.producoes, movimentacoes:DD.movimentacoes,
-        armacoes:DD.armacoes, estoqueArmacoes:DD.estoqueArmacoes
-      });
-    }
-    return;
-  }
-  
-  showLoad('Carregando dados do servidor...');
-  try {
-    const timestamp = Date.now();
-    console.log(`🔄 Buscando dados do servidor... (${timestamp})`);
-    
-    const promises = [
-      S.sb.from('Pecas').select('*', { head: false }).order('nome'),
-      S.sb.from('Cores').select('*', { head: false }).order('nome'),
-      S.sb.from('Funcionarios').select('*', { head: false }).order('nome'),
-      S.sb.from('Producoes').select('*', { head: false }).order('data', { ascending: false }),
-      S.sb.from('Movimentacoes').select('*', { head: false }).order('data', { ascending: false }),
-      S.sb.from('Armacoes').select('*', { head: false }).order('data', { ascending: false }),
-      S.sb.from('EstoqueArmacoes').select('*', { head: false })
-    ];
-    
-    const results = await Promise.all(promises);
-    
-    S.pecas = results[0].data || [];
-    S.cores = results[1].data || [];
-    S.funcionarios = results[2].data || [];
-    S.producoes = results[3].data || [];
-    S.movimentacoes = results[4].data || [];
-    S.armacoes = results[5].data || [];
-    S.estoqueArmacoes = results[6].data || [];
-    
-    console.log('✅ Dados carregados do servidor:', {
-      pecas: S.pecas.length,
-      cores: S.cores.length,
-      funcionarios: S.funcionarios.length,
-      producoes: S.producoes.length,
-      movimentacoes: S.movimentacoes.length
-    });
-    
-    if(S.producoes.length === 0 && !S.demo) {
-      toast('⚠️ Nenhum dado encontrado. Verifique as permissões do Supabase.', 'warn');
-    }
-    
-  } catch(e) {
-    console.error('Erro ao carregar dados:', e);
-    toast('❌ Erro ao carregar dados: ' + e.message, 'error');
-    S.demo = true;
-  }
+  showLoad('Carregando dados...');
+  try{
+    const[p,c,f,pr,mv,ar,ea]=await Promise.all([
+      S.sb.from('Pecas').select('*').order('nome'),
+      S.sb.from('Cores').select('*').order('nome'),
+      S.sb.from('Funcionarios').select('*').order('nome'),
+      S.sb.from('Producoes').select('*').order('data',{ascending:false}),
+      S.sb.from('Movimentacoes').select('*').order('data',{ascending:false}),
+      S.sb.from('Armacoes').select('*').order('data',{ascending:false}),
+      S.sb.from('EstoqueArmacoes').select('*'),
+    ]);
+    S.pecas=p.data||[];S.cores=c.data||[];S.funcionarios=f.data||[];
+    S.producoes=pr.data||[];S.movimentacoes=mv.data||[];
+    S.armacoes=ar.data||[];S.estoqueArmacoes=ea.data||[];
+  }catch(e){toast('Erro ao carregar dados','error')}
   hideLoad();
 }
 
-let _rtChannel=null;
 function updRtBadge(status){
+  // status: 'connecting' | 'live' | 'error'
   const badge=document.getElementById('sBadge');
   const dot=badge?.querySelector('.dot');
   const txt=document.getElementById('sTxt');
+  const arB=document.getElementById('arBadge');
   if(status==='live'){
     if(dot)dot.style.background='var(--green2)';
     if(txt)txt.textContent='Ao Vivo';
+    if(arB)arB.title='Realtime ativo — auto-refresh em standby';
+    // Quando realtime está ativo, pausamos o auto-refresh (é redundante)
+    arStop();
+    const arEl=document.getElementById('arCountdown');
+    if(arEl)arEl.textContent='RT';
+    const arBtn=document.getElementById('arToggleBtn');
+    if(arBtn)arBtn.style.display='none';
   }else if(status==='connecting'){
     if(dot){dot.style.background='var(--amber)';dot.style.animation='none'}
     if(txt)txt.textContent='Conectando';
   }else{
+    // error — volta para auto-refresh
     if(dot){dot.style.background='var(--muted)';dot.style.animation='none'}
     if(txt)txt.textContent='Online';
+    const arEl=document.getElementById('arCountdown');
+    if(arEl)arEl.textContent='20s';
+    const arBtn=document.getElementById('arToggleBtn');
+    if(arBtn)arBtn.style.display='';
+    if(S.online&&S.sb&&!S.demo)arStart();
   }
 }
+
+let _rtChannel=null;
+async function diagRealtime(){
+  // Verifica se as tabelas estão na publication
+  try{
+    const{data}=await S.sb.rpc('check_rt_tables').catch(()=>({data:null}));
+    if(!data){
+      // rpc não existe, tenta query direta
+      const{data:rows}=await S.sb
+        .from('pg_publication_tables')
+        .select('tablename')
+        .eq('pubname','supabase_realtime')
+        .catch(()=>({data:null}));
+      if(rows)console.log('[RT] Tabelas na publication:',rows.map(r=>r.tablename));
+      else console.log('[RT] Não foi possível verificar pg_publication_tables (normal em projetos com RLS)');
+    }
+  }catch(e){}
+  // Verifica sessão ativa
+  const{data:{session}}=await S.sb.auth.getSession();
+  console.log('[RT] Sessão ativa:', session?`user: ${session.user.email}`:'❌ SEM SESSÃO — isso bloqueia o Realtime!');
+}
 function iniciarRealtime(){
-  if(!S.sb || S.demo) return;
-  if(_rtChannel){try{S.sb.removeChannel(_rtChannel)}catch(e){}_rtChannel=null}
+  if(!S.sb)return;
+  diagRealtime(); // diagnóstico no console
+  if(_rtChannel){try{S.sb.removeChannel(_rtChannel)}catch(e){};_rtChannel=null}
   updRtBadge('connecting');
-  
-  const flash=()=>{const tb=document.querySelector('.topbar');if(!tb)return;tb.style.transition='background .15s';tb.style.background='rgba(39,174,96,.18)';setTimeout(()=>{tb.style.background=''},400)};
-  
-  _rtChannel=S.sb.channel('mob-rt-v4',{config:{broadcast:{self:false}}})
+
+  const flash=()=>{
+    // pisca levemente a topbar para sinalizar dado novo
+    const tb=document.querySelector('.topbar');
+    if(!tb)return;
+    tb.style.transition='background .15s';
+    tb.style.background='rgba(39,174,96,.18)';
+    setTimeout(()=>{tb.style.background=''},400);
+  };
+
+  _rtChannel=S.sb.channel('mob-rt-v2',{config:{broadcast:{self:false}}})
     .on('postgres_changes',{event:'*',schema:'public',table:'Producoes'},async(payload)=>{
-      await reloadT('Producoes');renderProdHoje();atualizarHome();flash();
-      if(payload.eventType==='INSERT')toast('🏭 Produção adicionada','info');
-      if(payload.eventType==='DELETE')toast('🗑 Produção removida','info');
+      await reloadT('Producoes');
+      if(payload.eventType==='DELETE'){
+        S.producoes=S.producoes.filter(r=>r.id!==payload.old?.id);
+        // Remove apenas o item deletado do hist, não limpa tudo
+        await purgeHistPorProducao(payload.old?.id);
+      }
+      renderProdHoje();atualizarHome();flash();
+      if(payload.eventType==='INSERT')toast('🏭 Produção registrada pelo desktop','info');
+      if(payload.eventType==='DELETE')toast('🗑 Produção removida pelo desktop','warn');
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'Movimentacoes'},async(payload)=>{
-      await reloadT('Movimentacoes');renderEstoque();renderSaidas();atualizarHome();flash();
-      if(payload.eventType==='INSERT')toast(`📦 Movimentação: ${payload.new?.tipo||''}`,'info');
-      if(payload.eventType==='DELETE')toast('🗑 Movimentação removida','info');
+      await reloadT('Movimentacoes');
+      if(payload.eventType==='DELETE'){
+        S.movimentacoes=S.movimentacoes.filter(r=>r.id!==payload.old?.id);
+        // Limpa orphãos do hist se a movimentação era de origem de produção
+        if(payload.old?.producaoid)await purgeHistPorProducao(payload.old.producaoid);
+      }
+      renderEstoque();renderSaidas();atualizarHome();flash();
+      if(payload.eventType==='INSERT')toast(`📦 Nova movimentação: ${payload.new?.tipo||''}`.trim(),'info');
+      if(payload.eventType==='DELETE')toast('🗑 Movimentação removida','warn');
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'Pecas'},async()=>{
       await reloadT('Pecas');fillSelects();renderEstoque();flash();
+      toast('🪑 Modelos atualizados','info');
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'Cores'},async()=>{
       await reloadT('Cores');fillSelects();flash();
+      toast('🎨 Cores atualizadas','info');
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'Funcionarios'},async()=>{
       await reloadT('Funcionarios');fillSelects();flash();
+      toast('👤 Funcionários atualizados','info');
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'Armacoes'},async(payload)=>{
       await reloadT('Armacoes');await reloadT('EstoqueArmacoes');renderArmacoes();atualizarHome();flash();
-      if(payload.eventType==='INSERT')toast('🔩 Armação registrada','info');
+      if(payload.eventType==='INSERT')toast('🔩 Nova chegada de armação','info');
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'EstoqueArmacoes'},async()=>{
       await reloadT('EstoqueArmacoes');renderArmacoes();renderEstoque();
     })
-    .subscribe((status,err)=>{
-      console.log('[RT] status:',status,err||'');
+    .subscribe(async(status,err)=>{
+      console.log('[RT] status:', status, err||'');
       if(status==='SUBSCRIBED'){
         updRtBadge('live');
-      }else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
+        refreshTudo(); // sincroniza estado atual ao conectar
+        console.log('[RT] ✅ Canal ativo — atualizações em tempo real');
+      }else if(status==='CHANNEL_ERROR'){
         updRtBadge('error');
+        console.error('[RT] ❌ Erro no canal:', err);
+        setTimeout(()=>{if(S.online&&S.sb&&!S.demo)iniciarRealtime()},5000);
+      }else if(status==='TIMED_OUT'){
+        updRtBadge('error');
+        console.warn('[RT] ⏱ Timeout, reconectando em 5s…');
         setTimeout(()=>{if(S.online&&S.sb&&!S.demo)iniciarRealtime()},5000);
       }else if(status==='CLOSED'){
         updRtBadge('error');
+        console.warn('[RT] Canal fechado');
       }
     });
 }
 
+async function refreshTudo(){
+  await Promise.all([
+    reloadT('Producoes'),reloadT('Movimentacoes'),
+    reloadT('Pecas'),reloadT('Cores'),
+    reloadT('Funcionarios'),reloadT('Armacoes'),reloadT('EstoqueArmacoes')
+  ]);
+  fillSelects();renderProdHoje();renderEstoque();renderSaidas();renderArmacoes();atualizarHome();
+}
 async function reloadT(tabela){
-  if(!S.sb || S.demo) return;
+  if(!S.sb)return;
   const map={Pecas:'pecas',Cores:'cores',Funcionarios:'funcionarios',Producoes:'producoes',Movimentacoes:'movimentacoes',Armacoes:'armacoes',EstoqueArmacoes:'estoqueArmacoes'};
   const ord={Pecas:'nome',Cores:'nome',Funcionarios:'nome',Producoes:'data',Movimentacoes:'data',Armacoes:'data'};
-  try{
-    let q=S.sb.from(tabela).select('*');
-    if(ord[tabela]) q = q.order(ord[tabela], {ascending: false});
-    const {data} = await q;
-    S[map[tabela]] = data || [];
-    console.log(`🔄 ${tabela} recarregado: ${S[map[tabela]].length} registros`);
-  } catch(e){ console.warn('reloadT',tabela,e); }
+  try{let q=S.sb.from(tabela).select('*');if(ord[tabela])q=q.order(ord[tabela],{ascending:false});const{data}=await q;S[map[tabela]]=data||[]}
+  catch(e){console.warn('reloadT',tabela,e)}
 }
 
 // LOGIN
@@ -816,14 +895,11 @@ window.doLogin=async function(){
       if(!u){hideLoad();errEl.textContent='❌ Usuário ou senha incorretos';return}
       S.user=u;
     }else{
-      if(!S.sb){hideLoad();errEl.textContent='❌ Erro de conexão com o servidor. Recarregue a página.';return}
       const{error}=await S.sb.auth.signInWithPassword({email,password:senha});
       if(error){hideLoad();errEl.textContent='❌ Usuário ou senha incorretos';return}
       S.user={email,nome:email.split('@')[0],role:'operador'};
     }
-    await carregarDados(true);
-    iniciarApp();
-    hideLoad();
+    await carregarDados();iniciarApp();hideLoad();
   }catch(e){hideLoad();errEl.textContent='❌ Erro: '+e.message}
 };
 
@@ -836,12 +912,12 @@ function iniciarApp(){
   document.getElementById('sData').value=hojeISO();
   document.getElementById('aData').value=hojeISO();
   atualizarHome();
-  if(S.sb && !S.demo) iniciarRealtime();
+  if(S.sb)iniciarRealtime();
   updOQ();
-  renderProdHoje();
-  renderEstoque();
-  renderSaidas();
-  renderArmacoes();
+  // Limpa entradas do hist local que já foram apagadas no servidor
+  purgeHistOrfaos().then(()=>atualizarHome());
+  // auto-refresh é fallback — iniciarRealtime() o pausará se RT conectar
+  if(S.sb&&!S.demo)arStart();
 }
 
 function fillSelects(){
@@ -872,18 +948,13 @@ async function atualizarHome(){
   document.getElementById('gTxt').textContent=`${sd}, ${(S.user?.nome||'Operador').split(' ')[0]}! 👋`;
   document.getElementById('gDate').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
   const hoje=hojeISO();
-  const ph=S.producoes.filter(p=>p.data===hoje).reduce((a,p)=>a+(parseInt(p.quantidade)||0),0);
+  const ph=S.producoes.filter(p=>(p.data||'').substring(0,10)===hoje).reduce((a,p)=>a+(parseInt(p.quantidade)||0),0);
   document.getElementById('sHoje').textContent=ph||'0';
   document.getElementById('sTotal').textContent=S.producoes.reduce((a,p)=>a+(parseInt(p.quantidade)||0),0);
   document.getElementById('sFunc').textContent=S.funcionarios.length;
   document.getElementById('sMov').textContent=S.movimentacoes.length;
-  
-  const gid=v=>v.pecaid??v.pecaId;const gic=v=>v.corid??v.corId;const gif=v=>v.funcionarioid??v.funcionarioId;const gim=v=>v.modeloid??v.modeloId;
-  const gts=v=>{try{return new Date(v.created_at||v.data+'T00:00:00').getTime()}catch{return 0}};
-  const ultProd=(S.producoes||[]).slice(0,5).map(r=>({tipo:'prod',desc:(S.pecas.find(p=>p.id===gid(r))?.nome||'?')+' · '+(S.cores.find(c=>c.id===gic(r))?.nome||'?'),sub:S.funcionarios.find(f=>f.id===gif(r))?.nome||'',qtd:r.quantidade,ts:gts(r)}));
-  const ultMov=(S.movimentacoes||[]).filter(r=>r.tipo==='saida').slice(0,5).map(r=>({tipo:'saida',desc:(S.pecas.find(p=>p.id===gid(r))?.nome||'?')+' · '+(S.cores.find(c=>c.id===gic(r))?.nome||'?'),sub:r.obs||r.origem||'',qtd:r.quantidade,ts:gts(r)}));
-  const ultArm=(S.armacoes||[]).slice(0,3).map(r=>({tipo:'arm',desc:'Armação: '+(S.pecas.find(p=>p.id===gim(r))?.nome||'?'),sub:'Chegada',qtd:r.quantidade,ts:gts(r)}));
-  const last=[...ultProd,...ultMov,...ultArm].sort((a,b)=>b.ts-a.ts).slice(0,5);
+  const hist=await idbAll('hist');
+  const last=hist.sort((a,b)=>b.ts-a.ts).slice(0,5);
   document.getElementById('homeHist').innerHTML=last.length?last.map(histRow).join(''):'<div class="empty"><p>Nenhum lançamento ainda</p></div>';
   await updOQ();
 }
@@ -891,9 +962,10 @@ async function atualizarHome(){
 function histRow(it){
   const isProd=it.tipo==='prod';const isAr=it.tipo==='arm';
   const hora=new Date(it.ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const badge=it.sync?'<span class="hbadge hb-syn">✓sync</span>':'<span class="hbadge hb-off">offline</span>';
   const cls=isProd?'ip':isAr?'ia':'is';
   const ico=isProd?'🏭':isAr?'🔩':'📤';
-  return`<div class="hi-row"><div class="hi-ic ${cls}">${ico}</div><div class="hi-inf"><div class="hi-t">${it.desc||'–'}</div><div class="hi-s">${it.sub||''} · ${hora}</div></div><div class="hi-q${isProd||isAr?'':' neg'}">${isProd||isAr?'+':'–'}${it.qtd}</div></div>`;
+  return`<div class="hi-row"><div class="hi-ic ${cls}">${ico}</div><div class="hi-inf"><div class="hi-t">${it.desc||'–'}${badge}</div><div class="hi-s">${it.sub||''} · ${hora}</div></div><div class="hi-q${isProd||isAr?'':' neg'}">${isProd||isAr?'+':'–'}${it.qtd}</div></div>`;
 }
 
 // NUMPAD
@@ -952,6 +1024,7 @@ window.salvarProducao=async function(){
   });
   if(!itens.length){toast('Adicione pelo menos um item com quantidade','error');return}
 
+  // Verificar armações
   let msg='📊 VERIFICAÇÃO DE ARMAÇÕES:\n\n';let insuf=false;
   for(const it of itens){
     const ea=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);
@@ -966,20 +1039,28 @@ window.salvarProducao=async function(){
   try{
     for(const it of itens){
       const dados={data,funcionarioid:funcId,pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,horaextra:it.horaExtra?1:0,device_origin:'mobile'};
-      if(!S.demo && S.sb && S.online){
+      if(!S.demo&&S.sb&&S.online){
         const r=await sbInsert('Producoes',dados);
         await sbInsert('Movimentacoes',{data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,origem:'Produção',producaoid:r?.id,funcionarioid:funcId,device_origin:'mobile'});
         const eaArm=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);
         const nova=(eaArm?.quantidade||0)-it.quantidade;
-        if(eaArm)await sbUpdate('EstoqueArmacoes',eaArm.id,{quantidade:nova});
+        if(eaArm){await sbUpdate('EstoqueArmacoes',eaArm.id,{quantidade:nova});eaArm.quantidade=nova;}
         else await sbInsert('EstoqueArmacoes',{modeloid:it.pecaId,quantidade:-it.quantidade});
+        S.producoes.unshift({...dados,id:r?.id,pecaid:it.pecaId,corid:it.corId,funcionarioid:funcId,horaextra:it.horaExtra?1:0});
+        S.movimentacoes.unshift({data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,id:Date.now()});
+        const func=byId(S.funcionarios,funcId);const peca=byId(S.pecas,it.pecaId);const cor=byId(S.cores,it.corId);
+        await idbAdd('hist',{tipo:'prod',desc:`${peca?.nome||'?'} · ${cor?.nome||'?'}`,sub:func?.nome||'',qtd:it.quantidade,sync:true,ts:Date.now(),producaoid:r?.id});
       }else{
         await idbAdd('fila',{tipo:'producao',dados,movDados:{data,tipo:'entrada',pecaId:it.pecaId,corId:it.corId,quantidade:it.quantidade,origem:'Produção',funcionarioId:funcId},ts:Date.now(),key:crypto.randomUUID()});
+        S.producoes.unshift({...dados,id:Date.now(),pecaid:it.pecaId,corid:it.corId,funcionarioid:funcId});
+        S.movimentacoes.unshift({data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,id:Date.now()});
+        const func=byId(S.funcionarios,funcId);const peca=byId(S.pecas,it.pecaId);const cor=byId(S.cores,it.corId);
+        // producaoid null pois ainda não foi ao servidor
+        await idbAdd('hist',{tipo:'prod',desc:`${peca?.nome||'?'} · ${cor?.nome||'?'}`,sub:func?.nome||'',qtd:it.quantidade,sync:false,ts:Date.now(),producaoid:null});
       }
     }
     await updOQ();limparProd();atualizarHome();renderProdHoje();renderEstoque();
-    if(!S.demo && S.sb && S.online) await carregarDados(true);
-    hideLoad();toast(`✅ Produção registrada!`, 'success');
+    hideLoad();toast(`✅ Produção registrada!${!S.online||S.demo?' (offline)':''}`,S.online&&!S.demo?'success':'warn');
     if(navigator.vibrate)navigator.vibrate([50,50,100]);
   }catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}
 };
@@ -996,7 +1077,7 @@ window.limparProd=function(){
 };
 
 function renderProdHoje(){
-  const hoje=hojeISO();const prods=S.producoes.filter(p=>p.data===hoje);
+  const hoje=hojeISO();const prods=S.producoes.filter(p=>(p.data||'').substring(0,10)===hoje);
   const el=document.getElementById('prodHojeList');
   if(!prods.length){el.innerHTML='<div class="empty"><div class="ei">📋</div><p>Nenhum registro hoje</p></div>';return}
   let tot=0;
@@ -1064,15 +1145,13 @@ window.salvarSaida=async function(){
   if(saldo<quantidade&&!confirm(`⚠️ Saldo insuficiente!\nSaldo: ${saldo} | Falta: ${quantidade-saldo}\nRegistrar mesmo assim?`))return;
   const dados={data,tipo:'saida',pecaid:pecaId,corid:corId,quantidade,origem:obs||'Saída via mobile',device_origin:'mobile'};
   showLoad('Registrando saída...');
+  const p=byId(S.pecas,pecaId);const c=byId(S.cores,corId);
   try{
-    if(!S.demo && S.sb && S.online){
-      await sbInsert('Movimentacoes',dados);
-    }else{
-      await idbAdd('fila',{tipo:'saida',dados,ts:Date.now(),key:crypto.randomUUID()});
-    }
+    if(!S.demo&&S.sb&&S.online){await sbInsert('Movimentacoes',dados);S.movimentacoes.unshift({...dados,pecaId,corId,id:Date.now()});}
+    else{await idbAdd('fila',{tipo:'saida',dados,ts:Date.now(),key:crypto.randomUUID()});S.movimentacoes.unshift({...dados,pecaId,corId,id:Date.now()});}
+    await idbAdd('hist',{tipo:'saida',desc:`${p?.nome||'?'} · ${c?.nome||'?'}`,sub:obs||'',qtd:quantidade,sync:S.online&&!S.demo,ts:Date.now()});
     await updOQ();limparSaida();renderEstoque();renderSaidas();atualizarHome();
-    if(!S.demo && S.sb && S.online) await carregarDados(true);
-    hideLoad();toast(`✅ Saída registrada!`, 'success');
+    hideLoad();toast(`✅ Saída registrada!${!S.online||S.demo?' (offline)':''}`,S.online&&!S.demo?'success':'warn');
     if(navigator.vibrate)navigator.vibrate([50,50,100]);
   }catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}
 };
@@ -1103,21 +1182,27 @@ window.salvarArmacao=async function(){
   if(!quantidade||quantidade<1){toast('Informe a quantidade','error');return}
   const dadosArm={data,modeloid:modeloId,quantidade,device_origin:'mobile'};
   showLoad('Registrando armação...');
+  const p=byId(S.pecas,modeloId);
   try{
-    if(!S.demo && S.sb && S.online){
+    if(!S.demo&&S.sb&&S.online){
       await sbInsert('Armacoes',dadosArm);
       const eaArm2=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===modeloId);
-      const novoSaldo=(eaArm2?.quantidade||0)+quantidade;
-      if(eaArm2)await sbUpdate('EstoqueArmacoes',eaArm2.id,{quantidade:novoSaldo});
-      else await sbInsert('EstoqueArmacoes',{modeloid:modeloId,quantidade:novoSaldo});
+      const saldoAtual=eaArm2?.quantidade||0;
+      const novoSaldo=saldoAtual+quantidade;
+      if(eaArm2){await sbUpdate('EstoqueArmacoes',eaArm2.id,{quantidade:novoSaldo});eaArm2.quantidade=novoSaldo;}
+      else{await sbInsert('EstoqueArmacoes',{modeloid:modeloId,quantidade:novoSaldo});S.estoqueArmacoes.push({modeloid:modeloId,quantidade:novoSaldo});}
+      S.armacoes.unshift({...dadosArm,id:Date.now()});
     }else{
       await idbAdd('fila',{tipo:'armacao',dados:dadosArm,ts:Date.now(),key:crypto.randomUUID()});
+      S.armacoes.unshift({...dadosArm,id:Date.now()});
+      const eaOffline=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===modeloId);
+      if(eaOffline){eaOffline.quantidade+=quantidade;}else S.estoqueArmacoes.push({modeloid:modeloId,quantidade});
     }
+    await idbAdd('hist',{tipo:'arm',desc:`Armação: ${p?.nome||'?'}`,sub:'Chegada',qtd:quantidade,sync:S.online&&!S.demo,ts:Date.now()});
     document.getElementById('aData').value=hojeISO();document.getElementById('aModelo').value='';
     S.aNum='0';document.getElementById('aVal').textContent='0';document.getElementById('aVal').classList.add('ph');document.getElementById('aDisp').classList.remove('has');
     await updOQ();renderArmacoes();atualizarHome();
-    if(!S.demo && S.sb && S.online) await carregarDados(true);
-    hideLoad();toast(`✅ Chegada registrada!`, 'success');
+    hideLoad();toast(`✅ Chegada registrada!${!S.online||S.demo?' (offline)':''}`,S.online&&!S.demo?'success':'warn');
   }catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}
 };
 function renderArmacoes(){
@@ -1147,9 +1232,9 @@ window.salvarModelo=async function(){
   if(!nome||isNaN(valor)||valor<0){toast('Preencha nome e valor','error');return}
   showLoad(id?'Atualizando...':'Cadastrando...');
   try{
-    if(!S.demo && S.sb && S.online){
+    if(!S.demo&&S.sb&&S.online){
       if(id)await sbUpdate('Pecas',parseInt(id),{nome,valor});else await sbInsert('Pecas',{nome,valor});
-      await carregarDados(true);
+      const{data}=await S.sb.from('Pecas').select('*').order('nome');S.pecas=data||[];
     }else{
       if(id){const p=byId(S.pecas,parseInt(id));if(p){p.nome=nome;p.valor=valor}}else S.pecas.push({id:Date.now(),nome,valor});
     }
@@ -1157,19 +1242,19 @@ window.salvarModelo=async function(){
   }catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}
 };
 window.editarModelo=function(id){const p=byId(S.pecas,id);if(!p)return;document.getElementById('pecaId').value=p.id;document.getElementById('nomePeca').value=p.nome;document.getElementById('valorPeca').value=p.valor;document.getElementById('modeloFormTit').innerHTML='<div class="cico cg">✏️</div>Editar Modelo'};
-window.excluirModelo=async function(id){if(!confirm('⚠️ Excluir modelo?'))return;showLoad('Excluindo...');try{if(!S.demo && S.sb && S.online)await sbDelete('Pecas',id);await carregarDados(true);fillSelects();renderCadModelos();hideLoad();toast('✅ Excluído!','success')}catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}};
+window.excluirModelo=async function(id){if(!confirm('⚠️ Excluir modelo?'))return;showLoad('Excluindo...');try{if(!S.demo&&S.sb&&S.online)await sbDelete('Pecas',id);S.pecas=S.pecas.filter(p=>p.id!==id);fillSelects();renderCadModelos();hideLoad();toast('✅ Excluído!','success')}catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}};
 window.cancelarModelo=function(){document.getElementById('pecaId').value='';document.getElementById('nomePeca').value='';document.getElementById('valorPeca').value='';document.getElementById('modeloFormTit').innerHTML='<div class="cico cg">🪑</div>Novo Modelo'};
 function renderCadModelos(){const el=document.getElementById('modelosList');el.innerHTML=S.pecas.length?S.pecas.map(p=>`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p.nome}</span><span class="valor">${fmtMoeda(p.valor)}</span></div><div class="mob-acts"><button class="ab ab-e" onclick="editarModelo(${p.id})">✏️ Editar</button><button class="ab ab-d" onclick="excluirModelo(${p.id})">🗑️</button></div></div>`).join(''):'<div class="empty"><div class="ei">🪑</div><p>Nenhum modelo</p></div>'}
 
-window.salvarFuncionario=async function(){const id=document.getElementById('funcId').value;const nome=document.getElementById('nomeFunc').value.trim();const cargo=document.getElementById('cargoFunc').value.trim();if(!nome||!cargo){toast('Preencha nome e cargo','error');return}showLoad(id?'Atualizando...':'Cadastrando...');try{if(!S.demo && S.sb && S.online){if(id)await sbUpdate('Funcionarios',parseInt(id),{nome,cargo});else await sbInsert('Funcionarios',{nome,cargo});await carregarDados(true);}else{if(id){const f=byId(S.funcionarios,parseInt(id));if(f){f.nome=nome;f.cargo=cargo}}else S.funcionarios.push({id:Date.now(),nome,cargo})}fillSelects();cancelarFunc();renderCadFunc();hideLoad();toast(id?'✅ Atualizado!':'✅ Cadastrado!','success')}catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}};
+window.salvarFuncionario=async function(){const id=document.getElementById('funcId').value;const nome=document.getElementById('nomeFunc').value.trim();const cargo=document.getElementById('cargoFunc').value.trim();if(!nome||!cargo){toast('Preencha nome e cargo','error');return}showLoad(id?'Atualizando...':'Cadastrando...');try{if(!S.demo&&S.sb&&S.online){if(id)await sbUpdate('Funcionarios',parseInt(id),{nome,cargo});else await sbInsert('Funcionarios',{nome,cargo});const{data}=await S.sb.from('Funcionarios').select('*').order('nome');S.funcionarios=data||[];}else{if(id){const f=byId(S.funcionarios,parseInt(id));if(f){f.nome=nome;f.cargo=cargo}}else S.funcionarios.push({id:Date.now(),nome,cargo})}fillSelects();cancelarFunc();renderCadFunc();hideLoad();toast(id?'✅ Atualizado!':'✅ Cadastrado!','success')}catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}};
 window.editarFunc=function(id){const f=byId(S.funcionarios,id);if(!f)return;document.getElementById('funcId').value=f.id;document.getElementById('nomeFunc').value=f.nome;document.getElementById('cargoFunc').value=f.cargo};
-window.excluirFunc=async function(id){if(!confirm('⚠️ Excluir funcionário?'))return;showLoad('Excluindo...');try{if(!S.demo && S.sb && S.online)await sbDelete('Funcionarios',id);await carregarDados(true);fillSelects();renderCadFunc();hideLoad();toast('✅ Excluído!','success')}catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}};
+window.excluirFunc=async function(id){if(!confirm('⚠️ Excluir funcionário?'))return;showLoad('Excluindo...');try{if(!S.demo&&S.sb&&S.online)await sbDelete('Funcionarios',id);S.funcionarios=S.funcionarios.filter(f=>f.id!==id);fillSelects();renderCadFunc();hideLoad();toast('✅ Excluído!','success')}catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}};
 window.cancelarFunc=function(){document.getElementById('funcId').value='';document.getElementById('nomeFunc').value='';document.getElementById('cargoFunc').value=''};
 function renderCadFunc(){const el=document.getElementById('funcList');el.innerHTML=S.funcionarios.length?S.funcionarios.map(f=>`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${f.nome}</span><span class="badge-e">${f.cargo}</span></div><div class="mob-acts"><button class="ab ab-e" onclick="editarFunc(${f.id})">✏️</button><button class="ab ab-d" onclick="excluirFunc(${f.id})">🗑️</button></div></div>`).join(''):'<div class="empty"><div class="ei">👤</div><p>Nenhum funcionário</p></div>'}
 
-window.salvarCor=async function(){const id=document.getElementById('corId').value;const nome=document.getElementById('nomeCor').value.trim();if(!nome){toast('Informe a cor','error');return}showLoad(id?'Atualizando...':'Cadastrando...');try{if(!S.demo && S.sb && S.online){if(id)await sbUpdate('Cores',parseInt(id),{nome});else await sbInsert('Cores',{nome});await carregarDados(true);}else{if(id){const c=byId(S.cores,parseInt(id));if(c)c.nome=nome}else S.cores.push({id:Date.now(),nome})}fillSelects();cancelarCor();renderCadCores();hideLoad();toast(id?'✅ Atualizada!':'✅ Cadastrada!','success')}catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}};
+window.salvarCor=async function(){const id=document.getElementById('corId').value;const nome=document.getElementById('nomeCor').value.trim();if(!nome){toast('Informe a cor','error');return}showLoad(id?'Atualizando...':'Cadastrando...');try{if(!S.demo&&S.sb&&S.online){if(id)await sbUpdate('Cores',parseInt(id),{nome});else await sbInsert('Cores',{nome});const{data}=await S.sb.from('Cores').select('*').order('nome');S.cores=data||[];}else{if(id){const c=byId(S.cores,parseInt(id));if(c)c.nome=nome}else S.cores.push({id:Date.now(),nome})}fillSelects();cancelarCor();renderCadCores();hideLoad();toast(id?'✅ Atualizada!':'✅ Cadastrada!','success')}catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}};
 window.editarCor=function(id){const c=byId(S.cores,id);if(!c)return;document.getElementById('corId').value=c.id;document.getElementById('nomeCor').value=c.nome};
-window.excluirCor=async function(id){if(!confirm('⚠️ Excluir cor?'))return;showLoad('Excluindo...');try{if(!S.demo && S.sb && S.online)await sbDelete('Cores',id);await carregarDados(true);fillSelects();renderCadCores();hideLoad();toast('✅ Excluída!','success')}catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}};
+window.excluirCor=async function(id){if(!confirm('⚠️ Excluir cor?'))return;showLoad('Excluindo...');try{if(!S.demo&&S.sb&&S.online)await sbDelete('Cores',id);S.cores=S.cores.filter(c=>c.id!==id);fillSelects();renderCadCores();hideLoad();toast('✅ Excluída!','success')}catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}};
 window.cancelarCor=function(){document.getElementById('corId').value='';document.getElementById('nomeCor').value=''};
 function renderCadCores(){const el=document.getElementById('coresList');el.innerHTML=S.cores.length?S.cores.map(c=>`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">🎨 ${c.nome}</span><div class="mob-acts" style="margin:0"><button class="ab ab-e" onclick="editarCor(${c.id})">✏️</button><button class="ab ab-d" onclick="excluirCor(${c.id})">🗑️</button></div></div></div>`).join(''):'<div class="empty"><div class="ei">🎨</div><p>Nenhuma cor</p></div>'}
 
@@ -1178,7 +1263,7 @@ window.relAba=function(aba,btn){
   document.querySelectorAll('#relPills .pill').forEach(p=>p.classList.remove('active'));btn.classList.add('active');
   ['Geral','Modelos','Estoque','Folha','Armacoes'].forEach(a=>{document.getElementById('rel'+a).style.display=aba===a.toLowerCase()?'block':'none'});
 };
-function filtrarProd(ini,fim,fId,pId,cId){return S.producoes.filter(p=>{if(ini&&p.data<ini)return false;if(fim&&p.data>fim)return false;if(fId&&p.funcionarioId!=fId)return false;if(pId&&p.pecaId!=pId)return false;if(cId&&p.corId!=cId)return false;return true})}
+function filtrarProd(ini,fim,fId,pId,cId){return S.producoes.filter(p=>{if(ini&&p.data<ini)return false;if(fim&&p.data>fim)return false;if(fId&&(p.funcionarioid??p.funcionarioId)!=fId)return false;if(pId&&(p.pecaid??p.pecaId)!=pId)return false;if(cId&&(p.corid??p.corId)!=cId)return false;return true})}
 window.gerarRelGeral=function(){
   const ini=document.getElementById('rg_ini').value,fim=document.getElementById('rg_fim').value;
   const fId=document.getElementById('rg_func').value,pId=document.getElementById('rg_peca').value,cId=document.getElementById('rg_cor').value;
@@ -1202,7 +1287,7 @@ window.gerarRelGeral=function(){
 window.gerarRelModelos=function(){
   const ini=document.getElementById('rm_ini').value,fim=document.getElementById('rm_fim').value;
   const prods=filtrarProd(ini,fim,'','','');const el=document.getElementById('relModelosResult');
-  const agrup={};prods.forEach(p=>{const k=`${p.pecaId}-${p.corId}`;if(!agrup[k])agrup[k]={pecaId:p.pecaId,corId:p.corId,quantidade:0};agrup[k].quantidade+=p.quantidade});
+  const agrup={};prods.forEach(p=>{const _pid=p.pecaid??p.pecaId;const _cid=p.corid??p.corId;const k=`${_pid}-${_cid}`;if(!agrup[k])agrup[k]={pecaId:_pid,corId:_cid,quantidade:0};agrup[k].quantidade+=parseInt(p.quantidade)||0});
   const rows=Object.values(agrup);if(!rows.length){el.innerHTML='<div class="empty"><p>Nenhum dado</p></div>';return}
   let tot=0;
   el.innerHTML=rows.map(r=>{const p=byId(S.pecas,r.pecaId);const c=byId(S.cores,r.corId);const vt=(p?.valor||0)*r.quantidade;tot+=vt;return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span class="valor">${fmtMoeda(vt)}</span></div><div class="mob-rf"><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${r.quantidade}</strong></div></div></div>`}).join('')+`<div class="total-row"><span class="tl">Total</span><span class="tv">${fmtMoeda(tot)}</span></div>`;
@@ -1210,11 +1295,11 @@ window.gerarRelModelos=function(){
 window.gerarRelEstoque=function(){
   const ini=document.getElementById('re_ini').value,fim=document.getElementById('re_fim').value;
   const tipo=document.getElementById('re_tipo').value,pId=document.getElementById('re_peca').value;
-  let movs=S.movimentacoes.filter(m=>{if(ini&&m.data<ini)return false;if(fim&&m.data>fim)return false;if(tipo&&m.tipo!==tipo)return false;if(pId&&m.pecaId!=pId)return false;return true});
+  let movs=S.movimentacoes.filter(m=>{if(ini&&m.data<ini)return false;if(fim&&m.data>fim)return false;if(tipo&&m.tipo!==tipo)return false;if(pId&&(m.pecaid??m.pecaId)!=pId)return false;return true});
   const el=document.getElementById('relEstoqueResult');
   if(!movs.length){el.innerHTML='<div class="empty"><p>Nenhuma movimentação</p></div>';return}
   let saldo=0;
-  el.innerHTML=movs.map(m=>{const p=byId(S.pecas,m.pecaId);const c=byId(S.cores,m.corId);saldo+=m.tipo==='entrada'?m.quantidade:-m.quantidade;return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span class="${m.tipo==='entrada'?'badge-e':'badge-s'}">${m.tipo==='entrada'?'Entrada':'Saída'}</span></div><div class="mob-rf"><div class="mob-fi">Data<strong>${fmtData(m.data)}</strong></div><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${m.quantidade}</strong></div><div class="mob-fi">Origem<strong>${m.origem||'–'}</strong></div></div></div>`}).join('')+`<div class="total-row"><span class="tl">Saldo do Período</span><span class="tv" style="color:${saldo>=0?'var(--green2)':'var(--red2)'}">${saldo}</span></div>`;
+  el.innerHTML=movs.map(m=>{const p=byId(S.pecas,m.pecaid??m.pecaId);const c=byId(S.cores,m.corid??m.corId);saldo+=m.tipo==='entrada'?m.quantidade:-m.quantidade;return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span class="${m.tipo==='entrada'?'badge-e':'badge-s'}">${m.tipo==='entrada'?'Entrada':'Saída'}</span></div><div class="mob-rf"><div class="mob-fi">Data<strong>${fmtData(m.data)}</strong></div><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${m.quantidade}</strong></div><div class="mob-fi">Origem<strong>${m.origem||'–'}</strong></div></div></div>`}).join('')+`<div class="total-row"><span class="tl">Saldo do Período</span><span class="tv" style="color:${saldo>=0?'var(--green2)':'var(--red2)'}">${saldo}</span></div>`;
 };
 window.gerarFolha=function(){
   const mesAno=document.getElementById('rf_mes').value;if(!mesAno){toast('Selecione o mês/ano','error');return}
@@ -1255,49 +1340,39 @@ window.syncFila=async function(){
       await idbDel('fila',item.id);ok++;
     }catch(e){fail++}
   }
-  await updOQ();await carregarDados(true);hideLoad();
+  await updOQ();hideLoad();
   if(ok>0)toast(`✅ ${ok} item(ns) sincronizados!`,'success');
   if(fail>0)toast(`⚠️ ${fail} falha(s)`,'warn');
 };
 
 // ONLINE/OFFLINE
-window.addEventListener('online',async()=>{S.online=true;updBadge();toast('✅ Conexão restaurada!','success');await syncFila();await carregarDados(true)});
-window.addEventListener('offline',()=>{S.online=false;updBadge();toast('📴 Modo offline ativo','warn')});
-function updBadge(){const b=document.getElementById('sBadge');b.className='sbadge '+(S.online?'on':'off');document.getElementById('sTxt').textContent=S.online?'Online':'Offline'}
+window.addEventListener('online',async()=>{S.online=true;updBadge();toast('✅ Conexão restaurada!','success');await syncFila();if(S.sb&&!S.demo)iniciarRealtime()});
+window.addEventListener('offline',()=>{S.online=false;updBadge();toast('📴 Modo offline ativo','warn');arStop();const el=document.getElementById('arCountdown');if(el)el.textContent='–'});
+function updBadge(){
+  const b=document.getElementById('sBadge');
+  if(!S.online){
+    b.className='sbadge off';
+    document.getElementById('sTxt').textContent='Offline';
+  }else if(_rtChannel){
+    // deixa updRtBadge cuidar quando realtime está ativo
+  }else{
+    b.className='sbadge on';
+    document.getElementById('sTxt').textContent='Online';
+  }
+}
 
 // NAVEGAÇÃO
-window.nav=async function(nome){
+window.nav=function(nome){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   document.getElementById('page'+nome).classList.add('active');
   document.getElementById('nav'+nome).classList.add('active');
   document.querySelector('.main').scrollTop=0;
-  
-  switch(nome) {
-    case 'Estoque':
-      await carregarDados(false);
-      renderEstoque();
-      break;
-    case 'Producao':
-      await carregarDados(false);
-      renderProdHoje();
-      break;
-    case 'Saidas':
-      await carregarDados(false);
-      renderSaidas();
-      break;
-    case 'Armacoes':
-      await carregarDados(false);
-      renderArmacoes();
-      break;
-    case 'Home':
-      await carregarDados(false);
-      await atualizarHome();
-      break;
-    case 'Relatorios':
-      await carregarDados(false);
-      break;
-  }
+  if(nome==='Estoque')renderEstoque();
+  if(nome==='Producao')renderProdHoje();
+  if(nome==='Saidas')renderSaidas();
+  if(nome==='Armacoes')renderArmacoes();
+  if(nome==='Home')atualizarHome();
 };
 
 // TOAST/LOAD
@@ -1311,19 +1386,220 @@ window.toast=function(msg,tipo='info'){
 function showLoad(t='Carregando...'){document.getElementById('lTxt').textContent=t;document.getElementById('lOv').classList.remove('hidden')}
 function hideLoad(){document.getElementById('lOv').classList.add('hidden')}
 
+// ATUALIZAR TUDO
+window.atualizarTudo=async function(){
+  if(!S.sb||S.demo){toast('Sem conexão com o servidor','warn');return}
+  const btn=document.getElementById('rBtn');
+  btn.classList.add('spin');
+  try{
+    await carregarDados();
+    fillSelects();
+    renderProdHoje();
+    renderEstoque();
+    renderSaidas();
+    renderArmacoes();
+    atualizarHome();
+    toast('✅ Dados atualizados!','success');
+  }catch(e){toast('❌ Erro ao atualizar','error')}
+  finally{btn.classList.remove('spin')}
+};
+
+// AUTO REFRESH
+let _arTimer=null,_arCount=20,_arRunning=false;
+function arTick(){
+  _arCount--;
+  const el=document.getElementById('arCountdown');
+  if(el)el.textContent=_arCount+'s';
+  if(_arCount<=0){
+    _arCount=20;
+    if(el)el.textContent='20s';
+    arRefresh();
+  }
+}
+async function arRefresh(){
+  if(_arRunning||!S.sb||S.demo||!S.online)return;
+  _arRunning=true;
+  try{
+    await carregarDados();
+    fillSelects();
+    const pagina=document.querySelector('.page.active');
+    if(pagina){
+      const id=pagina.id;
+      if(id==='pageHome')atualizarHome();
+      else if(id==='pageEstoque')renderEstoque();
+      else if(id==='pageProducao')renderProdHoje();
+      else if(id==='pageSaidas')renderSaidas();
+      else if(id==='pageArmacoes')renderArmacoes();
+    }
+    const el=document.getElementById('arLastUp');
+    if(el){const now=new Date();el.textContent=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0')+':'+now.getSeconds().toString().padStart(2,'0')}
+  }catch(e){console.warn('Auto-refresh falhou:',e)}
+  finally{_arRunning=false}
+}
+function arStart(){
+  if(_arTimer)return;
+  _arCount=20;
+  _arTimer=setInterval(arTick,1000);
+}
+function arStop(){
+  if(_arTimer){clearInterval(_arTimer);_arTimer=null}
+}
+window.arToggle=function(){
+  const btn=document.getElementById('arToggleBtn');
+  if(_arTimer){arStop();if(btn){btn.textContent='▶';btn.title='Iniciar auto-refresh'}}
+  else{arStart();if(btn){btn.textContent='⏸';btn.title='Pausar auto-refresh'}}
+};
+
+// ============================================
+// MODAL APAGAR DADOS
+// ============================================
+const SENHA_ADMIN = 'dantas3101';
+const DEL_CHKS = ['delChkProducoes','delChkMovimentacoes','delChkArmacoes','delChkPecas','delChkFuncionarios','delChkCores'];
+
+window.abrirModalApagar = function(){
+  if(S.demo){toast('Modo demo — não é possível apagar dados','warn');return}
+  if(!S.sb||!S.online){toast('Necessário estar online para apagar dados','error');return}
+  // Resetar estado
+  document.getElementById('delSenhaInp').value='';
+  document.getElementById('delErrSenha').textContent='';
+  document.getElementById('delErrSelecao').textContent='';
+  DEL_CHKS.forEach(id=>document.getElementById(id).checked=false);
+  document.getElementById('delChkTudo').checked=false;
+  DEL_CHKS.forEach(id=>atualizarDelEstilo(id, id.replace('delChk','delLbl')));
+  // Mostrar etapa 1
+  document.getElementById('delStep1').classList.add('active');
+  document.getElementById('delStep2').classList.remove('active');
+  document.getElementById('delModalOv').classList.add('open');
+  setTimeout(()=>document.getElementById('delSenhaInp').focus(),300);
+};
+
+window.fecharModalApagar = function(e){
+  if(e&&e.target!==document.getElementById('delModalOv'))return;
+  document.getElementById('delModalOv').classList.remove('open');
+};
+window.fecharModalApagarBtn = function(){
+  document.getElementById('delModalOv').classList.remove('open');
+};
+
+window.confirmarSenhaApagar = function(){
+  const senha=document.getElementById('delSenhaInp').value;
+  const errEl=document.getElementById('delErrSenha');
+  if(senha!==SENHA_ADMIN){
+    errEl.textContent='❌ Senha incorreta. Tente novamente.';
+    document.getElementById('delSenhaInp').select();
+    return;
+  }
+  errEl.textContent='';
+  document.getElementById('delStep1').classList.remove('active');
+  document.getElementById('delStep2').classList.add('active');
+};
+
+window.atualizarDelEstilo = function(chkId, lblId){
+  const chk=document.getElementById(chkId);
+  const lbl=document.getElementById(lblId);
+  if(!chk||!lbl)return;
+  if(chk.checked)lbl.classList.add('sel');
+  else lbl.classList.remove('sel');
+};
+
+window.atualizarDelCheckTudo = function(){
+  const todos=DEL_CHKS.every(id=>document.getElementById(id).checked);
+  document.getElementById('delChkTudo').checked=todos;
+};
+
+window.toggleTudoApagarMob = function(){
+  const tudo=document.getElementById('delChkTudo').checked;
+  DEL_CHKS.forEach(id=>{
+    document.getElementById(id).checked=tudo;
+    atualizarDelEstilo(id, id.replace('delChk','delLbl'));
+  });
+};
+
+window.executarApagarMob = async function(){
+  const sel={
+    producoes:    document.getElementById('delChkProducoes').checked,
+    movimentacoes:document.getElementById('delChkMovimentacoes').checked,
+    armacoes:     document.getElementById('delChkArmacoes').checked,
+    pecas:        document.getElementById('delChkPecas').checked,
+    funcionarios: document.getElementById('delChkFuncionarios').checked,
+    cores:        document.getElementById('delChkCores').checked,
+  };
+  const errEl=document.getElementById('delErrSelecao');
+  if(!Object.values(sel).some(Boolean)){
+    errEl.textContent='⚠️ Selecione pelo menos uma categoria.';
+    return;
+  }
+  errEl.textContent='';
+
+  const nomes={
+    producoes:'🏭 Produções',movimentacoes:'📊 Movimentações',
+    armacoes:'🔩 Armações',pecas:'🪑 Modelos/Peças',
+    funcionarios:'👷 Funcionários',cores:'🎨 Cores'
+  };
+  const lista=Object.entries(sel).filter(([,v])=>v).map(([k])=>nomes[k]).join(', ');
+
+  const ok=confirm(`⚠️ CONFIRMAÇÃO FINAL\n\nSerão apagados permanentemente:\n${lista}\n\nTem certeza absoluta?`);
+  if(!ok)return;
+
+  document.getElementById('delModalOv').classList.remove('open');
+  showLoad('Apagando dados...');
+
+  try{
+    // Ordem respeita chaves estrangeiras — dependentes primeiro
+    if(sel.movimentacoes){
+      const{error}=await S.sb.from('Movimentacoes').delete().gt('id',0);
+      if(error)throw error;
+      S.movimentacoes=[];
+    }
+    if(sel.producoes){
+      const{error}=await S.sb.from('Producoes').delete().gt('id',0);
+      if(error)throw error;
+      S.producoes=[];
+    }
+    if(sel.armacoes){
+      await S.sb.from('EstoqueArmacoes').delete().gt('id',0);
+      const{error}=await S.sb.from('Armacoes').delete().gt('id',0);
+      if(error)throw error;
+      S.armacoes=[];S.estoqueArmacoes=[];
+    }
+    if(sel.pecas){
+      const{error}=await S.sb.from('Pecas').delete().gt('id',0);
+      if(error)throw error;
+      S.pecas=[];
+    }
+    if(sel.funcionarios){
+      const{error}=await S.sb.from('Funcionarios').delete().gt('id',0);
+      if(error)throw error;
+      S.funcionarios=[];
+    }
+    if(sel.cores){
+      const{error}=await S.sb.from('Cores').delete().gt('id',0);
+      if(error)throw error;
+      S.cores=[];
+    }
+    // Limpa hist local também
+    await idbClear('hist');
+
+    fillSelects();renderProdHoje();renderEstoque();renderSaidas();renderArmacoes();atualizarHome();
+    hideLoad();
+    toast(`✅ Apagado: ${lista}`,'success');
+    if(navigator.vibrate)navigator.vibrate([50,100,50]);
+  }catch(e){
+    hideLoad();
+    toast('❌ Erro ao apagar: '+e.message,'error');
+    console.error('Erro apagar dados:',e);
+  }
+};
+
 // BOOT
 async function boot(){
   await openIDB();
-  await idbClear('hist');
+  await purgeHistAntigo();
   await initSB();
   updBadge();
-  if(S.demo || !SUPABASE_URL || !SUPABASE_KEY || !SUPABASE_URL.startsWith('https')) {
-    document.getElementById('demoBox').style.display='block';
-    S.demo = true;
-  } else {
-    document.getElementById('demoBox').style.display='none';
-  }
-  console.log('🚀 App inicializado, modo demo:', S.demo);
+  if(S.demo)document.getElementById('demoBox').style.display='block';
+  // Após conectar ao Supabase, limpeza de orphãos é feita via purgeHistOrfaos
+  // chamada no iniciarApp() depois de carregarDados()
 }
 boot();
 </script>
