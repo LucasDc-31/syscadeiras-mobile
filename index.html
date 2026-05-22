@@ -1,964 +1,794 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#2c3e50">
-    <meta name="description" content="Sistema de controle de produção e estoque para fábrica de cadeiras">
-    
-    <title>SysCadeiras - Produção & Estoque</title>
-    <link rel="manifest" href="manifest.json">
-    <!-- chart.js bundled locally — não depende de internet -->
-    <script src="node_modules/chart.js/dist/chart.umd.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="theme-color" content="#2c3e50">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SysCadeiras">
+<title>SysCadeiras Mobile</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root{
+  --bg:#1a2332;--bg2:#243044;--bg3:#2d3c54;
+  --green:#1abc9c;--green2:#16a085;
+  --red:#e74c3c;--red2:#c0392b;
+  --blue:#3498db;--blue2:#2980b9;
+  --yellow:#f39c12;--text:#ecf0f1;--text2:#bdc3c7;
+  --border:rgba(255,255,255,.08);--radius:14px;
+  --st:env(safe-area-inset-top,0px);
+  --sb:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI',sans-serif;font-size:15px;line-height:1.5;display:flex;flex-direction:column;height:100dvh;overflow:hidden}
 
-    <link rel="stylesheet" href="style.css">
+/* LOGIN */
+#loginScreen{position:fixed;inset:0;background:linear-gradient(160deg,#0f1923 0%,#1a2f1a 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;z-index:9999}
+.login-logo{text-align:center;margin-bottom:32px}
+.login-logo .ico{font-size:64px;display:block;margin-bottom:12px;filter:drop-shadow(0 4px 12px rgba(26,188,156,.4))}
+.login-logo h1{font-size:1.8rem;font-weight:800;color:#fff;margin-bottom:4px}
+.login-logo p{color:rgba(255,255,255,.5);font-size:.9rem}
+.login-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px 24px;width:100%;max-width:380px;backdrop-filter:blur(20px)}
+.login-field{margin-bottom:16px}
+.login-field label{display:block;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.5);margin-bottom:7px}
+.login-field input{width:100%;padding:14px 16px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.12);border-radius:12px;color:#fff;font-size:15px;transition:border-color .2s}
+.login-field input:focus{outline:none;border-color:var(--green)}
+.login-field input::placeholder{color:rgba(255,255,255,.3)}
+#lErr{color:#ff6b6b;font-size:13px;text-align:center;min-height:20px;margin-bottom:10px;font-weight:600}
+.btn-login{width:100%;padding:15px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:.03em;transition:opacity .2s}
+.btn-login:active{opacity:.8}
+.login-version{text-align:center;margin-top:18px;color:rgba(255,255,255,.25);font-size:11px}
+
+/* APP SHELL */
+#appShell{display:none;flex-direction:column;height:100dvh}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:calc(var(--st)+10px) 14px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:100}
+.topbar h1{font-size:1.1rem;font-weight:800;color:var(--green)}
+.topbar small{font-size:.75rem;color:var(--text2);display:block}
+.topbar .tb-right{display:flex;align-items:center;gap:8px}
+.badge-sync{font-size:11px;padding:3px 9px;border-radius:10px;font-weight:700;background:rgba(26,188,156,.15);color:var(--green)}
+.badge-offline{background:rgba(231,76,60,.15);color:var(--red)}
+.btn-logout-mob{background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.3);color:var(--red);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer}
+
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:1;min-width:70px;padding:12px 6px 10px;text-align:center;font-size:.72rem;font-weight:700;color:var(--text2);border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap}
+.tab.active{color:var(--green);border-bottom-color:var(--green)}
+.tab .tab-icon{font-size:1.2rem;display:block;margin-bottom:2px}
+
+.content{flex:1;overflow-y:auto;padding:16px 14px calc(var(--sb)+16px)}
+
+/* CARDS */
+.mob-row{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px}
+.mob-rh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.mob-rt{font-weight:700;font-size:1rem}
+.mob-rf{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mob-fi{background:var(--bg3);border-radius:8px;padding:8px 10px;font-size:.78rem}
+.mob-fi strong{display:block;font-size:.88rem;margin-top:2px}
+.badge-he{background:rgba(243,156,18,.15);color:var(--yellow);border-radius:6px;padding:2px 8px;font-size:.72rem;font-weight:700}
+.badge-login-mob{display:inline-block;background:rgba(52,152,219,.15);color:var(--blue);border-radius:6px;padding:2px 8px;font-size:.72rem;font-weight:700}
+
+/* FORMS */
+.form-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+.form-card h3{font-size:.95rem;margin-bottom:14px;color:var(--text2);font-weight:600}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;padding:12px 14px;background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;appearance:none}
+.field input:focus,.field select:focus{outline:none;border-color:var(--green)}
+.field select option{background:var(--bg2)}
+.check-row{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg3);border-radius:10px;cursor:pointer}
+.check-row input[type=checkbox]{width:20px;height:20px;accent-color:var(--green);cursor:pointer;flex-shrink:0}
+.check-row label{font-size:.9rem;font-weight:600;cursor:pointer;margin:0}
+
+/* BOTÕES */
+.btn{width:100%;padding:15px;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .2s;margin-bottom:8px}
+.btn:active{opacity:.8}
+.btn-green{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff}
+.btn-red{background:linear-gradient(135deg,var(--red),var(--red2));color:#fff}
+.btn-blue{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff}
+.btn-ghost{background:rgba(255,255,255,.07);color:var(--text);border:1px solid var(--border)}
+
+/* HOME STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.stat-card .s-val{font-size:1.6rem;font-weight:800;color:var(--green)}
+.stat-card .s-lbl{font-size:.75rem;color:var(--text2);margin-top:2px}
+
+/* ITEM PRODUÇÃO EXTRA */
+.item-extra{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;position:relative}
+.btn-rem-item{position:absolute;top:8px;right:8px;background:rgba(231,76,60,.2);border:none;color:var(--red);border-radius:6px;padding:3px 8px;font-size:.8rem;cursor:pointer}
+
+/* LOADING */
+#loadingOverlay{position:fixed;inset:0;background:rgba(15,25,35,.9);z-index:8000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.spinner{width:44px;height:44px;border:4px solid rgba(255,255,255,.1);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loadingMsg{color:var(--text2);font-size:.9rem}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(var(--sb)+20px);left:50%;transform:translateX(-50%);background:#2d3c54;color:#fff;padding:12px 20px;border-radius:12px;font-size:.88rem;font-weight:600;z-index:9000;box-shadow:0 8px 24px rgba(0,0,0,.4);animation:toastIn .3s ease;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+.valor{color:var(--green);font-weight:700}
+.empty{text-align:center;color:var(--text2);padding:40px 20px;font-size:.9rem}
+</style>
 </head>
 <body>
 
-    <!-- ============================================================
-         TELA DE LOGIN — exibida antes do app carregar
-    ============================================================ -->
-    <div id="loginOverlay" style="position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,#1a252f 0%,#2c3e50 50%,#1a3a2a 100%);display:flex;align-items:center;justify-content:center;">
-        <div style="background:#fff;border-radius:18px;padding:48px 44px;width:100%;max-width:420px;box-shadow:0 30px 80px rgba(0,0,0,.4);animation:loginSlideUp .4s cubic-bezier(.34,1.56,.64,1)">
-            <div style="text-align:center;margin-bottom:32px">
-                <div style="width:72px;height:72px;margin:0 auto 14px;background:linear-gradient(135deg,#1abc9c,#2c3e50);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:38px;box-shadow:0 12px 30px rgba(26,188,156,.3)">🪑</div>
-                <h1 style="font-size:1.8rem;color:#2c3e50;margin-bottom:4px">SysCadeiras</h1>
-                <p style="color:#7f8c8d;font-size:.9rem">Controle de Produção &amp; Estoque</p>
-            </div>
-            <div style="margin-bottom:18px">
-                <label style="display:block;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7f8c8d;margin-bottom:7px">E-mail</label>
-                <input type="email" id="loginEmail" placeholder="admin@syscadeiras.com" autocomplete="username"
-                       style="width:100%;padding:13px 15px;border:2px solid #e0e0e0;border-radius:10px;font-size:15px;background:#fafafa;transition:border-color .2s;box-sizing:border-box"
-                       onfocus="this.style.borderColor='#1abc9c'" onblur="this.style.borderColor='#e0e0e0'"
-                       onkeydown="if(event.key==='Enter')document.getElementById('loginSenha').focus()">
-            </div>
-            <div style="margin-bottom:18px">
-                <label style="display:block;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7f8c8d;margin-bottom:7px">Senha</label>
-                <input type="password" id="loginSenha" placeholder="••••••••" autocomplete="current-password"
-                       style="width:100%;padding:13px 15px;border:2px solid #e0e0e0;border-radius:10px;font-size:15px;background:#fafafa;transition:border-color .2s;box-sizing:border-box"
-                       onfocus="this.style.borderColor='#1abc9c'" onblur="this.style.borderColor='#e0e0e0'"
-                       onkeydown="if(event.key==='Enter')fazerLogin()">
-            </div>
-            <div id="loginErro" style="color:#e74c3c;font-size:13px;text-align:center;min-height:20px;margin-bottom:12px;font-weight:600"></div>
-            <button id="btnEntrar" onclick="fazerLogin()"
-                    style="width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#1abc9c,#16a085);color:#fff;font-size:16px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.03em">
-                🔐 Entrar
-            </button>
-            <div style="text-align:center;margin-top:20px;color:#bdc3c7;font-size:12px">SysCadeiras v2.0 · Desktop</div>
-        </div>
-    </div>
-    <style>
-        @keyframes loginSlideUp {
-            from { transform: translateY(40px); opacity: 0; }
-            to   { transform: translateY(0);    opacity: 1; }
-        }
-        #loginOverlay.hidden { display: none !important; }
-        .badge-login { display:inline-flex;align-items:center;gap:4px;background:#eaf4fb;color:#2980b9;border-radius:5px;padding:2px 8px;font-size:.78rem;font-weight:600 }
-        .badge-login.mobile { background:#e8f8f5;color:#1abc9c }
-    </style>
-    <div id="modalSenha" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:20000; align-items:center; justify-content:center;">
-        <div style="background:#fff; border-radius:14px; width:480px; max-width:95vw; box-shadow:0 12px 40px rgba(0,0,0,0.35); overflow:hidden;">
-
-            <!-- Cabeçalho -->
-            <div style="background:#e74c3c; padding:20px 28px 16px;">
-                <h3 style="margin:0; color:#fff; font-size:18px; font-weight:700;">🗑️ Apagar Dados do Sistema</h3>
-                <p style="margin:4px 0 0; color:rgba(255,255,255,0.85); font-size:13px;">Esta ação é <strong>irreversível</strong>. Prossiga com cuidado.</p>
-            </div>
-
-            <!-- ETAPA 1: Senha -->
-            <div id="etapaSenha" style="padding:24px 28px 28px;">
-                <p style="margin:0 0 14px; color:#444; font-size:14px; line-height:1.6;">
-                    Digite a senha de administrador para desbloquear as opções de exclusão:
-                </p>
-                <input type="password" id="inputSenhaApagar"
-                       placeholder="Senha de confirmação"
-                       style="width:100%; padding:11px 14px; font-size:15px; border:2px solid #ddd; border-radius:8px; box-sizing:border-box; transition:border-color .2s;"
-                       onkeydown="if(event.key==='Enter') confirmarSenhaApagar()"
-                       onfocus="this.style.borderColor='#e74c3c'" onblur="this.style.borderColor='#ddd'">
-                <div id="erroSenha" style="color:#e74c3c; font-size:13px; min-height:20px; margin:8px 0 0;"></div>
-                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
-                    <button onclick="fecharModalSenha()"
-                            style="padding:10px 22px; border:2px solid #ccc; background:#fff; color:#555; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600;">
-                        Cancelar
-                    </button>
-                    <button onclick="confirmarSenhaApagar()"
-                            style="padding:10px 22px; border:none; background:#e74c3c; color:#fff; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600;">
-                        Próximo →
-                    </button>
-                </div>
-            </div>
-
-            <!-- ETAPA 2: Checkboxes -->
-            <div id="etapaSelecao" style="display:none; padding:24px 28px 28px;">
-                <p style="margin:0 0 16px; color:#444; font-size:14px; line-height:1.6;">
-                    Selecione quais dados deseja apagar:
-                </p>
-
-                <!-- Selecionar tudo -->
-<div style="background:#fff3cd; border:1px solid #ffc107; border-radius:8px; padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; gap:10px;">
-    <input type="checkbox" id="chkTudo" onchange="toggleTudoApagar(this.checked)"
-           style="width:18px; height:18px; cursor:pointer; accent-color:#e74c3c;">
-    <label for="chkTudo" style="font-size:14px; font-weight:700; color:#856404; cursor:pointer; margin:0;">
-        ☑️ Selecionar / Desmarcar Tudo
-    </label>
+<!-- LOADING -->
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <div id="loadingMsg">Carregando...</div>
 </div>
 
-                <!-- Checkboxes individuais -->
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
-                    <label id="lblProducoes" style="display:flex; align-items:center; gap:10px; padding:12px 14px; border:2px solid #eee; border-radius:10px; cursor:pointer; transition:border-color .2s, background .2s;">
-                        <input type="checkbox" id="chkProducoes" onchange="atualizarCheckTudo()"
-                               style="width:17px; height:17px; cursor:pointer; accent-color:#e74c3c;">
-                        <span style="font-size:13px; font-weight:600; color:#333;">🏭 Produções</span>
-                    </label>
-                    <label id="lblMovimentacoes" style="display:flex; align-items:center; gap:10px; padding:12px 14px; border:2px solid #eee; border-radius:10px; cursor:pointer; transition:border-color .2s, background .2s;">
-                        <input type="checkbox" id="chkMovimentacoes" onchange="atualizarCheckTudo()"
-                               style="width:17px; height:17px; cursor:pointer; accent-color:#e74c3c;">
-                        <span style="font-size:13px; font-weight:600; color:#333;">📊 Movimentações</span>
-                    </label>
-                    <label id="lblArmacoes" style="display:flex; align-items:center; gap:10px; padding:12px 14px; border:2px solid #eee; border-radius:10px; cursor:pointer; transition:border-color .2s, background .2s;">
-                        <input type="checkbox" id="chkArmacoes" onchange="atualizarCheckTudo()"
-                               style="width:17px; height:17px; cursor:pointer; accent-color:#e74c3c;">
-                        <span style="font-size:13px; font-weight:600; color:#333;">🔩 Armações</span>
-                    </label>
-                    <label id="lblPecas" style="display:flex; align-items:center; gap:10px; padding:12px 14px; border:2px solid #eee; border-radius:10px; cursor:pointer; transition:border-color .2s, background .2s;">
-                        <input type="checkbox" id="chkPecas" onchange="atualizarCheckTudo()"
-                               style="width:17px; height:17px; cursor:pointer; accent-color:#e74c3c;">
-                        <span style="font-size:13px; font-weight:600; color:#333;">🪑 Modelos/Peças</span>
-                    </label>
-                    <label id="lblFuncionarios" style="display:flex; align-items:center; gap:10px; padding:12px 14px; border:2px solid #eee; border-radius:10px; cursor:pointer; transition:border-color .2s, background .2s;">
-                        <input type="checkbox" id="chkFuncionarios" onchange="atualizarCheckTudo()"
-                               style="width:17px; height:17px; cursor:pointer; accent-color:#e74c3c;">
-                        <span style="font-size:13px; font-weight:600; color:#333;">👷 Funcionários</span>
-                    </label>
-                    <label id="lblCores" style="display:flex; align-items:center; gap:10px; padding:12px 14px; border:2px solid #eee; border-radius:10px; cursor:pointer; transition:border-color .2s, background .2s;">
-                        <input type="checkbox" id="chkCores" onchange="atualizarCheckTudo()"
-                               style="width:17px; height:17px; cursor:pointer; accent-color:#e74c3c;">
-                        <span style="font-size:13px; font-weight:600; color:#333;">🎨 Cores</span>
-                    </label>
-                </div>
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-logo">
+    <span class="ico">🪑</span>
+    <h1>SysCadeiras</h1>
+    <p>Controle de Produção</p>
+  </div>
+  <div class="login-card">
+    <div class="login-field">
+      <label>E-mail</label>
+      <input type="email" id="lEmail" placeholder="usuario@empresa.com" autocomplete="username"
+             onkeydown="if(event.key==='Enter')document.getElementById('lSenha').focus()">
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input type="password" id="lSenha" placeholder="••••••••" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div id="lErr"></div>
+    <button class="btn-login" onclick="doLogin()">🔐 Entrar</button>
+    <div class="login-version">SysCadeiras v2.0 · Mobile</div>
+  </div>
+</div>
 
-                <div id="erroSelecao" style="color:#e74c3c; font-size:13px; min-height:18px; margin-bottom:12px;"></div>
+<!-- APP -->
+<div id="appShell">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div>
+      <h1>🪑 SysCadeiras</h1>
+      <small id="userLbl">Operador</small>
+      <small id="userRole" style="color:var(--green);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;display:inline"></small>
+    </div>
+    <div class="tb-right">
+      <span id="syncBadge" class="badge-sync">📡</span>
+      <button class="btn-logout-mob" onclick="doLogout()">Sair</button>
+    </div>
+  </div>
 
-                <div style="display:flex; gap:10px; justify-content:flex-end;">
-                    <button onclick="fecharModalSenha()"
-                            style="padding:10px 22px; border:2px solid #ccc; background:#fff; color:#555; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600;">
-                        Cancelar
-                    </button>
-                    <button onclick="executarApagarSelecionados()"
-                            style="padding:10px 22px; border:none; background:#e74c3c; color:#fff; border-radius:8px; cursor:pointer; font-size:14px; font-weight:700;">
-                        🗑️ Apagar Selecionados
-                    </button>
-                </div>
-            </div>
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('home',this)"><span class="tab-icon">🏠</span>Home</button>
+    <button class="tab" onclick="showTab('producao',this)"><span class="tab-icon">🏭</span>Produção</button>
+    <button class="tab" onclick="showTab('saida',this)"><span class="tab-icon">📤</span>Saída</button>
+    <button class="tab" onclick="showTab('armacao',this)"><span class="tab-icon">🔩</span>Armação</button>
+    <button class="tab" onclick="showTab('cadastro',this)"><span class="tab-icon">⚙️</span>Cadastro</button>
+  </div>
 
-        </div>
+  <!-- CONTEÚDO -->
+  <div class="content">
+
+    <!-- HOME -->
+    <div id="tab-home">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="s-val" id="stProdHoje">0</div><div class="s-lbl">Produções hoje</div></div>
+        <div class="stat-card"><div class="s-val" id="stPecasHoje">0</div><div class="s-lbl">Peças hoje</div></div>
+        <div class="stat-card"><div class="s-val" id="stSaldoTotal">0</div><div class="s-lbl">Saldo estoque</div></div>
+        <div class="stat-card"><div class="s-val" id="stArmEstoque">0</div><div class="s-lbl">Armações estoque</div></div>
+      </div>
+      <h3 style="margin-bottom:10px;color:var(--text2);font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Produções de hoje</h3>
+      <div id="prodHojeList"></div>
     </div>
 
-    <!-- Modal de Migração -->
-    <div id="modalMigracao" class="modal-migracao">
-        <div class="modal-content">
-            <h2>🔄 Migração para SQLite</h2>
-            <p>Transferindo dados do localStorage para o banco de dados...</p>
-            <div class="progress-bar">
-                <div id="progressoMigracao" class="progress"></div>
-            </div>
-            <div id="statusMigracao">Iniciando transferência...</div>
-            <div id="logMigracao" class="log-migracao"></div>
-        </div>
+    <!-- PRODUÇÃO -->
+    <div id="tab-producao" style="display:none">
+      <div class="form-card">
+        <h3>📋 Nova Produção</h3>
+        <div class="field"><label>Data</label><input type="date" id="pData"></div>
+        <div class="field"><label>Funcionário</label><select id="pFunc"><option value="">Selecione</option></select></div>
+        <div id="pItens"></div>
+        <button class="btn btn-ghost" style="margin-bottom:12px" onclick="addItem()">➕ Adicionar Item</button>
+        <button class="btn btn-green" onclick="salvarProducao()">💾 Registrar Produção</button>
+      </div>
     </div>
 
-    <!-- Modal de Salvamento -->
-    <div id="modalSalvar" class="modal-salvar">
-        <div class="modal-salvar-content">
-            <h2>💾 Salvar Documento</h2>
-            <p id="modalSalvarMensagem">Escolha o formato para salvar o documento:</p>
-            <div class="opcoes-salvar" id="opcoesSalvar"></div>
-            <div id="statusSalvar"></div>
-            <button class="btn-cancelar" onclick="fecharModalSalvar()">Fechar</button>
-        </div>
+    <!-- SAÍDA -->
+    <div id="tab-saida" style="display:none">
+      <div class="form-card">
+        <h3>📤 Registrar Saída</h3>
+        <div class="field"><label>Data</label><input type="date" id="sData"></div>
+        <div class="field"><label>Modelo</label><select id="sPeca"><option value="">Selecione</option></select></div>
+        <div class="field"><label>Cor</label><select id="sCor"><option value="">Selecione</option></select></div>
+        <div class="field"><label>Quantidade</label><input type="number" id="sQtd" min="1" placeholder="0"></div>
+        <div class="field"><label>Observação</label><input type="text" id="sObs" placeholder="Cliente, destino..."></div>
+        <button class="btn btn-red" onclick="salvarSaida()">📤 Registrar Saída</button>
+      </div>
+      <h3 style="margin:16px 0 10px;color:var(--text2);font-size:.85rem;font-weight:700;text-transform:uppercase">Saídas recentes</h3>
+      <div id="saidasList"></div>
     </div>
 
-    <!-- Modal de Estatísticas (Dashboard) -->
-    <div id="modalEstatisticas" class="modal-estatisticas">
-        <div class="modal-estatisticas-content">
-            <h2>📊 Dashboard de Estatísticas</h2>
-            <div id="estatisticasConteudo"></div>
-            <button class="btn-primary" onclick="fecharModalEstatisticas()">Fechar</button>
-        </div>
+    <!-- ARMAÇÃO -->
+    <div id="tab-armacao" style="display:none">
+      <div class="form-card">
+        <h3>🔩 Registrar Chegada de Armação</h3>
+        <div class="field"><label>Data</label><input type="date" id="aData"></div>
+        <div class="field"><label>Modelo</label><select id="aModelo"><option value="">Selecione</option></select></div>
+        <div class="field"><label>Quantidade</label><input type="number" id="aQtd" min="1" placeholder="0"></div>
+        <button class="btn btn-blue" onclick="salvarArmacao()">🔩 Registrar Chegada</button>
+      </div>
+      <h3 style="margin:16px 0 10px;color:var(--text2);font-size:.85rem;font-weight:700;text-transform:uppercase">Estoque de Armações</h3>
+      <div id="armEstoqueList"></div>
     </div>
 
-    <!-- Cabeçalho -->
-    <header>
-        <div class="container" style="position: relative; display:flex; align-items:center; justify-content:space-between;">
-            <h1>Controle de Produção & Estoque</h1>
-            <div style="display:flex;align-items:center;gap:10px">
-                <div id="userBadge" style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);border-radius:20px;padding:5px 14px">
-                    <div id="userAvatar" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#1abc9c,#16a085);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff">?</div>
-                    <div style="line-height:1.2">
-                        <div id="userNome" style="font-size:13px;font-weight:700;color:#fff">—</div>
-                        <div id="userRole" style="font-size:10px;color:rgba(255,255,255,.6);text-transform:uppercase">—</div>
-                    </div>
-                </div>
-                <button onclick="fazerLogout()" style="background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.3);color:#e74c3c;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s" onmouseover="this.style.background='#e74c3c';this.style.color='#fff'" onmouseout="this.style.background='rgba(231,76,60,.15)';this.style.color='#e74c3c'">Sair 🚪</button>
-                <button id="btnAtualizar" class="btn-atualizar" onclick="atualizarSistema()" title="Atualizar Sistema">🔄</button>
-            </div>
-        </div>
-    </header>
-
-    <!-- Menu Principal -->
-    <div class="container">
-        <div class="menu">
-            <button onclick="showSection('producao', this)" class="active">🏭 Produção</button>
-            <button onclick="showSection('modelos', this)">🪑 Modelos</button>
-            <button onclick="showSection('funcionarios', this)">👷 Funcionários</button>
-            <button onclick="showSection('cores', this)">🎨 Cores</button>
-            <button onclick="showSection('estoque', this)">📦 Estoque</button>
-            <button onclick="showSection('armacoes', this)">🔩 Armações</button>
-            <button onclick="showSection('saidas', this)">📤 Saídas</button>
-            <button onclick="showSection('relatorios', this)">📊 Relatórios</button>
-            <button onclick="showSection('backup', this)">💾 Backup</button>
-            <button id="btnMenuUsuarios" onclick="showSection('usuarios', this)" style="display:none">👥 Usuários</button>
-        </div>
-
-        <!-- SEÇÃO: PRODUÇÃO -->
-        <div id="producao" class="section active">
-            <h2>🏭 Registro de Produção Diária</h2>
-            
-            <form id="formProducao">
-                <input type="hidden" id="producaoId" value="">
-                <div class="form-row">
-                    <label for="dataProducao">📅 Data:</label>
-                    <input type="date" id="dataProducao" required>
-                </div>
-                <div class="form-row">
-                    <label for="funcionarioProducao">👷 Funcionário:</label>
-                    <select id="funcionarioProducao" required>
-                        <option value="">Selecione um funcionário</option>
-                    </select>
-                </div>
-                
-                <div id="itensProducao">
-                    <div class="itemProducao" data-index="0">
-                        <div class="form-row">
-                            <label for="pecaProducao">🪑 Modelo:</label>
-                            <select id="pecaProducao" class="peca-select" required>
-                                <option value="">Selecione um modelo</option>
-                            </select>
-                        </div>
-                        <div class="form-row">
-                            <label for="corProducao">🎨 Cor:</label>
-                            <select id="corProducao" class="cor-select" required>
-                                <option value="">Selecione uma cor</option>
-                            </select>
-                        </div>
-                        <div class="form-row">
-                            <label for="quantidade">📊 Quantidade:</label>
-                            <input type="number" class="quantidade" id="quantidade" min="1" required>
-                        </div>
-                        <div class="form-row">
-                            <label for="horaExtra">⏰ Hora Extra (+50%):</label>
-                            <input type="checkbox" class="hora-extra-checkbox" id="horaExtra">
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="d-flex gap-10">
-                    <button type="button" class="btn-primary" onclick="adicionarItemProducao()">
-                        ➕ Adicionar Peça
-                    </button>
-                    <button type="submit" id="btnSalvarProducao" class="btn-primary">
-                        💾 Registrar Produção
-                    </button>
-                    <button type="button" id="btnCancelarEdicao" style="display:none" 
-                            class="btn-cancelar" onclick="cancelarEdicao()">
-                        ❌ Cancelar
-                    </button>
-                </div>
-            </form>
-
-            <h3>📋 Produção do Dia</h3>
-            <table id="tabelaProducao">
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Funcionário</th>
-                        <th>Peça</th>
-                        <th>Cor</th>
-                        <th>Qtd</th>
-                        <th>Hora Extra</th>
-                        <th>Valor Unit.</th>
-                        <th>Valor Total</th>
-                        <th>Operador</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-
-        <!-- SEÇÃO: MODELOS -->
-        <div id="modelos" class="section">
-            <h2>🪑 Cadastro de Modelos</h2>
-            <form id="formPeca">
-                <input type="hidden" id="pecaId" value="">
-                <div class="form-row">
-                    <label for="nomePeca">Nome do Modelo:</label>
-                    <input type="text" id="nomePeca" required placeholder="Ex: Encosto de cadeira">
-                </div>
-                <div class="form-row">
-                    <label for="valorPeca">💰 Valor Unitário (R$):</label>
-                    <input type="number" id="valorPeca" step="0.01" min="0" required placeholder="0,00">
-                </div>
-                <div class="d-flex gap-10">
-                    <button type="submit" id="btnSalvarPeca" class="btn-primary">
-                        💾 Cadastrar Modelo
-                    </button>
-                    <button type="button" id="btnCancelarEdicaoPeca" style="display:none" 
-                            class="btn-cancelar" onclick="cancelarEdicaoPeca()">
-                        ❌ Cancelar
-                    </button>
-                </div>
-            </form>
-
-            <h3>📋 Modelos Cadastrados</h3>
-            <table id="tabelaPecas">
-                <thead>
-                    <tr><th>Nome</th><th>Valor Unitário</th><th>Ações</th></tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-
-        <!-- SEÇÃO: FUNCIONÁRIOS -->
-        <div id="funcionarios" class="section">
-            <h2>👷 Cadastro de Funcionários</h2>
-            <form id="formFuncionario">
-                <input type="hidden" id="funcionarioId" value="">
-                <div class="form-row">
-                    <label for="nomeFuncionario">Nome do Funcionário:</label>
-                    <input type="text" id="nomeFuncionario" required placeholder="Ex: João Silva">
-                </div>
-                <div class="form-row">
-                    <label for="cargoFuncionario">Cargo:</label>
-                    <input type="text" id="cargoFuncionario" required placeholder="Ex: Operador de Produção">
-                </div>
-                <div class="d-flex gap-10">
-                    <button type="submit" id="btnSalvarFuncionario" class="btn-primary">
-                        💾 Cadastrar Funcionário
-                    </button>
-                    <button type="button" id="btnCancelarEdicaoFuncionario" style="display:none" 
-                            class="btn-cancelar" onclick="cancelarEdicaoFuncionario()">
-                        ❌ Cancelar
-                    </button>
-                </div>
-            </form>
-
-            <h3>📋 Funcionários Cadastrados</h3>
-            <table id="tabelaFuncionarios">
-                <thead>
-                    <tr><th>Nome</th><th>Cargo</th><th>Ações</th></tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-
-        <!-- SEÇÃO: CORES -->
-        <div id="cores" class="section">
-            <h2>🎨 Cadastro de Cores</h2>
-            <form id="formCor">
-                <input type="hidden" id="corId" value="">
-                <div class="form-row">
-                    <label for="nomeCor">Nome da Cor:</label>
-                    <input type="text" id="nomeCor" required placeholder="Ex: Vermelho Ferrari">
-                </div>
-                <div class="d-flex gap-10">
-                    <button type="submit" id="btnSalvarCor" class="btn-primary">
-                        💾 Cadastrar Cor
-                    </button>
-                    <button type="button" id="btnCancelarEdicaoCor" style="display:none" 
-                            class="btn-cancelar" onclick="cancelarEdicaoCor()">
-                        ❌ Cancelar
-                    </button>
-                </div>
-            </form>
-            
-            <h3>📋 Cores Cadastradas</h3>
-            <table id="tabelaCores">
-                <thead><tr><th>Nome</th><th>Ações</th></tr></thead>
-                <tbody></tbody>
-            </table>
-        </div>
-
-        <!-- SEÇÃO: ESTOQUE -->
-        <div id="estoque" class="section">
-            <h2>📦 Controle de Estoque</h2>
-            
-            <div class="pesquisa-container">
-                <h3>🔍 Pesquisar no Estoque</h3>
-                <div class="pesquisa-rapida">
-                    <input type="text" id="pesquisaEstoque" placeholder="Pesquisar por modelo ou cor..." onkeyup="pesquisarEstoque()">
-                    <button class="btn-primary" onclick="mostrarEstatisticas()">📊 Ver Dashboard</button>
-                </div>
-                
-                <div class="filtros-avancados">
-                    <select id="filtroPecaEstoque">
-                        <option value="">Todas as peças</option>
-                    </select>
-                    
-                    <select id="filtroCorEstoque">
-                        <option value="">Todas as cores</option>
-                    </select>
-                    
-                    <input type="date" id="filtroDataInicio" placeholder="Data início">
-                    <input type="date" id="filtroDataFim" placeholder="Data fim">
-                    
-                    <div class="d-flex gap-10">
-                        <button class="btn-pesquisar" onclick="aplicarFiltrosEstoque()">🔍 Aplicar Filtros</button>
-                        <button class="btn-limpar" onclick="limparFiltrosEstoque()">🗑️ Limpar</button>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="resultadoPesquisa" class="resultado-info" style="display: none;">
-                <span id="infoResultado"></span>
-                <span id="loadingIndicator" style="display: none;" class="loading-spinner"></span>
-            </div>
-            
-            <h3>📈 Saldo Atual por Modelo e Cor</h3>
-            <table id="tabelaSaldos">
-                <thead>
-                    <tr><th>Modelo</th><th>Cor</th><th>Saldo</th></tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-
-        <!-- SEÇÃO: ARMAÇÕES -->
-        <div id="armacoes" class="section">
-            <h2>🔩 Controle de Armações</h2>
-            
-            <form id="formArmacao">
-                <input type="hidden" id="armacaoId" value="">
-                <div class="form-row">
-                    <label for="dataArmacao">📅 Data:</label>
-                    <input type="date" id="dataArmacao" required>
-                </div>
-                <div class="form-row">
-                    <label for="modeloArmacao">🪑 Modelo:</label>
-                    <select id="modeloArmacao" required>
-                        <option value="">Selecione um modelo</option>
-                    </select>
-                </div>
-                <div class="form-row">
-                    <label for="quantidadeArmacao">📊 Quantidade:</label>
-                    <input type="number" id="quantidadeArmacao" min="1" required>
-                </div>
-                <div class="d-flex gap-10">
-                    <button type="submit" id="btnSalvarArmacao" class="btn-primary">
-                        💾 Registrar Chegada
-                    </button>
-                    <button type="button" id="btnCancelarArmacao" style="display:none" 
-                            class="btn-cancelar" onclick="cancelarEdicaoArmacao()">
-                        ❌ Cancelar
-                    </button>
-                </div>
-            </form>
-
-            <h3>📦 Estoque de Armações</h3>
-            <table id="tabelaArmacoes">
-                <thead>
-                    <tr>
-                        <th>Modelo</th>
-                        <th>Quantidade</th>
-                        <th>Última Chegada</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-
-            <h3>📋 Histórico de Chegadas</h3>
-            <table id="tabelaHistoricoArmacoes">
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Modelo</th>
-                        <th>Quantidade</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-
-        <!-- SEÇÃO: SAÍDAS -->
-        <div id="saidas" class="section">
-            <h2>📤 Registro de Saídas</h2>
-            <form id="formSaida">
-                <input type="hidden" id="saidaId" value="">
-                <div class="form-row">
-                    <label for="dataSaida">📅 Data:</label>
-                    <input type="date" id="dataSaida" required>
-                </div>
-                <div class="form-row">
-                    <label for="pecaSaida">🪑 Modelo:</label>
-                    <select id="pecaSaida" required>
-                        <option value="">Selecione um modelo</option>
-                    </select>
-                </div>
-                <div class="form-row">
-                    <label for="corSaida">🎨 Cor:</label>
-                    <select id="corSaida" required>
-                        <option value="">Selecione uma cor</option>
-                    </select>
-                </div>
-                <div class="form-row">
-                    <label for="qtdSaida">📊 Quantidade:</label>
-                    <input type="number" id="qtdSaida" min="1" required>
-                </div>
-                <div class="form-row">
-                    <label for="obsSaida">📝 Observação:</label>
-                    <input type="text" id="obsSaida" placeholder="Destino, pedido, etc.">
-                </div>
-                <div class="d-flex gap-10">
-                    <button type="submit" id="btnSalvarSaida" class="btn-primary">
-                        💾 Registrar Saída
-                    </button>
-                    <button type="button" id="btnCancelarSaida" style="display:none" 
-                            class="btn-cancelar" onclick="cancelarSaida()">
-                        ❌ Cancelar
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- SEÇÃO: RELATÓRIOS -->
-        <div id="relatorios" class="section">
-            <h2>📊 Relatórios</h2>
-            
-            <div class="tipo-relatorio">
-                <button id="btnRelatorioGeral" class="active" onclick="mudarTipoRelatorio('geral')">
-                    📈 Produção
-                </button>
-                <button id="btnRelatorioModelos" onclick="mudarTipoRelatorio('modelos')">
-                    🪑 Modelo/Cor
-                </button>
-                <button id="btnRelatorioEstoque" onclick="mudarTipoRelatorio('estoque')">
-                    📦 Estoque
-                </button>
-                <button id="btnRelatorioFolha" onclick="mudarTipoRelatorio('folha')">
-                    📋 Folha de Pagamento
-                </button>
-                <button id="btnRelatorioArmacoes" onclick="mudarTipoRelatorio('armacoes')">
-                    🔩 Armações
-                </button>
-            </div>
-
-            <!-- Filtros Relatório Geral -->
-            <div id="filtrosRelatorioGeral">
-                <div class="form-row">
-                    <label for="dataInicio">Data Início:</label>
-                    <input type="date" id="dataInicio">
-                </div>
-                <div class="form-row">
-                    <label for="dataFim">Data Fim:</label>
-                    <input type="date" id="dataFim">
-                </div>
-                <div class="form-row">
-                    <label for="filtroFuncionario">Funcionário:</label>
-                    <select id="filtroFuncionario"><option value="">Todos</option></select>
-                </div>
-                <div class="form-row">
-                    <label for="filtroPeca">Modelo:</label>
-                    <select id="filtroPeca"><option value="">Todos</option></select>
-                </div>
-                <div class="form-row">
-                    <label for="filtroCor">Cor:</label>
-                    <select id="filtroCor"><option value="">Todas</option></select>
-                </div>
-                <button class="btn-primary" onclick="gerarRelatorio()">
-                    📊 Gerar Relatório
-                </button>
-            </div>
-
-            <!-- Filtros Relatório Modelos -->
-            <div id="filtrosRelatorioModelos" style="display:none">
-                <div class="form-row">
-                    <label for="dataInicioPeca">Data Início:</label>
-                    <input type="date" id="dataInicioPeca">
-                </div>
-                <div class="form-row">
-                    <label for="dataFimPeca">Data Fim:</label>
-                    <input type="date" id="dataFimPeca">
-                </div>
-                <button class="btn-primary" onclick="gerarRelatorio()">
-                    📊 Gerar Relatório
-                </button>
-            </div>
-
-            <!-- Filtros Relatório Estoque -->
-            <div id="filtrosRelatorioEstoque" style="display:none">
-                <div class="form-row">
-                    <label for="dataInicioEst">Data Início:</label>
-                    <input type="date" id="dataInicioEst">
-                </div>
-                <div class="form-row">
-                    <label for="dataFimEst">Data Fim:</label>
-                    <input type="date" id="dataFimEst">
-                </div>
-                <div class="form-row">
-                    <label for="tipoMovEst">Tipo:</label>
-                    <select id="tipoMovEst">
-                        <option value="">Todos</option>
-                        <option value="entrada">Entradas</option>
-                        <option value="saida">Saídas</option>
-                    </select>
-                </div>
-                <div class="form-row">
-                    <label for="pecaEst">Modelo:</label>
-                    <select id="pecaEst"><option value="">Todos</option></select>
-                </div>
-                <div class="form-row">
-                    <label for="corEst">Cor:</label>
-                    <select id="corEst"><option value="">Todas</option></select>
-                </div>
-                <button class="btn-primary" onclick="gerarRelatorio()">
-                    📊 Gerar Relatório
-                </button>
-            </div>
-
-            <!-- Filtros Relatório Folha -->
-            <div id="filtrosRelatorioFolha" style="display:none">
-                <div class="form-row">
-                    <label for="mesFolha">📅 Mês/Ano:</label>
-                    <input type="month" id="mesFolha" required>
-                </div>
-                <button class="btn-primary" onclick="gerarListaFolhaPagamento()">
-                    📋 Gerar Folha de Pagamento
-                </button>
-            </div>
-
-            <!-- Filtros Relatório Armações -->
-            <div id="filtrosRelatorioArmacoes" style="display:none">
-                <div class="form-row">
-                    <label for="dataInicioArm">Data Início:</label>
-                    <input type="date" id="dataInicioArm">
-                </div>
-                <div class="form-row">
-                    <label for="dataFimArm">Data Fim:</label>
-                    <input type="date" id="dataFimArm">
-                </div>
-                <div class="form-row">
-                    <label for="filtroModeloArm">Modelo:</label>
-                    <select id="filtroModeloArm">
-                        <option value="">Todos</option>
-                    </select>
-                </div>
-                <button class="btn-primary" onclick="gerarRelatorio()">
-                    📊 Gerar Relatório
-                </button>
-            </div>
-
-            <!-- Resultado Relatório Geral -->
-            <div id="resultadoRelatorioGeral">
-                <h3>📈 Produção
-                    <button class="btn-apagar" onclick="apagarProducaoSelecionada()">
-                        🗑️ Apagar Selecionada
-                    </button>
-                </h3>
-                <table id="tabelaRelatorio">
-                    <thead>
-                        <tr>
-                            <th style="width: 40px;">
-                                <input type="checkbox" id="selecionarTodos" 
-                                       onchange="selecionarTodasProducoes(this.checked)">
-                            </th>
-                            <th>Data</th>
-                            <th>Funcionário</th>
-                            <th>Modelo</th>
-                            <th>Cor</th>
-                            <th>Qtd</th>
-                            <th>Hora Extra</th>
-                            <th>Valor Unit.</th>
-                            <th>Valor Total</th>
-                            <th>Operador</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                    <tfoot>
-                        <tr>
-                            <td colspan="9" style="text-align:right;font-weight:bold">
-                                Total Geral:
-                            </td>
-                            <td id="totalGeral" class="valor">R$ 0,00</td>
-                        </tr>
-                    </tfoot>
-                </table>
-                
-                <div class="text-center mt-20">
-                    <button class="btn-primary" onclick="exportarDados()">
-                        📤 Exportar Produção CSV
-                    </button>
-                </div>
-            </div>
-
-            <!-- Resultado Relatório Modelos -->
-            <div id="resultadoRelatorioModelos" style="display:none">
-                <h3>📊 Produção por Modelos e Cores</h3>
-                <table id="tabelaRelatorioModelos">
-                    <thead>
-                        <tr>
-                            <th>Modelo</th>
-                            <th>Cor</th>
-                            <th>Quantidade Total</th>
-                            <th>Valor Unitário</th>
-                            <th>Valor Total</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                    <tfoot>
-                        <tr>
-                            <td colspan="4" style="text-align:right;font-weight:bold">
-                                Total Geral:
-                            </td>
-                            <td id="totalGeralModelos" class="valor">R$ 0,00</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-
-            <!-- Resultado Relatório Estoque -->
-            <div id="resultadoRelatorioEstoque" style="display:none">
-                <h3>📦 Movimentações de Estoque</h3>
-                <table id="tabelaRelatorioEstoque">
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Tipo</th>
-                            <th>Modelo</th>
-                            <th>Cor</th>
-                            <th>Quantidade</th>
-                            <th>Origem/Obs.</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                    <tfoot>
-                        <tr>
-                            <td colspan="4" style="text-align:right;font-weight:bold">
-                                Saldo do Período:
-                            </td>
-                            <td id="saldoPeriodo" class="valor" colspan="2">0</td>
-                        </tr>
-                    </tfoot>
-                </table>
-                <div class="text-center mt-20">
-                    <button class="btn-primary" onclick="exportarEstoqueCSV()">
-                        📤 Exportar Estoque CSV
-                    </button>
-                </div>
-            </div>
-
-            <!-- Resultado Relatório Folha -->
-            <div id="resultadoRelatorioFolha" style="display:none">
-                <h3>📋 Folha de Pagamento</h3>
-                <div id="resumoFolhaPagamento">
-                    <p>Selecione o mês e clique em "Gerar Folha de Pagamento" para visualizar a lista de funcionários.</p>
-                </div>
-                <div id="tabelaFolhaPagamento" style="margin-top: 30px;"></div>
-            </div>
-
-            <!-- Resultado Relatório Armações -->
-            <div id="resultadoRelatorioArmacoes" style="display:none">
-                <h3>🔩 Relatório de Armações</h3>
-                
-                <div id="resumoArmacoes"></div>
-                
-                <h3>📋 Detalhamento por Dia</h3>
-                <table id="tabelaRelatorioArmacoes">
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Dia da Semana</th>
-                            <th>Modelo</th>
-                            <th>Quantidade</th>
-                            <th>Acumulado do Modelo</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                    <tfoot>
-                        <tr>
-                            <td colspan="3" style="text-align:right;font-weight:bold">Total Geral:</td>
-                            <td id="totalArmacoesPeriodo" class="valor">0</td>
-                            <td></td>
-                        </tr>
-                    </tfoot>
-                </table>
-                
-                <div class="text-center mt-20">
-                    <button class="btn-primary" onclick="exportarRelatorioArmacoes()">
-                        📤 Exportar Relatório CSV
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- SEÇÃO: BACKUP E SEGURANÇA -->
-        <div id="backup" class="section">
-            <h2>💾 Backup e Segurança</h2>
-            
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 20px;">
-                
-                <!-- Card: Backup do Banco -->
-                <div style="background: #f8f9fa; padding: 25px; border-radius: 10px; border-left: 5px solid #3498db;">
-                    <h3 style="margin-top: 0; color: #2c3e50;">📦 Backup do Banco</h3>
-                    <p style="color: #7f8c8d; margin-bottom: 20px;">
-                        Cria uma cópia completa do banco de dados SQLite com otimização (VACUUM).
-                    </p>
-                    <button class="btn-primary" onclick="criarBackup()" style="width: 100%;">
-                        🔵 Fazer Backup Agora
-                    </button>
-                </div>
-                
-                <!-- Card: Restaurar Backup -->
-                <div style="background: #f8f9fa; padding: 25px; border-radius: 10px; border-left: 5px solid #e74c3c;">
-                    <h3 style="margin-top: 0; color: #2c3e50;">🔄 Restaurar Backup</h3>
-                    <p style="color: #7f8c8d; margin-bottom: 20px;">
-                        Restaura um backup anterior (.db). O sistema será reiniciado automaticamente.
-                    </p>
-                    <button class="btn-primary" onclick="restaurarBackup()" style="width: 100%; background: #e74c3c;">
-                        🔴 Restaurar Backup
-                    </button>
-                </div>
-                
-                <!-- Card: Exportar JSON -->
-                <div style="background: #f8f9fa; padding: 25px; border-radius: 10px; border-left: 5px solid #27ae60;">
-                    <h3 style="margin-top: 0; color: #2c3e50;">📄 Exportar para JSON</h3>
-                    <p style="color: #7f8c8d; margin-bottom: 20px;">
-                        Exporta todos os dados do sistema para formato JSON (legível).
-                    </p>
-                    <button class="btn-primary" onclick="exportarJSON()" style="width: 100%; background: #27ae60;">
-                        🟢 Exportar JSON
-                    </button>
-                </div>
-                
-                <!-- Card: Importar JSON -->
-                <div style="background: #f8f9fa; padding: 25px; border-radius: 10px; border-left: 5px solid #f39c12;">
-                    <h3 style="margin-top: 0; color: #2c3e50;">📂 Importar JSON</h3>
-                    <p style="color: #7f8c8d; margin-bottom: 20px;">
-                        Importa dados de um arquivo JSON previamente exportado.
-                    </p>
-                    <button class="btn-primary" onclick="importarJSON()" style="width: 100%; background: #f39c12;">
-                        🟡 Importar JSON
-                    </button>
-                </div>
-
-                <!-- Card: Apagar Todos os Dados (CORRIGIDO COM ID) -->
-                <div style="background: #f8f9fa; padding: 25px; border-radius: 10px; border-left: 5px solid #e74c3c;">
-                    <h3 style="margin-top: 0; color: #2c3e50;">⚠️ Apagar Todos os Dados</h3>
-                    <p style="color: #7f8c8d; margin-bottom: 20px;">
-                        Remove TODOS os registros do sistema. Esta ação é irreversível!
-                    </p>
-                    <button id="btnApagarTodosDados" class="btn-primary" onclick="apagarTodosDados()" style="width: 100%; background: #e74c3c;">
-                        🗑️ Apagar Todos os Dados
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Informações -->
-            <div style="margin-top: 30px; background: #f8f9fa; padding: 20px; border-radius: 8px;">
-                <h3 style="margin-top: 0; color: #2c3e50;">📋 Informações</h3>
-                <div id="backupInfo" style="color: #7f8c8d; font-size: 14px;">
-                    <p>⚡ O backup cria uma cópia exata do banco de dados SQLite.</p>
-                    <p>🔧 O comando VACUUM é executado automaticamente para otimizar o arquivo.</p>
-                    <p>📅 Os arquivos são nomeados como: backup-YYYY-MM-DD.db</p>
-                    <p>⚠️ Ao restaurar, o sistema reinicia automaticamente.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- SEÇÃO: USUÁRIOS (visível apenas para admin) -->
-        <div id="usuarios" class="section">
-            <h2>👥 Gestão de Usuários</h2>
-            <p style="color:#7f8c8d;margin-bottom:20px;font-size:14px">
-                Usuários cadastrados aqui podem acessar tanto o desktop quanto o app mobile com o mesmo e-mail e senha.
-            </p>
-            <button class="btn-primary" onclick="abrirNovoUsuario()" style="margin-bottom:24px">➕ Novo Usuário</button>
-            <div id="listaUsuarios" style="display:grid;gap:12px">
-                <p style="color:#7f8c8d">Carregando...</p>
-            </div>
-        </div>
-
-    </div><!-- /container -->
-
-    <!-- Comprovante de Saída -->
-    <div id="comprovanteSaida" class="comprovante-saida oculto">
-        <div class="comprovante-header">
-            <h2>COMPROVANTE DE SAÍDA</h2>
-            <p>SysCadeiras - Controle de Estoque</p>
-        </div>
-        <div class="comprovante-detalhes">
-            <div class="comprovante-item"><strong>📅 Data:</strong> <span id="compData"></span></div>
-            <div class="comprovante-item"><strong>🪑 Modelo:</strong> <span id="compPeca"></span></div>
-            <div class="comprovante-item"><strong>🎨 Cor:</strong> <span id="compCor"></span></div>
-            <div class="comprovante-item"><strong>📊 Quantidade:</strong> <span id="compQuantidade"></span></div>
-            <div class="comprovante-item"><strong>📝 Observação:</strong> <span id="compObs"></span></div>
-        </div>
-        <div class="comprovante-total"><p>✅ SAÍDA REGISTRADA NO SISTEMA</p></div>
-        <div class="botoes-comprovante">
-            <button class="btn-primary" onclick="fecharComprovante()">❌ Fechar</button>
-            <button class="btn-primary" onclick="salvarComprovante('saida')">💾 Salvar Comprovante</button>
-        </div>
+    <!-- CADASTRO -->
+    <div id="tab-cadastro" style="display:none">
+      <!-- Modelo -->
+      <div class="form-card">
+        <h3>🪑 Novo Modelo</h3>
+        <input type="hidden" id="cModeloId">
+        <div class="field"><label>Nome</label><input type="text" id="cModeloNome" placeholder="Nome do modelo"></div>
+        <div class="field"><label>Valor (R$)</label><input type="number" id="cModeloValor" step="0.01" min="0.01" placeholder="0,00"></div>
+        <button class="btn btn-green" onclick="salvarModelo()">💾 Salvar Modelo</button>
+      </div>
+      <!-- Funcionário -->
+      <div class="form-card">
+        <h3>👷 Novo Funcionário</h3>
+        <input type="hidden" id="cFuncId">
+        <div class="field"><label>Nome</label><input type="text" id="cFuncNome" placeholder="Nome completo"></div>
+        <div class="field"><label>Cargo</label><input type="text" id="cFuncCargo" placeholder="Cargo"></div>
+        <button class="btn btn-green" onclick="salvarFuncionario()">💾 Salvar Funcionário</button>
+      </div>
+      <!-- Cor -->
+      <div class="form-card">
+        <h3>🎨 Nova Cor</h3>
+        <input type="hidden" id="cCorId">
+        <div class="field"><label>Nome da Cor</label><input type="text" id="cCorNome" placeholder="Ex: Preto, Marrom..."></div>
+        <button class="btn btn-green" onclick="salvarCor()">💾 Salvar Cor</button>
+      </div>
     </div>
 
-    <!-- Comprovante de Produção -->
-    <div id="comprovanteProducao" class="comprovante-producao oculto">
-        <div class="comprovante-header">
-            <h2>PEDIDO DE PRODUÇÃO</h2>
-            <p>SysCadeiras - Itens em Falta no Estoque</p>
-        </div>
-        <div class="comprovante-detalhes" id="detalhesProducao"></div>
-        <div class="comprovante-total"><p>🔄 PRODUÇÃO NECESSÁRIA PARA REPOR ESTOQUE</p></div>
-        <div class="botoes-comprovante">
-            <button class="btn-primary" onclick="fecharComprovanteProducao()">❌ Fechar</button>
-            <button class="btn-primary" onclick="salvarComprovante('producao')">💾 Salvar Pedido</button>
-        </div>
-    </div>
-    <div id="modalUsuario" style="display:none;position:fixed;inset:0;z-index:19000;background:rgba(0,0,0,.55);align-items:center;justify-content:center;">
-        <div style="background:#fff;border-radius:14px;padding:36px 32px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
-            <h3 id="modalUsuarioTitulo" style="margin:0 0 22px;color:#2c3e50;font-size:1.2rem">➕ Novo Usuário</h3>
-            <div id="erroModalUsuario" style="color:#e74c3c;font-size:13px;min-height:18px;margin-bottom:12px"></div>
-            <div class="form-row">
-                <label for="formUsuarioNome">Nome:</label>
-                <input type="text" id="formUsuarioNome" class="form-control" placeholder="Nome completo">
-            </div>
-            <div class="form-row">
-                <label for="formUsuarioEmail">E-mail:</label>
-                <input type="email" id="formUsuarioEmail" class="form-control" placeholder="usuario@empresa.com">
-            </div>
-            <div class="form-row">
-                <label for="formUsuarioSenha">Senha <small id="campoSenhaObrigatorio" style="font-weight:400;color:#7f8c8d">* obrigatória</small>:</label>
-                <input type="password" id="formUsuarioSenha" class="form-control" placeholder="Mínimo 4 caracteres">
-            </div>
-            <div class="form-row">
-                <label for="formUsuarioRole">Perfil:</label>
-                <select id="formUsuarioRole" class="form-control">
-                    <option value="operador">Operador</option>
-                    <option value="admin">Administrador</option>
-                </select>
-            </div>
-            <div class="form-row" style="display:flex;align-items:center;gap:10px">
-                <label for="formUsuarioAtivo" style="margin:0">Ativo:</label>
-                <input type="checkbox" id="formUsuarioAtivo" checked style="width:18px;height:18px;cursor:pointer">
-            </div>
-            <div class="d-flex gap-10" style="margin-top:24px;justify-content:flex-end">
-                <button onclick="fecharModalUsuario()" class="btn-cancelar">✖ Cancelar</button>
-                <button onclick="salvarUsuario()" class="btn-primary">💾 Salvar</button>
-            </div>
-        </div>
-    </div>
+  </div><!-- /content -->
+</div><!-- /appShell -->
 
-    <!-- Botão Instalar PWA -->
-    <button id="btnInstall" class="btn-install">📲</button>
+<script type="module">
+// ============================================================
+// CONFIGURAÇÃO
+// ============================================================
+const SUPABASE_URL = 'https://wbsxoffpugmajmzxofid.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_2qHQZTclYZFbskhwoumTvA__enYh_vx';
 
-    <script src="script.js"></script>
+// Usuários demo (offline/desenvolvimento)
+const DEMO_USERS = [
+  {id:1, nome:'Admin Demo', email:'admin@demo.com', senha:'1234', role:'admin'},
+  {id:2, nome:'Operador Demo', email:'op@demo.com', senha:'1234', role:'operador'},
+];
+
+// Estado global
+const S = {
+  sb: null, user: null, demo: false, online: navigator.onLine,
+  pecas:[], cores:[], funcionarios:[], producoes:[], movimentacoes:[], armacoes:[], estoqueArmacoes:[],
+  itensProducao:[{pecaId:'',corId:'',quantidade:1,horaExtra:false}],
+};
+
+let _rtChannel = null;
+
+// ============================================================
+// UTILS
+// ============================================================
+const hojeISO = () => new Date().toISOString().split('T')[0];
+const byId    = (arr, id) => arr.find(x => x.id == id);
+const fmtData = iso => iso ? iso.split('-').reverse().join('/') : '—';
+const fmtMoeda= v => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v||0);
+
+function showLoad(msg='Carregando...'){
+  document.getElementById('loadingMsg').textContent=msg;
+  document.getElementById('loadingOverlay').style.display='flex';
+}
+function hideLoad(){ document.getElementById('loadingOverlay').style.display='none'; }
+
+function toast(msg, dur=3000){
+  const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), dur);
+}
+
+// ============================================================
+// SUPABASE
+// ============================================================
+async function initSupabase(){
+  try{
+    const{createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
+    S.sb=createClient(SUPABASE_URL,SUPABASE_KEY);
+  }catch(e){ console.warn('Supabase offline:', e); }
+}
+
+async function sbInsert(tabela, dados){
+  if(!S.sb||!S.online) return null;
+  try{
+    const{data,error}=await S.sb.from(tabela).insert([dados]).select().single();
+    if(error) throw error;
+    return data;
+  }catch(e){ console.error('sbInsert',tabela,e); return null; }
+}
+
+async function sbUpdate(tabela, id, dados){
+  if(!S.sb||!S.online) return;
+  try{
+    const{error}=await S.sb.from(tabela).update(dados).eq('id',id);
+    if(error) throw error;
+  }catch(e){ console.error('sbUpdate',tabela,e); }
+}
+
+async function sbDelete(tabela, id){
+  if(!S.sb||!S.online) return;
+  try{
+    const{error}=await S.sb.from(tabela).delete().eq('id',id);
+    if(error) throw error;
+  }catch(e){ console.error('sbDelete',tabela,e); }
+}
+
+// ============================================================
+// LOGIN
+// ============================================================
+window.doLogin = async function(){
+  const email = document.getElementById('lEmail').value.trim().toLowerCase();
+  const senha  = document.getElementById('lSenha').value;
+  const errEl  = document.getElementById('lErr');
+  errEl.textContent='';
+  if(!email||!senha){ errEl.textContent='Preencha e-mail e senha'; return; }
+
+  showLoad('Entrando...');
+  try{
+    if(S.demo){
+      // Modo demo: verifica DEMO_USERS locais
+      const u=DEMO_USERS.find(u=>u.email===email&&u.senha===senha);
+      if(!u){ hideLoad(); errEl.textContent='❌ Usuário ou senha incorretos'; return; }
+      S.user=u;
+    }else{
+      // PRODUÇÃO: busca na tabela Usuarios (mesma do desktop)
+      // Hash: btoa(senha) — igual ao main.js do desktop
+      const senhaHash = btoa(senha);
+      const{data,error}=await S.sb
+        .from('Usuarios')
+        .select('id,nome,email,role,ativo')
+        .eq('email', email)
+        .eq('senha_hash', senhaHash)
+        .eq('ativo', 1)
+        .single();
+      if(error||!data){ hideLoad(); errEl.textContent='❌ E-mail ou senha incorretos'; return; }
+      S.user = {id:data.id, nome:data.nome, email:data.email, role:data.role};
+    }
+    await carregarDados();
+    iniciarApp();
+    hideLoad();
+  }catch(e){ hideLoad(); errEl.textContent='❌ Erro: '+e.message; }
+};
+
+window.doLogout = function(){
+  if(!confirm('Deseja sair?')) return;
+  S.user=null;
+  if(_rtChannel&&S.sb) S.sb.removeChannel(_rtChannel);
+  document.getElementById('appShell').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('lEmail').value='';
+  document.getElementById('lSenha').value='';
+  document.getElementById('lErr').textContent='';
+};
+
+// ============================================================
+// CARREGAR DADOS
+// ============================================================
+async function carregarDados(){
+  if(!S.sb||!S.online){ carregarDemo(); return; }
+  try{
+    const[pecas,cores,funcs,prods,movs,arms,estArm]=await Promise.all([
+      S.sb.from('Pecas').select('*'),
+      S.sb.from('Cores').select('*'),
+      S.sb.from('Funcionarios').select('*'),
+      S.sb.from('Producoes').select('*').order('created_at',{ascending:false}).limit(200),
+      S.sb.from('Movimentacoes').select('*').order('created_at',{ascending:false}).limit(200),
+      S.sb.from('Armacoes').select('*').order('created_at',{ascending:false}).limit(100),
+      S.sb.from('EstoqueArmacoes').select('*'),
+    ]);
+    S.pecas         = pecas.data||[];
+    S.cores         = cores.data||[];
+    S.funcionarios  = funcs.data||[];
+    S.producoes     = prods.data||[];
+    S.movimentacoes = movs.data||[];
+    S.armacoes      = arms.data||[];
+    S.estoqueArmacoes=estArm.data||[];
+  }catch(e){ console.error('carregarDados',e); carregarDemo(); }
+}
+
+function carregarDemo(){
+  S.demo=true;
+  S.pecas=[{id:1,nome:'Assento',valor:12},{id:2,nome:'Encosto',valor:8}];
+  S.cores=[{id:1,nome:'Preto'},{id:2,nome:'Marrom'}];
+  S.funcionarios=[{id:1,nome:'João',cargo:'Operador'},{id:2,nome:'Maria',cargo:'Operador'}];
+  S.producoes=[]; S.movimentacoes=[]; S.armacoes=[]; S.estoqueArmacoes=[];
+  toast('⚠️ Modo offline — dados de demonstração');
+}
+
+// ============================================================
+// INICIAR APP
+// ============================================================
+function iniciarApp(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appShell').style.display='flex';
+  document.getElementById('userLbl').textContent=S.user?.nome||'Operador';
+  const roleEl=document.getElementById('userRole');
+  if(roleEl) roleEl.textContent=S.user?.role==='admin'?' · Admin':'';
+  fillSelects();
+  document.getElementById('pData').value=hojeISO();
+  document.getElementById('sData').value=hojeISO();
+  document.getElementById('aData').value=hojeISO();
+  renderItens();
+  atualizarHome();
+  renderSaidas();
+  renderArmEstoque();
+  if(S.sb&&S.online) iniciarRealtime();
+  window.addEventListener('online',  ()=>{ S.online=true;  setSyncBadge(true);  toast('✅ Online'); });
+  window.addEventListener('offline', ()=>{ S.online=false; setSyncBadge(false); toast('⚠️ Offline'); });
+}
+
+function setSyncBadge(on){
+  const b=document.getElementById('syncBadge');
+  if(!b) return;
+  b.textContent=on?'📡 Online':'📴 Offline';
+  b.className='badge-sync'+(on?'':' badge-offline');
+}
+
+// ============================================================
+// SELECTS
+// ============================================================
+function fillSelects(){
+  fill('pFunc', S.funcionarios, 'Selecione funcionário');
+  fill('sPeca', S.pecas, 'Selecione modelo');
+  fill('sCor',  S.cores, 'Selecione cor');
+  fill('aModelo',S.pecas,'Selecione modelo');
+  renderItens();
+}
+
+function fill(id, arr, placeholder){
+  const el=document.getElementById(id); if(!el) return;
+  el.innerHTML=`<option value="">${placeholder}</option>`+
+    arr.map(x=>`<option value="${x.id}">${x.nome}</option>`).join('');
+}
+
+// ============================================================
+// HOME
+// ============================================================
+function atualizarHome(){
+  const hoje=hojeISO();
+  const prodsHoje=S.producoes.filter(p=>p.data===hoje||(p.created_at||'').startsWith(hoje));
+  document.getElementById('stProdHoje').textContent=prodsHoje.length;
+  document.getElementById('stPecasHoje').textContent=prodsHoje.reduce((a,p)=>a+(p.quantidade||0),0);
+  const saldo=S.movimentacoes.reduce((a,m)=>a+(m.tipo==='entrada'?1:-1)*(m.quantidade||0),0);
+  document.getElementById('stSaldoTotal').textContent=saldo;
+  const estArm=S.estoqueArmacoes.reduce((a,e)=>a+(e.quantidade||0),0);
+  document.getElementById('stArmEstoque').textContent=estArm;
+  renderProdHoje(prodsHoje);
+}
+
+function renderProdHoje(list){
+  const el=document.getElementById('prodHojeList');
+  if(!list.length){ el.innerHTML='<div class="empty">Nenhuma produção hoje</div>'; return; }
+  el.innerHTML=list.map(p=>{
+    const f=byId(S.funcionarios, p.funcionarioid??p.funcionarioId);
+    const pc=byId(S.pecas, p.pecaid??p.pecaId);
+    const c=byId(S.cores, p.corid??p.corId);
+    const vt=(pc?.valor||0)*(p.quantidade||0)*(p.horaextra||p.horaExtra?.5:1);
+    const lu=p.login_user;
+    return`<div class="mob-row">
+      <div class="mob-rh">
+        <span class="mob-rt">${pc?.nome||'N/A'}</span>
+        ${(p.horaextra||p.horaExtra)?'<span class="badge-he">⏰ HE</span>':''}
+      </div>
+      <div class="mob-rf">
+        <div class="mob-fi">Funcionário<strong>${f?.nome||'N/A'}</strong></div>
+        <div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div>
+        <div class="mob-fi">Quantidade<strong>${p.quantidade}</strong></div>
+        <div class="mob-fi">Valor<strong class="valor">${fmtMoeda(vt)}</strong></div>
+        ${lu?`<div class="mob-fi" style="grid-column:1/-1">Operador<strong><span class="badge-login-mob">👤 ${lu}</span></strong></div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// PRODUÇÃO
+// ============================================================
+function renderItens(){
+  const c=document.getElementById('pItens'); if(!c) return;
+  c.innerHTML=S.itensProducao.map((it,i)=>`
+    <div class="item-extra">
+      ${S.itensProducao.length>1?`<button class="btn-rem-item" onclick="remItem(${i})">✕</button>`:''}
+      <div class="field"><label>Modelo</label>
+        <select onchange="S.itensProducao[${i}].pecaId=this.value">
+          <option value="">Selecione</option>
+          ${S.pecas.map(p=>`<option value="${p.id}" ${p.id==it.pecaId?'selected':''}>${p.nome}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Cor</label>
+        <select onchange="S.itensProducao[${i}].corId=this.value">
+          <option value="">Selecione</option>
+          ${S.cores.map(c=>`<option value="${c.id}" ${c.id==it.corId?'selected':''}>${c.nome}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Quantidade</label>
+        <input type="number" min="1" value="${it.quantidade}"
+               onchange="S.itensProducao[${i}].quantidade=parseInt(this.value)||1">
+      </div>
+      <div class="check-row" onclick="S.itensProducao[${i}].horaExtra=!S.itensProducao[${i}].horaExtra;renderItens()">
+        <input type="checkbox" ${it.horaExtra?'checked':''} onclick="event.stopPropagation();S.itensProducao[${i}].horaExtra=this.checked">
+        <label>⏰ Hora Extra (+50%)</label>
+      </div>
+    </div>`).join('');
+}
+
+window.addItem = function(){
+  S.itensProducao.push({pecaId:'',corId:'',quantidade:1,horaExtra:false});
+  renderItens();
+};
+
+window.remItem = function(i){
+  S.itensProducao.splice(i,1);
+  renderItens();
+};
+
+window.salvarProducao = async function(){
+  const data  = document.getElementById('pData').value;
+  const funcId= document.getElementById('pFunc').value;
+  if(!data||!funcId){ toast('⚠️ Preencha data e funcionário'); return; }
+  for(const it of S.itensProducao){
+    if(!it.pecaId||!it.corId||!it.quantidade){ toast('⚠️ Preencha todos os itens'); return; }
+  }
+  showLoad('Salvando...');
+  try{
+    for(const it of S.itensProducao){
+      // CORRIGIDO: inclui device_origin e login_user
+      const dados={
+        data, funcionarioid:parseInt(funcId),
+        pecaid:parseInt(it.pecaId), corid:parseInt(it.corId),
+        quantidade:it.quantidade, horaextra:it.horaExtra?1:0,
+        device_origin:'mobile', login_user:S.user?.nome||'Mobile'
+      };
+      if(!S.demo&&S.sb&&S.online){
+        const r=await sbInsert('Producoes',dados);
+        await sbInsert('Movimentacoes',{
+          data, tipo:'entrada',
+          pecaid:parseInt(it.pecaId), corid:parseInt(it.corId),
+          quantidade:it.quantidade, origem:'Produção',
+          producaoid:r?.id, funcionarioid:parseInt(funcId),
+          device_origin:'mobile', login_user:S.user?.nome||'Mobile'
+        });
+      }else{
+        // Demo: salvar local
+        S.producoes.unshift({...dados, id:Date.now()});
+        S.movimentacoes.unshift({data,tipo:'entrada',pecaid:parseInt(it.pecaId),corid:parseInt(it.corId),quantidade:it.quantidade,origem:'Produção',id:Date.now()+1});
+      }
+    }
+    await carregarDados();
+    atualizarHome();
+    S.itensProducao=[{pecaId:'',corId:'',quantidade:1,horaExtra:false}];
+    renderItens();
+    toast('✅ Produção registrada!');
+    showTab('home', document.querySelector('.tab'));
+  }catch(e){ toast('❌ Erro: '+e.message); }
+  finally{ hideLoad(); }
+};
+
+// ============================================================
+// SAÍDA
+// ============================================================
+window.salvarSaida = async function(){
+  const data    = document.getElementById('sData').value;
+  const pecaId  = document.getElementById('sPeca').value;
+  const corId   = document.getElementById('sCor').value;
+  const quantidade=parseInt(document.getElementById('sQtd').value);
+  const obs     = document.getElementById('sObs').value;
+  if(!data||!pecaId||!corId||!quantidade){ toast('⚠️ Preencha todos os campos'); return; }
+  showLoad('Salvando...');
+  try{
+    // CORRIGIDO: inclui device_origin e login_user
+    const dados={
+      data, tipo:'saida',
+      pecaid:parseInt(pecaId), corid:parseInt(corId),
+      quantidade, origem:obs||'Saída via mobile',
+      device_origin:'mobile', login_user:S.user?.nome||'Mobile'
+    };
+    if(!S.demo&&S.sb&&S.online){
+      await sbInsert('Movimentacoes', dados);
+    }else{
+      S.movimentacoes.unshift({...dados, id:Date.now()});
+    }
+    await carregarDados();
+    atualizarHome();
+    renderSaidas();
+    document.getElementById('sQtd').value='';
+    document.getElementById('sObs').value='';
+    toast('✅ Saída registrada!');
+  }catch(e){ toast('❌ Erro: '+e.message); }
+  finally{ hideLoad(); }
+};
+
+function renderSaidas(){
+  const el=document.getElementById('saidasList'); if(!el) return;
+  const saidas=S.movimentacoes.filter(m=>m.tipo==='saida').slice(0,30);
+  if(!saidas.length){ el.innerHTML='<div class="empty">Nenhuma saída registrada</div>'; return; }
+  el.innerHTML=saidas.map(m=>{
+    const p=byId(S.pecas, m.pecaid??m.pecaId);
+    const c=byId(S.cores, m.corid??m.corId);
+    const lu=m.login_user;
+    return`<div class="mob-row">
+      <div class="mob-rh">
+        <span class="mob-rt">${p?.nome||'N/A'}</span>
+        <span style="color:var(--red);font-size:18px;font-weight:800">–${m.quantidade}</span>
+      </div>
+      <div class="mob-rf">
+        <div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div>
+        <div class="mob-fi">Data<strong>${fmtData(m.data)}</strong></div>
+        <div class="mob-fi" style="grid-column:1/-1">Origem<strong>${m.origem||'—'}</strong></div>
+        ${lu?`<div class="mob-fi" style="grid-column:1/-1">Operador<strong><span class="badge-login-mob">👤 ${lu}</span></strong></div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// ARMAÇÃO
+// ============================================================
+window.salvarArmacao = async function(){
+  const data     = document.getElementById('aData').value;
+  const modeloId = document.getElementById('aModelo').value;
+  const quantidade=parseInt(document.getElementById('aQtd').value);
+  if(!data||!modeloId||!quantidade){ toast('⚠️ Preencha todos os campos'); return; }
+  showLoad('Salvando...');
+  try{
+    // CORRIGIDO: inclui device_origin e login_user
+    const dadosArm={
+      data, modeloid:parseInt(modeloId), quantidade,
+      device_origin:'mobile', login_user:S.user?.nome||'Mobile'
+    };
+    if(!S.demo&&S.sb&&S.online){
+      await sbInsert('Armacoes', dadosArm);
+      // Atualizar EstoqueArmacoes
+      const est=S.estoqueArmacoes.find(e=>e.modeloid==modeloId||e.modeloId==modeloId);
+      if(est){
+        await S.sb.from('EstoqueArmacoes').update({quantidade:(est.quantidade||0)+quantidade}).eq('id',est.id);
+      }else{
+        await sbInsert('EstoqueArmacoes',{modeloid:parseInt(modeloId),quantidade});
+      }
+    }else{
+      S.armacoes.unshift({...dadosArm, id:Date.now()});
+    }
+    await carregarDados();
+    renderArmEstoque();
+    document.getElementById('aQtd').value='';
+    toast('✅ Armação registrada!');
+  }catch(e){ toast('❌ Erro: '+e.message); }
+  finally{ hideLoad(); }
+};
+
+function renderArmEstoque(){
+  const el=document.getElementById('armEstoqueList'); if(!el) return;
+  if(!S.estoqueArmacoes.length){ el.innerHTML='<div class="empty">Nenhuma armação em estoque</div>'; return; }
+  el.innerHTML=S.estoqueArmacoes.map(e=>{
+    const m=byId(S.pecas, e.modeloid??e.modeloId);
+    return`<div class="mob-row">
+      <div class="mob-rh">
+        <span class="mob-rt">${m?.nome||'N/A'}</span>
+        <span class="valor" style="font-size:1.4rem;font-weight:800">${e.quantidade||0}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// CADASTRO
+// ============================================================
+window.salvarModelo = async function(){
+  const id    = document.getElementById('cModeloId').value;
+  const nome  = document.getElementById('cModeloNome').value.trim();
+  const valor = parseFloat(document.getElementById('cModeloValor').value);
+  if(!nome||!valor){ toast('⚠️ Preencha nome e valor'); return; }
+  showLoad('Salvando...');
+  try{
+    // CORRIGIDO: inclui device_origin mobile
+    if(id) await sbUpdate('Pecas',parseInt(id),{nome,valor,device_origin:'mobile'});
+    else    await sbInsert('Pecas',{nome,valor,device_origin:'mobile'});
+    await carregarDados(); fillSelects();
+    document.getElementById('cModeloId').value='';
+    document.getElementById('cModeloNome').value='';
+    document.getElementById('cModeloValor').value='';
+    toast('✅ Modelo salvo!');
+  }catch(e){ toast('❌ Erro: '+e.message); }
+  finally{ hideLoad(); }
+};
+
+window.salvarFuncionario = async function(){
+  const id    = document.getElementById('cFuncId').value;
+  const nome  = document.getElementById('cFuncNome').value.trim();
+  const cargo = document.getElementById('cFuncCargo').value.trim();
+  if(!nome||!cargo){ toast('⚠️ Preencha nome e cargo'); return; }
+  showLoad('Salvando...');
+  try{
+    // CORRIGIDO: inclui device_origin mobile
+    if(id) await sbUpdate('Funcionarios',parseInt(id),{nome,cargo,device_origin:'mobile'});
+    else    await sbInsert('Funcionarios',{nome,cargo,device_origin:'mobile'});
+    await carregarDados(); fillSelects();
+    document.getElementById('cFuncId').value='';
+    document.getElementById('cFuncNome').value='';
+    document.getElementById('cFuncCargo').value='';
+    toast('✅ Funcionário salvo!');
+  }catch(e){ toast('❌ Erro: '+e.message); }
+  finally{ hideLoad(); }
+};
+
+window.salvarCor = async function(){
+  const id   = document.getElementById('cCorId').value;
+  const nome = document.getElementById('cCorNome').value.trim();
+  if(!nome){ toast('⚠️ Informe o nome da cor'); return; }
+  showLoad('Salvando...');
+  try{
+    // CORRIGIDO: inclui device_origin mobile
+    if(id) await sbUpdate('Cores',parseInt(id),{nome,device_origin:'mobile'});
+    else    await sbInsert('Cores',{nome,device_origin:'mobile'});
+    await carregarDados(); fillSelects();
+    document.getElementById('cCorId').value='';
+    document.getElementById('cCorNome').value='';
+    toast('✅ Cor salva!');
+  }catch(e){ toast('❌ Erro: '+e.message); }
+  finally{ hideLoad(); }
+};
+
+// ============================================================
+// REALTIME
+// ============================================================
+function iniciarRealtime(){
+  if(!S.sb) return;
+  _rtChannel=S.sb.channel('mob-rt-v4',{config:{broadcast:{self:false}}})
+    .on('postgres_changes',{event:'*',schema:'public',table:'Pecas'},async()=>{ await carregarDados(); fillSelects(); })
+    .on('postgres_changes',{event:'*',schema:'public',table:'Cores'},async()=>{ await carregarDados(); fillSelects(); })
+    .on('postgres_changes',{event:'*',schema:'public',table:'Funcionarios'},async()=>{ await carregarDados(); fillSelects(); })
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'Producoes'},async(p)=>{
+      if(p.new?.device_origin!=='mobile'){ await carregarDados(); atualizarHome(); toast('🖥️ Nova produção do desktop'); }
+    })
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'Producoes'},async()=>{ await carregarDados(); atualizarHome(); })
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'Movimentacoes'},async(p)=>{
+      if(p.new?.device_origin!=='mobile'){ await carregarDados(); atualizarHome(); renderSaidas(); toast('🖥️ Nova movimentação do desktop'); }
+    })
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'Movimentacoes'},async()=>{ await carregarDados(); atualizarHome(); renderSaidas(); })
+    .on('postgres_changes',{event:'*',schema:'public',table:'EstoqueArmacoes'},async()=>{ await carregarDados(); renderArmEstoque(); })
+    .subscribe((status,err)=>{
+      setSyncBadge(status==='SUBSCRIBED');
+      if(err) console.error('Realtime err:',err);
+    });
+}
+
+// ============================================================
+// NAVEGAÇÃO
+// ============================================================
+window.showTab = function(id, btn){
+  document.querySelectorAll('.content > div').forEach(d=>d.style.display='none');
+  document.getElementById('tab-'+id).style.display='';
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+};
+
+// ============================================================
+// BOOT
+// ============================================================
+(async()=>{
+  showLoad('Inicializando...');
+  await initSupabase();
+  if(!S.sb){ S.demo=true; toast('⚠️ Sem conexão — modo demo'); }
+  hideLoad();
+  document.getElementById('loginScreen').style.display='flex';
+})();
+</script>
 </body>
 </html>
