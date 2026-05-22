@@ -14,7 +14,48 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Modal de Apagar Dados (2 etapas: senha → seleção) -->
+
+    <!-- ============================================================
+         TELA DE LOGIN — exibida antes do app carregar
+    ============================================================ -->
+    <div id="loginOverlay" style="position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,#1a252f 0%,#2c3e50 50%,#1a3a2a 100%);display:flex;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:18px;padding:48px 44px;width:100%;max-width:420px;box-shadow:0 30px 80px rgba(0,0,0,.4);animation:loginSlideUp .4s cubic-bezier(.34,1.56,.64,1)">
+            <div style="text-align:center;margin-bottom:32px">
+                <div style="width:72px;height:72px;margin:0 auto 14px;background:linear-gradient(135deg,#1abc9c,#2c3e50);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:38px;box-shadow:0 12px 30px rgba(26,188,156,.3)">🪑</div>
+                <h1 style="font-size:1.8rem;color:#2c3e50;margin-bottom:4px">SysCadeiras</h1>
+                <p style="color:#7f8c8d;font-size:.9rem">Controle de Produção &amp; Estoque</p>
+            </div>
+            <div style="margin-bottom:18px">
+                <label style="display:block;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7f8c8d;margin-bottom:7px">E-mail</label>
+                <input type="email" id="loginEmail" placeholder="admin@syscadeiras.com" autocomplete="username"
+                       style="width:100%;padding:13px 15px;border:2px solid #e0e0e0;border-radius:10px;font-size:15px;background:#fafafa;transition:border-color .2s;box-sizing:border-box"
+                       onfocus="this.style.borderColor='#1abc9c'" onblur="this.style.borderColor='#e0e0e0'"
+                       onkeydown="if(event.key==='Enter')document.getElementById('loginSenha').focus()">
+            </div>
+            <div style="margin-bottom:18px">
+                <label style="display:block;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7f8c8d;margin-bottom:7px">Senha</label>
+                <input type="password" id="loginSenha" placeholder="••••••••" autocomplete="current-password"
+                       style="width:100%;padding:13px 15px;border:2px solid #e0e0e0;border-radius:10px;font-size:15px;background:#fafafa;transition:border-color .2s;box-sizing:border-box"
+                       onfocus="this.style.borderColor='#1abc9c'" onblur="this.style.borderColor='#e0e0e0'"
+                       onkeydown="if(event.key==='Enter')fazerLogin()">
+            </div>
+            <div id="loginErro" style="color:#e74c3c;font-size:13px;text-align:center;min-height:20px;margin-bottom:12px;font-weight:600"></div>
+            <button id="btnEntrar" onclick="fazerLogin()"
+                    style="width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#1abc9c,#16a085);color:#fff;font-size:16px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.03em">
+                🔐 Entrar
+            </button>
+            <div style="text-align:center;margin-top:20px;color:#bdc3c7;font-size:12px">SysCadeiras v2.0 · Desktop</div>
+        </div>
+    </div>
+    <style>
+        @keyframes loginSlideUp {
+            from { transform: translateY(40px); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+        #loginOverlay.hidden { display: none !important; }
+        .badge-login { display:inline-flex;align-items:center;gap:4px;background:#eaf4fb;color:#2980b9;border-radius:5px;padding:2px 8px;font-size:.78rem;font-weight:600 }
+        .badge-login.mobile { background:#e8f8f5;color:#1abc9c }
+    </style>
     <div id="modalSenha" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:20000; align-items:center; justify-content:center;">
         <div style="background:#fff; border-radius:14px; width:480px; max-width:95vw; box-shadow:0 12px 40px rgba(0,0,0,0.35); overflow:hidden;">
 
@@ -148,11 +189,19 @@
 
     <!-- Cabeçalho -->
     <header>
-        <div class="container" style="position: relative;">
+        <div class="container" style="position: relative; display:flex; align-items:center; justify-content:space-between;">
             <h1>Controle de Produção & Estoque</h1>
-            <button id="btnAtualizar" class="btn-atualizar" onclick="atualizarSistema()" title="Atualizar Sistema">
-                🔄
-            </button>
+            <div style="display:flex;align-items:center;gap:10px">
+                <div id="userBadge" style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);border-radius:20px;padding:5px 14px">
+                    <div id="userAvatar" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#1abc9c,#16a085);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff">?</div>
+                    <div style="line-height:1.2">
+                        <div id="userNome" style="font-size:13px;font-weight:700;color:#fff">—</div>
+                        <div id="userRole" style="font-size:10px;color:rgba(255,255,255,.6);text-transform:uppercase">—</div>
+                    </div>
+                </div>
+                <button onclick="fazerLogout()" style="background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.3);color:#e74c3c;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s" onmouseover="this.style.background='#e74c3c';this.style.color='#fff'" onmouseout="this.style.background='rgba(231,76,60,.15)';this.style.color='#e74c3c'">Sair 🚪</button>
+                <button id="btnAtualizar" class="btn-atualizar" onclick="atualizarSistema()" title="Atualizar Sistema">🔄</button>
+            </div>
         </div>
     </header>
 
@@ -168,6 +217,7 @@
             <button onclick="showSection('saidas', this)">📤 Saídas</button>
             <button onclick="showSection('relatorios', this)">📊 Relatórios</button>
             <button onclick="showSection('backup', this)">💾 Backup</button>
+            <button id="btnMenuUsuarios" onclick="showSection('usuarios', this)" style="display:none">👥 Usuários</button>
         </div>
 
         <!-- SEÇÃO: PRODUÇÃO -->
@@ -238,6 +288,7 @@
                         <th>Hora Extra</th>
                         <th>Valor Unit.</th>
                         <th>Valor Total</th>
+                        <th>Operador</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
@@ -629,12 +680,13 @@
                             <th>Hora Extra</th>
                             <th>Valor Unit.</th>
                             <th>Valor Total</th>
+                            <th>Operador</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
                     <tfoot>
                         <tr>
-                            <td colspan="8" style="text-align:right;font-weight:bold">
+                            <td colspan="9" style="text-align:right;font-weight:bold">
                                 Total Geral:
                             </td>
                             <td id="totalGeral" class="valor">R$ 0,00</td>
@@ -822,7 +874,20 @@
                 </div>
             </div>
         </div>
-    </div>
+
+        <!-- SEÇÃO: USUÁRIOS (visível apenas para admin) -->
+        <div id="usuarios" class="section">
+            <h2>👥 Gestão de Usuários</h2>
+            <p style="color:#7f8c8d;margin-bottom:20px;font-size:14px">
+                Usuários cadastrados aqui podem acessar tanto o desktop quanto o app mobile com o mesmo e-mail e senha.
+            </p>
+            <button class="btn-primary" onclick="abrirNovoUsuario()" style="margin-bottom:24px">➕ Novo Usuário</button>
+            <div id="listaUsuarios" style="display:grid;gap:12px">
+                <p style="color:#7f8c8d">Carregando...</p>
+            </div>
+        </div>
+
+    </div><!-- /container -->
 
     <!-- Comprovante de Saída -->
     <div id="comprovanteSaida" class="comprovante-saida oculto">
@@ -830,29 +895,14 @@
             <h2>COMPROVANTE DE SAÍDA</h2>
             <p>SysCadeiras - Controle de Estoque</p>
         </div>
-        
         <div class="comprovante-detalhes">
-            <div class="comprovante-item">
-                <strong>📅 Data:</strong> <span id="compData"></span>
-            </div>
-            <div class="comprovante-item">
-                <strong>🪑 Modelo:</strong> <span id="compPeca"></span>
-            </div>
-            <div class="comprovante-item">
-                <strong>🎨 Cor:</strong> <span id="compCor"></span>
-            </div>
-            <div class="comprovante-item">
-                <strong>📊 Quantidade:</strong> <span id="compQuantidade"></span>
-            </div>
-            <div class="comprovante-item">
-                <strong>📝 Observação:</strong> <span id="compObs"></span>
-            </div>
+            <div class="comprovante-item"><strong>📅 Data:</strong> <span id="compData"></span></div>
+            <div class="comprovante-item"><strong>🪑 Modelo:</strong> <span id="compPeca"></span></div>
+            <div class="comprovante-item"><strong>🎨 Cor:</strong> <span id="compCor"></span></div>
+            <div class="comprovante-item"><strong>📊 Quantidade:</strong> <span id="compQuantidade"></span></div>
+            <div class="comprovante-item"><strong>📝 Observação:</strong> <span id="compObs"></span></div>
         </div>
-        
-        <div class="comprovante-total">
-            <p>✅ SAÍDA REGISTRADA NO SISTEMA</p>
-        </div>
-        
+        <div class="comprovante-total"><p>✅ SAÍDA REGISTRADA NO SISTEMA</p></div>
         <div class="botoes-comprovante">
             <button class="btn-primary" onclick="fecharComprovante()">❌ Fechar</button>
             <button class="btn-primary" onclick="salvarComprovante('saida')">💾 Salvar Comprovante</button>
@@ -865,16 +915,44 @@
             <h2>PEDIDO DE PRODUÇÃO</h2>
             <p>SysCadeiras - Itens em Falta no Estoque</p>
         </div>
-        
         <div class="comprovante-detalhes" id="detalhesProducao"></div>
-        
-        <div class="comprovante-total">
-            <p>🔄 PRODUÇÃO NECESSÁRIA PARA REPOR ESTOQUE</p>
-        </div>
-        
+        <div class="comprovante-total"><p>🔄 PRODUÇÃO NECESSÁRIA PARA REPOR ESTOQUE</p></div>
         <div class="botoes-comprovante">
             <button class="btn-primary" onclick="fecharComprovanteProducao()">❌ Fechar</button>
             <button class="btn-primary" onclick="salvarComprovante('producao')">💾 Salvar Pedido</button>
+        </div>
+    </div>
+    <div id="modalUsuario" style="display:none;position:fixed;inset:0;z-index:19000;background:rgba(0,0,0,.55);align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:14px;padding:36px 32px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+            <h3 id="modalUsuarioTitulo" style="margin:0 0 22px;color:#2c3e50;font-size:1.2rem">➕ Novo Usuário</h3>
+            <div id="erroModalUsuario" style="color:#e74c3c;font-size:13px;min-height:18px;margin-bottom:12px"></div>
+            <div class="form-row">
+                <label for="formUsuarioNome">Nome:</label>
+                <input type="text" id="formUsuarioNome" class="form-control" placeholder="Nome completo">
+            </div>
+            <div class="form-row">
+                <label for="formUsuarioEmail">E-mail:</label>
+                <input type="email" id="formUsuarioEmail" class="form-control" placeholder="usuario@empresa.com">
+            </div>
+            <div class="form-row">
+                <label for="formUsuarioSenha">Senha <small id="campoSenhaObrigatorio" style="font-weight:400;color:#7f8c8d">* obrigatória</small>:</label>
+                <input type="password" id="formUsuarioSenha" class="form-control" placeholder="Mínimo 4 caracteres">
+            </div>
+            <div class="form-row">
+                <label for="formUsuarioRole">Perfil:</label>
+                <select id="formUsuarioRole" class="form-control">
+                    <option value="operador">Operador</option>
+                    <option value="admin">Administrador</option>
+                </select>
+            </div>
+            <div class="form-row" style="display:flex;align-items:center;gap:10px">
+                <label for="formUsuarioAtivo" style="margin:0">Ativo:</label>
+                <input type="checkbox" id="formUsuarioAtivo" checked style="width:18px;height:18px;cursor:pointer">
+            </div>
+            <div class="d-flex gap-10" style="margin-top:24px;justify-content:flex-end">
+                <button onclick="fecharModalUsuario()" class="btn-cancelar">✖ Cancelar</button>
+                <button onclick="salvarUsuario()" class="btn-primary">💾 Salvar</button>
+            </div>
         </div>
     </div>
 
