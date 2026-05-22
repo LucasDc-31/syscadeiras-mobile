@@ -1,1279 +1,886 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<meta name="theme-color" content="#2c3e50">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="SysCadeiras">
-<title>SysCadeiras Mobile</title>
-<style>
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:root{
-  --bg:#0f1923;--bg2:#16212e;--bg3:#1d2b3a;--card:#192636;--border:#243344;
-  --green:#27ae60;--green2:#2ecc71;--blue:#2980b9;--amber:#f39c12;
-  --red:#c0392b;--red2:#e74c3c;--text:#ecf0f1;--muted:#7f8c8d;
-  --sb:env(safe-area-inset-bottom,0px);--st:env(safe-area-inset-top,0px)
-}
-html,body{height:100%;overflow:hidden}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI',sans-serif;font-size:15px;line-height:1.5;display:flex;flex-direction:column}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2c3e50">
+    <meta name="description" content="Sistema de controle de produção e estoque para fábrica de cadeiras">
+    
+    <title>SysCadeiras - Produção & Estoque</title>
+    <link rel="manifest" href="manifest.json">
+    <!-- chart.js bundled locally — não depende de internet -->
+    <script src="node_modules/chart.js/dist/chart.umd.js"></script>
 
-/* LOGIN */
-#loginScreen{position:fixed;inset:0;background:linear-gradient(160deg,#0f1923 0%,#1a2f1a 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;z-index:9999}
-.ll{width:90px;height:90px;background:linear-gradient(135deg,var(--green),var(--blue));border-radius:26px;display:flex;align-items:center;justify-content:center;font-size:46px;margin-bottom:18px;box-shadow:0 20px 50px rgba(39,174,96,.2)}
-.lt{font-size:28px;font-weight:800;color:#fff;margin-bottom:4px}
-.ls{font-size:14px;color:var(--muted);margin-bottom:32px}
-.lcard{width:100%;max-width:380px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px 24px}
-.demo-box{background:rgba(41,128,185,.08);border:1px solid rgba(41,128,185,.3);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#7fb3d3;line-height:1.7;display:none}
-.demo-box strong{display:block;color:var(--blue);font-size:13px;margin-bottom:2px}
-.lbl{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:7px}
-.inp{width:100%;background:var(--bg3);border:2px solid var(--border);border-radius:12px;padding:14px 16px;font-size:16px;color:var(--text);margin-bottom:14px;-webkit-appearance:none;transition:border-color .2s}
-.inp:focus{outline:none;border-color:var(--green)}
-.lerr{color:var(--red2);font-size:13px;text-align:center;min-height:20px;margin-bottom:10px}
-
-/* TOPBAR */
-.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:calc(var(--st)+10px) 14px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:100}
-.tlogo{display:flex;align-items:center;gap:10px}
-.tlogo .ico{width:36px;height:36px;background:linear-gradient(135deg,var(--green),var(--blue));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
-.tlogo h1{font-size:16px;font-weight:800;color:#fff}
-.tlogo small{display:block;font-size:10px;color:var(--muted)}
-.sbadge{display:flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 11px;font-size:11px;font-weight:700;transition:all .3s}
-.sbadge .dot{width:7px;height:7px;border-radius:50%;background:var(--green2);animation:pulse 2s infinite}
-.sbadge.off .dot{background:var(--amber);animation:none}
-.sbadge.off{color:var(--amber)}.sbadge.on{color:var(--green2)}
-.rbtn{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:6px;border-radius:50%;transition:all .2s;line-height:1;display:flex;align-items:center;justify-content:center}
-.rbtn:active{background:var(--bg3);color:var(--green2)}
-.rbtn.spin{animation:spinIcon .7s linear infinite;color:var(--green2)}
-@keyframes spinIcon{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
-
-/* NAV */
-.nav{display:flex;background:var(--bg2);border-top:1px solid var(--border);padding:0 0 var(--sb);flex-shrink:0;z-index:100;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.nav::-webkit-scrollbar{display:none}
-.nb{flex:0 0 auto;min-width:55px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 8px 6px;background:none;border:none;color:var(--muted);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;cursor:pointer;transition:color .2s;position:relative}
-.nb .ni{font-size:20px;line-height:1;transition:transform .2s}
-.nb.active{color:var(--green2)}.nb.active .ni{transform:scale(1.1)}
-.nb::before{content:'';position:absolute;top:0;left:15%;right:15%;height:2px;background:var(--green2);border-radius:0 0 2px 2px;opacity:0;transition:opacity .2s}
-.nb.active::before{opacity:1}
-
-/* MAIN */
-.main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:none}
-.main::-webkit-scrollbar{display:none}
-.page{display:none;padding:14px 13px 28px}
-.page.active{display:block}
-
-/* BUTTONS */
-.btn{width:100%;padding:15px;border:none;border-radius:13px;font-size:15px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;-webkit-appearance:none}
-.btn:active{transform:scale(.97)}.btn:disabled{opacity:.5}
-.btn-g{background:linear-gradient(135deg,var(--green),#1e8449);color:#fff}
-.btn-b{background:linear-gradient(135deg,var(--blue),#1f618d);color:#fff}
-.btn-r{background:var(--red2);color:#fff}
-.btn-a{background:var(--amber);color:#fff}
-.btn-sec{background:var(--bg3);color:var(--text);border:1px solid var(--border)}
-.btn-sm{width:auto;padding:9px 16px;font-size:13px;border-radius:10px}
-.row-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-
-/* FIELDS */
-.fg{margin-bottom:15px}
-.fl{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:7px}
-.fs,.fi,.ft{width:100%;background:var(--bg3);border:2px solid var(--border);border-radius:12px;padding:13px 15px;font-size:15px;color:var(--text);-webkit-appearance:none;appearance:none;transition:border-color .2s,box-shadow .2s}
-.fs:focus,.fi:focus,.ft:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(39,174,96,.1)}
-.fs{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%237f8c8d' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;padding-right:38px}
-.ft{min-height:80px;resize:none;line-height:1.5}
-.fi[type=date],.fi[type=month]{color-scheme:dark}
-
-/* TOGGLE */
-.tog{display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border:2px solid var(--border);border-radius:12px;padding:14px 15px;cursor:pointer;transition:border-color .2s}
-.tog.on{border-color:var(--green)}
-.tog-inf .tog-t{font-size:15px;font-weight:600}.tog-inf .tog-s{font-size:12px;color:var(--muted)}
-.sw{width:48px;height:25px;background:var(--border);border-radius:13px;position:relative;flex-shrink:0;transition:background .2s}
-.sw::after{content:'';position:absolute;top:3px;left:3px;width:19px;height:19px;background:#fff;border-radius:50%;transition:transform .2s}
-.tog.on .sw{background:var(--green)}.tog.on .sw::after{transform:translateX(23px)}
-
-/* NUMPAD */
-.np-disp{background:var(--bg);border:2px solid var(--border);border-radius:12px;padding:18px 14px 10px;text-align:right;margin-bottom:10px;transition:border-color .2s}
-.np-disp.has{border-color:var(--green)}
-.np-val{font-size:44px;font-weight:800;color:#fff;line-height:1;letter-spacing:-2px;min-height:52px}
-.np-val.ph{color:var(--muted);font-size:28px;font-weight:400;padding-top:6px}
-.np-lbl{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-top:3px}
-.np-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
-.nk{background:var(--bg3);border:1px solid var(--border);border-radius:12px;height:62px;font-size:24px;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s;user-select:none}
-.nk:active{background:var(--green);color:#fff;transform:scale(.94)}
-.nk.del{background:var(--bg2);color:var(--red2);font-size:18px}
-.nk.clr{background:var(--bg2);color:var(--amber);font-size:12px;font-weight:800}
-
-/* CARDS */
-.card{background:var(--card);border:1px solid var(--border);border-radius:15px;padding:16px;margin-bottom:12px}
-.ctit{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;display:flex;align-items:center;gap:7px}
-.cico{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
-.cg{background:rgba(39,174,96,.15)}.cb{background:rgba(41,128,185,.15)}.ca{background:rgba(243,156,18,.15)}.cr{background:rgba(231,76,60,.15)}
-
-/* HOME */
-.greeting{margin-bottom:14px}
-.greeting h2{font-size:21px;font-weight:800;color:#fff;letter-spacing:-.4px}
-.greeting p{font-size:13px;color:var(--muted)}
-.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.sc{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 14px}
-.sv{font-size:30px;font-weight:800;color:#fff;letter-spacing:-1px;line-height:1;margin-bottom:3px}
-.sl{font-size:11px;color:var(--muted);font-weight:600}
-.sc.hi{background:linear-gradient(135deg,rgba(39,174,96,.15),rgba(39,174,96,.05));border-color:rgba(39,174,96,.3)}
-.sc.hi .sv{color:var(--green2)}
-.qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-.qa{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 12px;text-align:center;cursor:pointer;transition:all .15s}
-.qa:active{transform:scale(.96);border-color:var(--green)}
-.qa .qi{font-size:26px;margin-bottom:7px}
-.qa .ql{font-size:13px;font-weight:700;color:var(--text)}
-.qa .qs{font-size:11px;color:var(--muted);margin-top:2px}
-.oq{background:rgba(243,156,18,.08);border:1px solid rgba(243,156,18,.3);border-radius:14px;padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px}
-.oq.hidden{display:none}
-.oq-t{font-size:13px;font-weight:700;color:var(--amber)}
-.oq-s{font-size:11px;color:var(--muted)}
-.oq-btn{background:var(--amber);color:#fff;border:none;border-radius:9px;padding:7px 13px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0}
-
-/* HISTORY */
-.hi-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(36,51,68,.6)}
-.hi-row:last-child{border-bottom:none}
-.hi-ic{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
-.ip{background:rgba(39,174,96,.12)}.is{background:rgba(192,57,43,.12)}.ia{background:rgba(243,156,18,.12)}
-.hi-inf{flex:1;min-width:0}
-.hi-t{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hi-s{font-size:11px;color:var(--muted)}
-.hi-q{font-size:18px;font-weight:800;color:#fff;flex-shrink:0}
-.hi-q.neg{color:var(--red2)}
-.badge-he{background:rgba(243,156,18,.15);color:var(--amber);font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px}
-.mob-row{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:8px}
-.mob-rh{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.mob-rt{font-size:14px;font-weight:700;color:var(--text)}
-.mob-rf{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
-.mob-fi{font-size:12px;color:var(--muted)}
-.mob-fi strong{display:block;color:var(--text);font-size:13px;margin-top:1px}
-.mob-acts{display:flex;gap:8px}
-.ab{flex:1;padding:9px;border:none;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px}
-.ab-e{background:rgba(41,128,185,.15);color:var(--blue)}
-.ab-d{background:rgba(192,57,43,.15);color:var(--red2)}
-
-/* ESTOQUE */
-.sk{color:var(--green2);font-weight:800}
-.sb2{color:var(--amber);font-weight:800}
-.sc2{color:var(--red2);font-weight:800}
-.sn{color:var(--red2);font-weight:800}
-.pills{display:flex;gap:7px;margin-bottom:14px;overflow-x:auto;padding-bottom:3px;scrollbar-width:none}
-.pills::-webkit-scrollbar{display:none}
-.pill{background:var(--bg3);border:1px solid var(--border);border-radius:18px;padding:6px 14px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s}
-.pill.active{background:var(--green);color:#fff;border-color:var(--green)}
-
-/* TOAST */
-.toast-wrap{position:fixed;bottom:calc(65px + var(--sb) + 10px);left:10px;right:10px;z-index:9000;display:flex;flex-direction:column;gap:7px;pointer-events:none}
-.toast{background:var(--bg2);border:1px solid var(--border);border-radius:13px;padding:12px 16px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:9px;animation:tIn .3s cubic-bezier(.175,.885,.32,1.275);box-shadow:0 8px 28px rgba(0,0,0,.4)}
-.toast.success{border-color:rgba(46,204,113,.4);color:var(--green2)}
-.toast.error{border-color:rgba(231,76,60,.4);color:var(--red2)}
-.toast.warn{border-color:rgba(243,156,18,.4);color:var(--amber)}
-.toast.info{border-color:rgba(41,128,185,.4);color:#5dade2}
-@keyframes tIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
-
-/* LOADING */
-.spinner{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--green2);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto}
-@keyframes spin{to{transform:rotate(360deg)}}
-.load-ov{position:fixed;inset:0;background:rgba(15,25,35,.88);backdrop-filter:blur(4px);z-index:8000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
-.load-ov.hidden{display:none}
-.load-t{font-size:14px;color:var(--muted)}
-
-/* MISC */
-.ph2{font-size:20px;font-weight:800;color:#fff;letter-spacing:-.4px;margin-bottom:3px}
-.ps{font-size:12px;color:var(--muted);margin-bottom:18px}
-.sec-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:10px;margin-top:4px}
-.sep{height:1px;background:var(--border);margin:14px 0}
-.empty{text-align:center;padding:40px 16px;color:var(--muted)}
-.empty .ei{font-size:44px;margin-bottom:10px}
-.badge-e{background:rgba(39,174,96,.15);color:var(--green2);font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px}
-.badge-s{background:rgba(192,57,43,.15);color:var(--red2);font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px}
-.badge-he{background:rgba(243,156,18,.15);color:var(--amber);font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px}
-.valor{color:var(--green2);font-weight:700}
-.saldo-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:18px;display:none}
-.total-row{background:var(--bg3);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:10px}
-.total-row .tl{font-size:13px;color:var(--muted);font-weight:600}
-.total-row .tv{font-size:18px;font-weight:800;color:var(--green2)}
-</style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Modal de Apagar Dados (2 etapas: senha → seleção) -->
+    <div id="modalSenha" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:20000; align-items:center; justify-content:center;">
+        <div style="background:#fff; border-radius:14px; width:480px; max-width:95vw; box-shadow:0 12px 40px rgba(0,0,0,0.35); overflow:hidden;">
 
-<!-- LOGIN -->
-<div id="loginScreen">
-  <div class="ll">🪑</div>
-  <div class="lt">SysCadeiras</div>
-  <div class="ls">Sistema de Controle · Chão de Fábrica</div>
-  <div class="lcard">
-    <div class="demo-box" id="demoBox">
-      <strong>⚙️ Modo Demonstração Ativo</strong>
-      Login: operador@fabrica.com / 1234<br>
-      Admin: admin@fabrica.com / dantas3101<br>
-      Configure SUPABASE_URL e SUPABASE_KEY para usar o banco real.
-    </div>
-    <label class="lbl">E-mail</label>
-    <input class="inp" type="email" id="lEmail" placeholder="operador@fabrica.com" inputmode="email" autocomplete="username">
-    <label class="lbl">Senha</label>
-    <input class="inp" type="password" id="lSenha" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
-    <div class="lerr" id="lErr"></div>
-    <button class="btn btn-g" onclick="doLogin()">🔐 Entrar</button>
-  </div>
-</div>
-
-<!-- APP -->
-<div id="appShell" style="display:none;flex-direction:column;height:100%;">
-  <div class="topbar">
-    <div class="tlogo">
-      <div class="ico">🪑</div>
-      <div><h1>SysCadeiras</h1><small id="userLbl">Operador</small></div>
-    </div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <button class="rbtn" id="rBtn" onclick="abrirBackup()" title="Backup / Apagar dados" style="font-size:18px">🗄️</button>
-      <div class="sbadge on" id="sBadge"><div class="dot"></div><span id="sTxt">Online</span></div>
-    </div>
-  </div>
-
-  <div class="main">
-
-    <!-- HOME -->
-    <div class="page active" id="pageHome">
-      <div class="greeting" style="padding-top:4px;">
-        <h2 id="gTxt">Olá! 👋</h2><p id="gDate">Carregando...</p>
-      </div>
-      <div class="oq hidden" id="oqCard">
-        <span style="font-size:26px;flex-shrink:0">📤</span>
-        <div style="flex:1"><div class="oq-t"><span id="oqN">0</span> na fila offline</div><div class="oq-s">Reconecte para sincronizar</div></div>
-        <button class="oq-btn" onclick="syncFila()">Sync</button>
-      </div>
-      <div class="stats-grid">
-        <div class="sc hi"><div class="sv" id="sHoje">–</div><div class="sl">Prod. hoje</div></div>
-        <div class="sc"><div class="sv" id="sTotal">–</div><div class="sl">Total geral</div></div>
-        <div class="sc"><div class="sv" id="sFunc">–</div><div class="sl">Funcionários</div></div>
-        <div class="sc"><div class="sv" id="sMov">–</div><div class="sl">Movimentações</div></div>
-      </div>
-      <div class="sec-lbl">Ações Rápidas</div>
-      <div class="qa-grid">
-        <div class="qa" onclick="nav('Producao')"><div class="qi">🏭</div><div class="ql">Produção</div><div class="qs">Registrar produção</div></div>
-        <div class="qa" onclick="nav('Saidas')"><div class="qi">📤</div><div class="ql">Saída</div><div class="qs">Registrar saída</div></div>
-        <div class="qa" onclick="nav('Estoque')"><div class="qi">📦</div><div class="ql">Estoque</div><div class="qs">Ver saldos</div></div>
-        <div class="qa" onclick="nav('Relatorios')"><div class="qi">📊</div><div class="ql">Relatórios</div><div class="qs">Gerar relatórios</div></div>
-      </div>
-      <div style="margin-top:14px;">
-        <div class="sec-lbl">Últimos Lançamentos</div>
-        <div class="card" id="homeHist"><div class="empty"><p>Carregando...</p></div></div>
-      </div>
-    </div>
-
-    <!-- PRODUÇÃO -->
-    <div class="page" id="pageProducao">
-      <div class="ph2">🏭 Registrar Produção</div>
-      <div class="ps">Lançar produção diária</div>
-      <div class="fg"><div class="fl">📅 Data</div><input class="fi" type="date" id="pData"></div>
-      <div class="fg"><div class="fl">👤 Funcionário</div><select class="fs" id="pFunc"><option value="">Selecionar...</option></select></div>
-      <div id="pItens">
-        <div class="card" style="margin-bottom:12px;" id="pItem0">
-          <div class="ctit"><div class="cico cg">🪑</div>Item 1</div>
-          <div class="fg"><div class="fl">Modelo</div><select class="fs peca-sel"><option value="">Selecionar...</option></select></div>
-          <div class="fg"><div class="fl">Cor</div><select class="fs cor-sel"><option value="">Selecionar...</option></select></div>
-          <div class="fg">
-            <div class="fl">📊 Quantidade</div>
-            <div class="np-disp" id="nd0"><div class="np-val ph" id="nv0">0</div><div class="np-lbl">unidades</div></div>
-            <div class="np-grid">
-              <button class="nk" onclick="nk(0,'1')">1</button><button class="nk" onclick="nk(0,'2')">2</button><button class="nk" onclick="nk(0,'3')">3</button>
-              <button class="nk" onclick="nk(0,'4')">4</button><button class="nk" onclick="nk(0,'5')">5</button><button class="nk" onclick="nk(0,'6')">6</button>
-              <button class="nk" onclick="nk(0,'7')">7</button><button class="nk" onclick="nk(0,'8')">8</button><button class="nk" onclick="nk(0,'9')">9</button>
-              <button class="nk clr" onclick="nk(0,'C')">CLR</button><button class="nk" onclick="nk(0,'0')">0</button><button class="nk del" onclick="nk(0,'DEL')">⌫</button>
+            <!-- Cabeçalho -->
+            <div style="background:#e74c3c; padding:20px 28px 16px;">
+                <h3 style="margin:0; color:#fff; font-size:18px; font-weight:700;">🗑️ Apagar Dados do Sistema</h3>
+                <p style="margin:4px 0 0; color:rgba(255,255,255,0.85); font-size:13px;">Esta ação é <strong>irreversível</strong>. Prossiga com cuidado.</p>
             </div>
-          </div>
-          <div class="tog" id="heTog0" onclick="toggleHE(0)">
-            <div class="tog-inf"><div class="tog-t">⏰ Hora Extra</div><div class="tog-s">+50% no valor por peça</div></div>
-            <div class="sw" id="heSw0"></div>
-          </div>
-        </div>
-      </div>
-      <button class="btn btn-sec" style="margin-bottom:10px;" onclick="addItem()">➕ Adicionar Peça</button>
-      <button class="btn btn-g" onclick="salvarProducao()" style="margin-bottom:8px;">💾 Registrar Produção</button>
-      <button class="btn btn-sec" onclick="limparProd()">🗑️ Limpar</button>
-      <div class="sep"></div>
-      <div class="sec-lbl">Produção de Hoje</div>
-      <div id="prodHojeList"><div class="empty"><div class="ei">📋</div><p>Nenhum registro hoje</p></div></div>
-    </div>
 
-    <!-- ESTOQUE -->
-    <div class="page" id="pageEstoque">
-      <div class="ph2">📦 Estoque Atual</div>
-      <div class="ps">Saldo por modelo e cor</div>
-      <div class="fg"><input class="fi" type="text" id="estPesq" placeholder="🔍 Pesquisar..." oninput="renderEstoque()"></div>
-      <div class="fg"><div class="fl">Modelo</div><select class="fs" id="estModelo" onchange="renderEstoque()"><option value="">Todos</option></select></div>
-      <div class="fg"><div class="fl">Cor</div><select class="fs" id="estCor" onchange="renderEstoque()"><option value="">Todas</option></select></div>
-      <div class="pills">
-        <button class="pill active" onclick="filtEst('todos',this)">Todos</button>
-        <button class="pill" onclick="filtEst('baixo',this)">⚠️ Baixo</button>
-        <button class="pill" onclick="filtEst('critico',this)">🔴 Crítico</button>
-        <button class="pill" onclick="filtEst('zero',this)">⛔ Zerado</button>
-      </div>
-      <div id="estoqueList"><div class="empty"><div class="ei">📦</div><p>Carregando...</p></div></div>
-    </div>
+            <!-- ETAPA 1: Senha -->
+            <div id="etapaSenha" style="padding:24px 28px 28px;">
+                <p style="margin:0 0 14px; color:#444; font-size:14px; line-height:1.6;">
+                    Digite a senha de administrador para desbloquear as opções de exclusão:
+                </p>
+                <input type="password" id="inputSenhaApagar"
+                       placeholder="Senha de confirmação"
+                       style="width:100%; padding:11px 14px; font-size:15px; border:2px solid #ddd; border-radius:8px; box-sizing:border-box; transition:border-color .2s;"
+                       onkeydown="if(event.key==='Enter') confirmarSenhaApagar()"
+                       onfocus="this.style.borderColor='#e74c3c'" onblur="this.style.borderColor='#ddd'">
+                <div id="erroSenha" style="color:#e74c3c; font-size:13px; min-height:20px; margin:8px 0 0;"></div>
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
+                    <button onclick="fecharModalSenha()"
+                            style="padding:10px 22px; border:2px solid #ccc; background:#fff; color:#555; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600;">
+                        Cancelar
+                    </button>
+                    <button onclick="confirmarSenhaApagar()"
+                            style="padding:10px 22px; border:none; background:#e74c3c; color:#fff; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600;">
+                        Próximo →
+                    </button>
+                </div>
+            </div>
 
-    <!-- SAÍDAS -->
-    <div class="page" id="pageSaidas">
-      <div class="ph2">📤 Saída de Estoque</div>
-      <div class="ps">Registrar retirada de peças</div>
-      <div class="fg"><div class="fl">📅 Data</div><input class="fi" type="date" id="sData"></div>
-      <div class="fg"><div class="fl">🪑 Modelo</div><select class="fs" id="sModelo" onchange="updSaldo()"><option value="">Selecionar...</option></select></div>
-      <div class="fg"><div class="fl">🎨 Cor</div><select class="fs" id="sCor" onchange="updSaldo()"><option value="">Selecionar...</option></select></div>
-      <div class="saldo-card" id="saldoCard">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.07em">Saldo Disponível</div><div style="font-size:12px;color:var(--text);margin-top:2px" id="saldoDesc">–</div></div>
-          <div style="font-size:34px;font-weight:800;" id="saldoNum">–</div>
-        </div>
-      </div>
-      <div class="fg">
-        <div class="fl">📊 Quantidade</div>
-        <div class="np-disp" id="sDisp"><div class="np-val ph" id="sVal">0</div><div class="np-lbl">unidades</div></div>
-        <div class="np-grid">
-          <button class="nk" onclick="nks('1')">1</button><button class="nk" onclick="nks('2')">2</button><button class="nk" onclick="nks('3')">3</button>
-          <button class="nk" onclick="nks('4')">4</button><button class="nk" onclick="nks('5')">5</button><button class="nk" onclick="nks('6')">6</button>
-          <button class="nk" onclick="nks('7')">7</button><button class="nk" onclick="nks('8')">8</button><button class="nk" onclick="nks('9')">9</button>
-          <button class="nk clr" onclick="nks('C')">CLR</button><button class="nk" onclick="nks('0')">0</button><button class="nk del" onclick="nks('DEL')">⌫</button>
-        </div>
-      </div>
-      <div class="fg"><div class="fl">📝 Observação (opcional)</div><textarea class="ft" id="sObs" placeholder="Ex: cliente João, pedido #123..."></textarea></div>
-      <button class="btn btn-r" onclick="salvarSaida()" style="margin-bottom:8px;">📤 Confirmar Saída</button>
-      <button class="btn btn-sec" onclick="limparSaida()">🗑️ Limpar</button>
-      <div class="sep"></div>
-      <div class="sec-lbl">Últimas Saídas</div>
-      <div id="saidasList"><div class="empty"><div class="ei">📤</div><p>Nenhuma saída</p></div></div>
-    </div>
+            <!-- ETAPA 2: Checkboxes -->
+            <div id="etapaSelecao" style="display:none; padding:24px 28px 28px;">
+                <p style="margin:0 0 16px; color:#444; font-size:14px; line-height:1.6;">
+                    Selecione quais dados deseja apagar:
+                </p>
 
-    <!-- ARMAÇÕES -->
-    <div class="page" id="pageArmacoes">
-      <div class="ph2">🔩 Armações</div>
-      <div class="ps">Controle de chegada de armações</div>
-      <div class="card" style="margin-bottom:14px;">
-        <div class="ctit"><div class="cico ca">🔩</div>Registrar Chegada</div>
-        <div class="fg"><div class="fl">📅 Data</div><input class="fi" type="date" id="aData"></div>
-        <div class="fg"><div class="fl">🪑 Modelo</div><select class="fs" id="aModelo"><option value="">Selecionar modelo...</option></select></div>
-        <div class="fg">
-          <div class="fl">📊 Quantidade</div>
-          <div class="np-disp" id="aDisp"><div class="np-val ph" id="aVal">0</div><div class="np-lbl">unidades</div></div>
-          <div class="np-grid">
-            <button class="nk" onclick="nka('1')">1</button><button class="nk" onclick="nka('2')">2</button><button class="nk" onclick="nka('3')">3</button>
-            <button class="nk" onclick="nka('4')">4</button><button class="nk" onclick="nka('5')">5</button><button class="nk" onclick="nka('6')">6</button>
-            <button class="nk" onclick="nka('7')">7</button><button class="nk" onclick="nka('8')">8</button><button class="nk" onclick="nka('9')">9</button>
-            <button class="nk clr" onclick="nka('C')">CLR</button><button class="nk" onclick="nka('0')">0</button><button class="nk del" onclick="nka('DEL')">⌫</button>
-          </div>
-        </div>
-        <button class="btn btn-g" onclick="salvarArmacao()">✅ Registrar Chegada</button>
-      </div>
-      <div class="sec-lbl">Estoque de Armações</div>
-      <div id="armEstList"><div class="empty"><div class="ei">🔩</div><p>Carregando...</p></div></div>
-      <div class="sep"></div>
-      <div class="sec-lbl">Histórico de Chegadas</div>
-      <div id="armHistList"><div class="empty"><div class="ei">📋</div><p>Nenhum registro</p></div></div>
-    </div>
-
-    <!-- CADASTROS -->
-    <div class="page" id="pageCadastros">
-      <div class="ph2">⚙️ Cadastros</div>
-      <div class="ps">Modelos, Funcionários e Cores</div>
-      <div class="pills" id="cadPills">
-        <button class="pill active" onclick="cadAba('modelos',this)">🪑 Modelos</button>
-        <button class="pill" onclick="cadAba('funcionarios',this)">👤 Funcionários</button>
-        <button class="pill" onclick="cadAba('cores',this)">🎨 Cores</button>
-      </div>
-      <div id="cadModelos">
-        <div class="card" style="margin-bottom:12px;">
-          <div class="ctit" id="modeloFormTit"><div class="cico cg">🪑</div>Novo Modelo</div>
-          <input type="hidden" id="pecaId">
-          <div class="fg"><div class="fl">Nome do Modelo</div><input class="fi" type="text" id="nomePeca" placeholder="Ex: Cadeira Executiva 3001"></div>
-          <div class="fg"><div class="fl">💰 Valor Unitário (R$)</div><input class="fi" type="number" id="valorPeca" step="0.01" min="0" placeholder="0,00"></div>
-          <div class="row-btns">
-            <button class="btn btn-g btn-sm" onclick="salvarModelo()">💾 Salvar</button>
-            <button class="btn btn-sec btn-sm" onclick="cancelarModelo()">❌ Cancelar</button>
-          </div>
-        </div>
-        <div class="sec-lbl">Modelos Cadastrados</div>
-        <div id="modelosList"><div class="empty"><div class="ei">🪑</div><p>Carregando...</p></div></div>
-      </div>
-      <div id="cadFuncionarios" style="display:none">
-        <div class="card" style="margin-bottom:12px;">
-          <div class="ctit" id="funcFormTit"><div class="cico cb">👤</div>Novo Funcionário</div>
-          <input type="hidden" id="funcId">
-          <div class="fg"><div class="fl">Nome</div><input class="fi" type="text" id="nomeFunc" placeholder="Ex: João Silva"></div>
-          <div class="fg"><div class="fl">Cargo</div><input class="fi" type="text" id="cargoFunc" placeholder="Ex: Montador"></div>
-          <div class="row-btns">
-            <button class="btn btn-g btn-sm" onclick="salvarFuncionario()">💾 Salvar</button>
-            <button class="btn btn-sec btn-sm" onclick="cancelarFunc()">❌ Cancelar</button>
-          </div>
-        </div>
-        <div class="sec-lbl">Funcionários</div>
-        <div id="funcList"><div class="empty"><div class="ei">👤</div><p>Carregando...</p></div></div>
-      </div>
-      <div id="cadCores" style="display:none">
-        <div class="card" style="margin-bottom:12px;">
-          <div class="ctit" id="corFormTit"><div class="cico cr">🎨</div>Nova Cor</div>
-          <input type="hidden" id="corId">
-          <div class="fg"><div class="fl">Nome da Cor</div><input class="fi" type="text" id="nomeCor" placeholder="Ex: Preto Fosco"></div>
-          <div class="row-btns">
-            <button class="btn btn-g btn-sm" onclick="salvarCor()">💾 Salvar</button>
-            <button class="btn btn-sec btn-sm" onclick="cancelarCor()">❌ Cancelar</button>
-          </div>
-        </div>
-        <div class="sec-lbl">Cores</div>
-        <div id="coresList"><div class="empty"><div class="ei">🎨</div><p>Carregando...</p></div></div>
-      </div>
-    </div>
-
-    <!-- RELATÓRIOS -->
-    <div class="page" id="pageRelatorios">
-      <div class="ph2">📊 Relatórios</div>
-      <div class="ps">Produção, Estoque e Folha de Pagamento</div>
-      <div class="pills" id="relPills">
-        <button class="pill active" onclick="relAba('geral',this)">📈 Geral</button>
-        <button class="pill" onclick="relAba('modelos',this)">🪑 Modelos</button>
-        <button class="pill" onclick="relAba('estoque',this)">📦 Estoque</button>
-        <button class="pill" onclick="relAba('folha',this)">💰 Folha</button>
-        <button class="pill" onclick="relAba('armacoes',this)">🔩 Armações</button>
-      </div>
-      <div id="relGeral">
-        <div class="fg"><div class="fl">📅 Data Início</div><input class="fi" type="date" id="rg_ini"></div>
-        <div class="fg"><div class="fl">📅 Data Fim</div><input class="fi" type="date" id="rg_fim"></div>
-        <div class="fg"><div class="fl">👤 Funcionário</div><select class="fs" id="rg_func"><option value="">Todos</option></select></div>
-        <div class="fg"><div class="fl">🪑 Modelo</div><select class="fs" id="rg_peca"><option value="">Todos</option></select></div>
-        <div class="fg"><div class="fl">🎨 Cor</div><select class="fs" id="rg_cor"><option value="">Todas</option></select></div>
-        <button class="btn btn-b" onclick="gerarRelGeral()" style="margin-bottom:14px;">📊 Gerar Relatório</button>
-        <div id="relGeralResult"></div>
-      </div>
-      <div id="relModelos" style="display:none">
-        <div class="fg"><div class="fl">📅 Data Início</div><input class="fi" type="date" id="rm_ini"></div>
-        <div class="fg"><div class="fl">📅 Data Fim</div><input class="fi" type="date" id="rm_fim"></div>
-        <button class="btn btn-b" onclick="gerarRelModelos()" style="margin-bottom:14px;">📊 Gerar Relatório</button>
-        <div id="relModelosResult"></div>
-      </div>
-      <div id="relEstoque" style="display:none">
-        <div class="fg"><div class="fl">📅 Data Início</div><input class="fi" type="date" id="re_ini"></div>
-        <div class="fg"><div class="fl">📅 Data Fim</div><input class="fi" type="date" id="re_fim"></div>
-        <div class="fg"><div class="fl">Tipo</div><select class="fs" id="re_tipo"><option value="">Todos</option><option value="entrada">Entradas</option><option value="saida">Saídas</option></select></div>
-        <div class="fg"><div class="fl">Modelo</div><select class="fs" id="re_peca"><option value="">Todos</option></select></div>
-        <button class="btn btn-b" onclick="gerarRelEstoque()" style="margin-bottom:14px;">📊 Gerar Relatório</button>
-        <div id="relEstoqueResult"></div>
-      </div>
-      <div id="relFolha" style="display:none">
-        <div class="fg"><div class="fl">📅 Mês/Ano</div><input class="fi" type="month" id="rf_mes"></div>
-        <button class="btn btn-b" onclick="gerarFolha()" style="margin-bottom:14px;">💰 Gerar Folha de Pagamento</button>
-        <div id="relFolhaResult"></div>
-      </div>
-      <div id="relArmacoes" style="display:none">
-        <div class="fg"><div class="fl">📅 Data Início</div><input class="fi" type="date" id="ra_ini"></div>
-        <div class="fg"><div class="fl">📅 Data Fim</div><input class="fi" type="date" id="ra_fim"></div>
-        <div class="fg"><div class="fl">Modelo</div><select class="fs" id="ra_modelo"><option value="">Todos</option></select></div>
-        <button class="btn btn-b" onclick="gerarRelArmacoes()" style="margin-bottom:14px;">📊 Gerar Relatório</button>
-        <div id="relArmacoesResult"></div>
-      </div>
-    </div>
-
-  </div>
-
-  <div class="nav">
-    <button class="nb active" id="navHome" onclick="nav('Home')"><span class="ni">🏠</span><span>Início</span></button>
-    <button class="nb" id="navProducao" onclick="nav('Producao')"><span class="ni">🏭</span><span>Produção</span></button>
-    <button class="nb" id="navSaidas" onclick="nav('Saidas')"><span class="ni">📤</span><span>Saída</span></button>
-    <button class="nb" id="navEstoque" onclick="nav('Estoque')"><span class="ni">📦</span><span>Estoque</span></button>
-    <button class="nb" id="navArmacoes" onclick="nav('Armacoes')"><span class="ni">🔩</span><span>Armações</span></button>
-    <button class="nb" id="navCadastros" onclick="nav('Cadastros')"><span class="ni">⚙️</span><span>Cadastros</span></button>
-    <button class="nb" id="navRelatorios" onclick="nav('Relatorios')"><span class="ni">📊</span><span>Relatórios</span></button>
-  </div>
+                <!-- Selecionar tudo -->
+<div style="background:#fff3cd; border:1px solid #ffc107; border-radius:8px; padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; gap:10px;">
+    <input type="checkbox" id="chkTudo" onchange="toggleTudoApagar(this.checked)"
+           style="width:18px; height:18px; cursor:pointer; accent-color:#e74c3c;">
+    <label for="chkTudo" style="font-size:14px; font-weight:700; color:#856404; cursor:pointer; margin:0;">
+        ☑️ Selecionar / Desmarcar Tudo
+    </label>
 </div>
 
-<div class="load-ov hidden" id="lOv"><div class="spinner"></div><div class="load-t" id="lTxt">Carregando...</div></div>
-<div class="toast-wrap" id="toastWrap"></div>
+                <!-- Checkboxes individuais -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
+                    <label id="lblProducoes" style="display:flex; align-items:center; gap:10px; padding:12px 14px; border:2px solid #eee; border-radius:10px; cursor:pointer; transition:border-color .2s, background .2s;">
+                        <input type="checkbox" id="chkProducoes" onchange="atualizarCheckTudo()"
+                               style="width:17px; height:17px; cursor:pointer; accent-color:#e74c3c;">
+                        <span style="font-size:13px; font-weight:600; color:#333;">🏭 Produções</span>
+                    </label>
+                    <label id="lblMovimentacoes" style="display:flex; align-items:center; gap:10px; padding:12px 14px; border:2px solid #eee; border-radius:10px; cursor:pointer; transition:border-color .2s, background .2s;">
+                        <input type="checkbox" id="chkMovimentacoes" onchange="atualizarCheckTudo()"
+                               style="width:17px; height:17px; cursor:pointer; accent-color:#e74c3c;">
+                        <span style="font-size:13px; font-weight:600; color:#333;">📊 Movimentações</span>
+                    </label>
+                    <label id="lblArmacoes" style="display:flex; align-items:center; gap:10px; padding:12px 14px; border:2px solid #eee; border-radius:10px; cursor:pointer; transition:border-color .2s, background .2s;">
+                        <input type="checkbox" id="chkArmacoes" onchange="atualizarCheckTudo()"
+                               style="width:17px; height:17px; cursor:pointer; accent-color:#e74c3c;">
+                        <span style="font-size:13px; font-weight:600; color:#333;">🔩 Armações</span>
+                    </label>
+                    <label id="lblPecas" style="display:flex; align-items:center; gap:10px; padding:12px 14px; border:2px solid #eee; border-radius:10px; cursor:pointer; transition:border-color .2s, background .2s;">
+                        <input type="checkbox" id="chkPecas" onchange="atualizarCheckTudo()"
+                               style="width:17px; height:17px; cursor:pointer; accent-color:#e74c3c;">
+                        <span style="font-size:13px; font-weight:600; color:#333;">🪑 Modelos/Peças</span>
+                    </label>
+                    <label id="lblFuncionarios" style="display:flex; align-items:center; gap:10px; padding:12px 14px; border:2px solid #eee; border-radius:10px; cursor:pointer; transition:border-color .2s, background .2s;">
+                        <input type="checkbox" id="chkFuncionarios" onchange="atualizarCheckTudo()"
+                               style="width:17px; height:17px; cursor:pointer; accent-color:#e74c3c;">
+                        <span style="font-size:13px; font-weight:600; color:#333;">👷 Funcionários</span>
+                    </label>
+                    <label id="lblCores" style="display:flex; align-items:center; gap:10px; padding:12px 14px; border:2px solid #eee; border-radius:10px; cursor:pointer; transition:border-color .2s, background .2s;">
+                        <input type="checkbox" id="chkCores" onchange="atualizarCheckTudo()"
+                               style="width:17px; height:17px; cursor:pointer; accent-color:#e74c3c;">
+                        <span style="font-size:13px; font-weight:600; color:#333;">🎨 Cores</span>
+                    </label>
+                </div>
 
-<script type="module">
-// ⚙️ CONFIGURE AQUI
-const SUPABASE_URL = 'https://wbsxoffpugmajmzxofid.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_2qHQZTclYZFbskhwoumTvA__enYh_vx';
+                <div id="erroSelecao" style="color:#e74c3c; font-size:13px; min-height:18px; margin-bottom:12px;"></div>
 
-const DEMO_USERS = [
-  {email:'operador@fabrica.com',senha:'1234',nome:'Operador',role:'operador'},
-  {email:'admin@fabrica.com',senha:'dantas3101',nome:'Administrador',role:'admin'},
-];
+                <div style="display:flex; gap:10px; justify-content:flex-end;">
+                    <button onclick="fecharModalSenha()"
+                            style="padding:10px 22px; border:2px solid #ccc; background:#fff; color:#555; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600;">
+                        Cancelar
+                    </button>
+                    <button onclick="executarApagarSelecionados()"
+                            style="padding:10px 22px; border:none; background:#e74c3c; color:#fff; border-radius:8px; cursor:pointer; font-size:14px; font-weight:700;">
+                        🗑️ Apagar Selecionados
+                    </button>
+                </div>
+            </div>
 
-const S = {
-  user:null,sb:null,online:navigator.onLine,
-  demo:!SUPABASE_URL||!SUPABASE_KEY||!SUPABASE_URL.startsWith('http'),idb:null,
-  pecas:[],cores:[],funcionarios:[],producoes:[],
-  movimentacoes:[],armacoes:[],estoqueArmacoes:[],
-  prodNums:{},prodHE:{},sNum:'0',aNum:'0',
-  filtEst:'todos',itemCount:1,
-};
-
-const DD = {
-  pecas:[{id:1,nome:'Cadeira Executiva 3001',valor:45},{id:2,nome:'Cadeira Giratória 2500',valor:38},{id:3,nome:'Poltrona Diretor 4000',valor:62},{id:4,nome:'Cadeira Fixa CF100',valor:25},{id:5,nome:'Banqueta Industrial B50',valor:18}],
-  cores:[{id:1,nome:'Preto'},{id:2,nome:'Marrom'},{id:3,nome:'Cinza'},{id:4,nome:'Bege'},{id:5,nome:'Azul Marinho'}],
-  funcionarios:[{id:1,nome:'João Silva',cargo:'Montador'},{id:2,nome:'Maria Santos',cargo:'Acabamento'},{id:3,nome:'Carlos Oliveira',cargo:'Montador'},{id:4,nome:'Ana Lima',cargo:'Costura'}],
-  producoes:[{id:1,data:hojeISO(),funcionarioId:1,pecaId:1,corId:1,quantidade:12,horaExtra:0},{id:2,data:hojeISO(),funcionarioId:2,pecaId:2,corId:2,quantidade:8,horaExtra:1}],
-  movimentacoes:[
-    {id:1,tipo:'entrada',pecaId:1,corId:1,quantidade:50,data:hojeISO(),origem:'Produção'},{id:2,tipo:'entrada',pecaId:1,corId:2,quantidade:30,data:hojeISO()},
-    {id:3,tipo:'entrada',pecaId:2,corId:1,quantidade:80,data:hojeISO()},{id:4,tipo:'saida',pecaId:1,corId:1,quantidade:8,data:hojeISO(),origem:'Cliente Pedro'},
-    {id:5,tipo:'entrada',pecaId:3,corId:2,quantidade:15,data:hojeISO()},{id:6,tipo:'entrada',pecaId:4,corId:1,quantidade:100,data:hojeISO()},
-  ],
-  armacoes:[{id:1,data:hojeISO(),modeloId:1,quantidade:20},{id:2,data:hojeISO(),modeloId:2,quantidade:15}],
-  estoqueArmacoes:[{id:1,modeloId:1,quantidade:20},{id:2,modeloId:2,quantidade:15}],
-};
-
-function hojeISO(){return new Date().toISOString().split('T')[0]}
-function fmtData(d){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('pt-BR')}
-function fmtMoeda(v){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v||0)}
-function calcSaldo(pId,cId){return S.movimentacoes.filter(m=>(m.pecaid??m.pecaId)===pId&&(m.corid??m.corId)===cId).reduce((a,m)=>a+(m.tipo==='entrada'?m.quantidade:-m.quantidade),0)}
-function byId(arr,id){return arr.find(x=>x.id===parseInt(id))}
-
-// IDB
-async function openIDB(){
-  return new Promise((res,rej)=>{
-    const r=indexedDB.open('syscad_m',2);
-    r.onupgradeneeded=e=>{
-      const db=e.target.result;
-      if(!db.objectStoreNames.contains('fila'))db.createObjectStore('fila',{keyPath:'id',autoIncrement:true});
-      if(!db.objectStoreNames.contains('hist'))db.createObjectStore('hist',{keyPath:'id',autoIncrement:true});
-    };
-    r.onsuccess=e=>{S.idb=e.target.result;res()};
-    r.onerror=()=>rej(r.error);
-  });
-}
-function idbAdd(store,data){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readwrite');const req=tx.objectStore(store).add(data);req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error)})}
-function idbAll(store){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readonly');const req=tx.objectStore(store).getAll();req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error)})}
-function idbDel(store,id){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readwrite');const req=tx.objectStore(store).delete(id);req.onsuccess=res;req.onerror=()=>rej(req.error)})}
-function idbClear(store){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readwrite');const req=tx.objectStore(store).clear();req.onsuccess=res;req.onerror=()=>rej(req.error)})}
-
-async function updOQ(){
-  const fila=await idbAll('fila');const n=fila.length;
-  document.getElementById('oqN').textContent=n;
-  document.getElementById('oqCard').classList.toggle('hidden',n===0);
-}
-
-// Supabase
-async function initSB(){
-  if(S.demo)return;
-  try{const{createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');S.sb=createClient(SUPABASE_URL,SUPABASE_KEY)}
-  catch(e){console.warn('SB erro:',e)}
-}
-
-async function sbInsert(tabela,dados){
-  if(S.demo||!S.sb||!S.online)return null;
-  const{data,error}=await S.sb.from(tabela).insert(dados).select().single();
-  if(error)throw error;return data;
-}
-async function sbUpdate(tabela,id,dados){
-  if(S.demo||!S.sb||!S.online)return;
-  const{error}=await S.sb.from(tabela).update(dados).eq('id',id);
-  if(error)throw error;
-}
-async function sbDelete(tabela,id){
-  if(S.demo||!S.sb||!S.online)throw new Error('Deleção requer conexão com o servidor');
-  const{error}=await S.sb.from(tabela).delete().eq('id',id);
-  if(error)throw error;
-}
-
-async function carregarDados(){
-  if(S.demo||!S.sb){
-    Object.assign(S,{pecas:DD.pecas,cores:DD.cores,funcionarios:DD.funcionarios,producoes:DD.producoes,movimentacoes:DD.movimentacoes,armacoes:DD.armacoes,estoqueArmacoes:DD.estoqueArmacoes});return;
-  }
-  showLoad('Carregando dados...');
-  try{
-    const[p,c,f,pr,mv,ar,ea]=await Promise.all([
-      S.sb.from('Pecas').select('*').order('nome'),
-      S.sb.from('Cores').select('*').order('nome'),
-      S.sb.from('Funcionarios').select('*').order('nome'),
-      S.sb.from('Producoes').select('*').order('data',{ascending:false}),
-      S.sb.from('Movimentacoes').select('*').order('data',{ascending:false}),
-      S.sb.from('Armacoes').select('*').order('data',{ascending:false}),
-      S.sb.from('EstoqueArmacoes').select('*'),
-    ]);
-    S.pecas=p.data||[];S.cores=c.data||[];S.funcionarios=f.data||[];
-    S.producoes=pr.data||[];S.movimentacoes=mv.data||[];
-    S.armacoes=ar.data||[];S.estoqueArmacoes=ea.data||[];
-  }catch(e){toast('Erro ao carregar dados','error')}
-  hideLoad();
-}
-
-let _rtChannel=null;
-function updRtBadge(status){
-  const badge=document.getElementById('sBadge');
-  const dot=badge?.querySelector('.dot');
-  const txt=document.getElementById('sTxt');
-  if(status==='live'){
-    if(dot){dot.style.background='var(--green2)';dot.style.animation='pulse 2s infinite'}
-    if(txt)txt.textContent='Ao Vivo';
-    badge.className='sbadge on';
-  }else if(status==='connecting'){
-    if(dot){dot.style.background='var(--amber)';dot.style.animation='none'}
-    if(txt)txt.textContent='Conectando';
-  }else{
-    if(dot){dot.style.background='var(--muted)';dot.style.animation='none'}
-    if(txt)txt.textContent='Online';
-    badge.className='sbadge on';
-  }
-}
-function iniciarRealtime(){
-  if(!S.sb)return;
-  if(_rtChannel){try{S.sb.removeChannel(_rtChannel)}catch(e){}_rtChannel=null}
-  updRtBadge('connecting');
-  const flash=()=>{const tb=document.querySelector('.topbar');if(!tb)return;tb.style.transition='background .15s';tb.style.background='rgba(39,174,96,.18)';setTimeout(()=>{tb.style.background=''},400)};
-  _rtChannel=S.sb.channel('mob-rt-v4',{config:{broadcast:{self:false}}})
-    .on('postgres_changes',{event:'*',schema:'public',table:'Producoes'},async(p)=>{
-      await reloadT('Producoes');renderProdHoje();atualizarHome();flash();
-      if(p.eventType==='INSERT')toast('🏭 Produção atualizada','info');
-      if(p.eventType==='DELETE')toast('🗑 Produção removida','warn');
-    })
-    .on('postgres_changes',{event:'*',schema:'public',table:'Movimentacoes'},async(p)=>{
-      await reloadT('Movimentacoes');renderEstoque();renderSaidas();atualizarHome();flash();
-      if(p.eventType==='DELETE')toast('🗑 Movimentação removida','warn');
-    })
-    .on('postgres_changes',{event:'*',schema:'public',table:'Pecas'},async()=>{await reloadT('Pecas');fillSelects();renderEstoque();flash()})
-    .on('postgres_changes',{event:'*',schema:'public',table:'Cores'},async()=>{await reloadT('Cores');fillSelects();flash()})
-    .on('postgres_changes',{event:'*',schema:'public',table:'Funcionarios'},async()=>{await reloadT('Funcionarios');fillSelects();flash()})
-    .on('postgres_changes',{event:'*',schema:'public',table:'Armacoes'},async(p)=>{
-      await reloadT('Armacoes');await reloadT('EstoqueArmacoes');renderArmacoes();atualizarHome();flash();
-      if(p.eventType==='INSERT')toast('🔩 Armação registrada','info');
-      if(p.eventType==='DELETE')toast('🗑 Armação removida','warn');
-    })
-    .on('postgres_changes',{event:'*',schema:'public',table:'EstoqueArmacoes'},async()=>{await reloadT('EstoqueArmacoes');renderArmacoes();renderEstoque()})
-    .subscribe((status,err)=>{
-      console.log('[RT]',status,err||'');
-      if(status==='SUBSCRIBED')updRtBadge('live');
-      else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
-        updRtBadge('error');
-        setTimeout(()=>{if(S.online&&S.sb&&!S.demo)iniciarRealtime()},5000);
-      }else if(status==='CLOSED')updRtBadge('error');
-    });
-}
-
-async function reloadT(tabela){
-  if(!S.sb)return;
-  const map={Pecas:'pecas',Cores:'cores',Funcionarios:'funcionarios',Producoes:'producoes',Movimentacoes:'movimentacoes',Armacoes:'armacoes',EstoqueArmacoes:'estoqueArmacoes'};
-  const ord={Pecas:'nome',Cores:'nome',Funcionarios:'nome',Producoes:'data',Movimentacoes:'data',Armacoes:'data'};
-  try{let q=S.sb.from(tabela).select('*');if(ord[tabela])q=q.order(ord[tabela],{ascending:false});const{data}=await q;S[map[tabela]]=data||[]}
-  catch(e){console.warn('reloadT',tabela,e)}
-}
-
-// LOGIN
-window.doLogin=async function(){
-  const email=document.getElementById('lEmail').value.trim();
-  const senha=document.getElementById('lSenha').value;
-  const errEl=document.getElementById('lErr');
-  errEl.textContent='';
-  if(!email||!senha){errEl.textContent='Preencha usuário e senha';return}
-  showLoad('Entrando...');
-  try{
-    if(S.demo){
-      const u=DEMO_USERS.find(u=>u.email===email&&u.senha===senha);
-      if(!u){hideLoad();errEl.textContent='❌ Usuário ou senha incorretos';return}
-      S.user=u;
-    }else{
-      const{error}=await S.sb.auth.signInWithPassword({email,password:senha});
-      if(error){hideLoad();errEl.textContent='❌ Usuário ou senha incorretos';return}
-      S.user={email,nome:email.split('@')[0],role:'operador'};
-    }
-    await carregarDados();iniciarApp();hideLoad();
-  }catch(e){hideLoad();errEl.textContent='❌ Erro: '+e.message}
-};
-
-function iniciarApp(){
-  document.getElementById('loginScreen').style.display='none';
-  document.getElementById('appShell').style.display='flex';
-  document.getElementById('userLbl').textContent=S.user?.nome||'Operador';
-  fillSelects();
-  document.getElementById('pData').value=hojeISO();
-  document.getElementById('sData').value=hojeISO();
-  document.getElementById('aData').value=hojeISO();
-  atualizarHome();
-  if(S.sb)iniciarRealtime();
-  updOQ();
-}
-
-function fillSelects(){
-  const fO=S.funcionarios.map(f=>`<option value="${f.id}">${f.nome} — ${f.cargo}</option>`).join('');
-  const pO=S.pecas.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
-  const cO=S.cores.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
-  const ph=v=>`<option value="">Selecionar...</option>`+v;
-  document.getElementById('pFunc').innerHTML=ph(fO);
-  document.querySelectorAll('.peca-sel').forEach(s=>s.innerHTML=ph(pO));
-  document.querySelectorAll('.cor-sel').forEach(s=>s.innerHTML=ph(cO));
-  document.getElementById('sModelo').innerHTML=ph(pO);
-  document.getElementById('sCor').innerHTML=ph(cO);
-  document.getElementById('aModelo').innerHTML=ph(pO);
-  const allF=`<option value="">Todos</option>`+fO;
-  const allP=`<option value="">Todos</option>`+pO;
-  const allC=`<option value="">Todas</option>`+cO;
-  document.getElementById('estModelo').innerHTML=allP;
-  document.getElementById('estCor').innerHTML=allC;
-  ['rg_func'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=allF});
-  ['rg_peca','re_peca','ra_modelo'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=allP});
-  ['rg_cor'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=allC});
-  renderCadModelos();renderCadFunc();renderCadCores();
-}
-
-async function atualizarHome(){
-  const h=new Date().getHours();
-  const sd=h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';
-  document.getElementById('gTxt').textContent=`${sd}, ${(S.user?.nome||'Operador').split(' ')[0]}! 👋`;
-  document.getElementById('gDate').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
-  const hoje=hojeISO();
-  const ph=S.producoes.filter(p=>p.data===hoje).reduce((a,p)=>a+(parseInt(p.quantidade)||0),0);
-  document.getElementById('sHoje').textContent=ph||'0';
-  document.getElementById('sTotal').textContent=S.producoes.reduce((a,p)=>a+(parseInt(p.quantidade)||0),0);
-  document.getElementById('sFunc').textContent=S.funcionarios.length;
-  document.getElementById('sMov').textContent=S.movimentacoes.length;
-  // Últimos lançamentos direto do estado Supabase — sem cache local
-  const gid=v=>v.pecaid??v.pecaId;const gic=v=>v.corid??v.corId;
-  const gif=v=>v.funcionarioid??v.funcionarioId;const gim=v=>v.modeloid??v.modeloId;
-  const gts=v=>{try{return new Date(v.created_at||v.data+'T00:00:00').getTime()}catch{return 0}};
-  const ultProd=(S.producoes||[]).slice(0,5).map(r=>({tipo:'prod',desc:(S.pecas.find(p=>p.id===gid(r))?.nome||'?')+' · '+(S.cores.find(c=>c.id===gic(r))?.nome||'?'),sub:S.funcionarios.find(f=>f.id===gif(r))?.nome||'',qtd:r.quantidade,ts:gts(r)}));
-  const ultMov=(S.movimentacoes||[]).filter(r=>r.tipo==='saida').slice(0,5).map(r=>({tipo:'saida',desc:(S.pecas.find(p=>p.id===gid(r))?.nome||'?')+' · '+(S.cores.find(c=>c.id===gic(r))?.nome||'?'),sub:r.obs||r.origem||'',qtd:r.quantidade,ts:gts(r)}));
-  const ultArm=(S.armacoes||[]).slice(0,3).map(r=>({tipo:'arm',desc:'Armação: '+(S.pecas.find(p=>p.id===gim(r))?.nome||'?'),sub:'Chegada',qtd:r.quantidade,ts:gts(r)}));
-  const last=[...ultProd,...ultMov,...ultArm].sort((a,b)=>b.ts-a.ts).slice(0,5);
-  document.getElementById('homeHist').innerHTML=last.length?last.map(histRow).join(''):'<div class="empty"><p>Nenhum lançamento ainda</p></div>';
-  await updOQ();
-}
-
-function histRow(it){
-  const isProd=it.tipo==='prod';const isAr=it.tipo==='arm';
-  const hora=new Date(it.ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  const cls=isProd?'ip':isAr?'ia':'is';const ico=isProd?'🏭':isAr?'🔩':'📤';
-  return`<div class="hi-row"><div class="hi-ic ${cls}">${ico}</div><div class="hi-inf"><div class="hi-t">${it.desc||'–'}</div><div class="hi-s">${it.sub||''} · ${hora}</div></div><div class="hi-q${isProd||isAr?'':' neg'}">${isProd||isAr?'+':'–'}${it.qtd}</div></div>`;
-}
-
-// NUMPAD
-window.nk=function(idx,key){
-  if(!S.prodNums[idx])S.prodNums[idx]='0';
-  let v=S.prodNums[idx];
-  if(key==='C')v='0';else if(key==='DEL')v=v.length>1?v.slice(0,-1):'0';
-  else{if(v==='0')v=key;else if(v.length<5)v+=key}
-  S.prodNums[idx]=v;
-  const el=document.getElementById('nv'+idx);const c=document.getElementById('nd'+idx);
-  if(!el||!c)return;
-  el.textContent=parseInt(v).toLocaleString('pt-BR');el.classList.toggle('ph',v==='0');c.classList.toggle('has',v!=='0');
-};
-window.toggleHE=function(idx){S.prodHE[idx]=!S.prodHE[idx];document.getElementById('heTog'+idx)?.classList.toggle('on',S.prodHE[idx])};
-window.nks=function(key){let v=S.sNum;if(key==='C')v='0';else if(key==='DEL')v=v.length>1?v.slice(0,-1):'0';else{if(v==='0')v=key;else if(v.length<5)v+=key}S.sNum=v;const el=document.getElementById('sVal');el.textContent=parseInt(v).toLocaleString('pt-BR');el.classList.toggle('ph',v==='0');document.getElementById('sDisp').classList.toggle('has',v!=='0');updSaldo()};
-window.nka=function(key){let v=S.aNum;if(key==='C')v='0';else if(key==='DEL')v=v.length>1?v.slice(0,-1):'0';else{if(v==='0')v=key;else if(v.length<5)v+=key}S.aNum=v;const el=document.getElementById('aVal');el.textContent=parseInt(v).toLocaleString('pt-BR');el.classList.toggle('ph',v==='0');document.getElementById('aDisp').classList.toggle('has',v!=='0')};
-
-// ADD ITEM
-window.addItem=function(){
-  const idx=S.itemCount++;
-  S.prodNums[idx]='0';S.prodHE[idx]=false;
-  const pO=S.pecas.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
-  const cO=S.cores.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
-  const div=document.createElement('div');
-  div.className='card';div.style.marginBottom='12px';div.id='pItem'+idx;
-  div.innerHTML=`<div class="ctit"><div class="cico cg">🪑</div>Item ${idx+1} <button style="margin-left:auto;background:none;border:none;color:var(--red2);font-size:16px;cursor:pointer;" onclick="remItem(${idx})">🗑️</button></div>
-    <div class="fg"><div class="fl">Modelo</div><select class="fs peca-sel"><option value="">Selecionar...</option>${pO}</select></div>
-    <div class="fg"><div class="fl">Cor</div><select class="fs cor-sel"><option value="">Selecionar...</option>${cO}</select></div>
-    <div class="fg"><div class="fl">📊 Quantidade</div>
-      <div class="np-disp" id="nd${idx}"><div class="np-val ph" id="nv${idx}">0</div><div class="np-lbl">unidades</div></div>
-      <div class="np-grid">
-        <button class="nk" onclick="nk(${idx},'1')">1</button><button class="nk" onclick="nk(${idx},'2')">2</button><button class="nk" onclick="nk(${idx},'3')">3</button>
-        <button class="nk" onclick="nk(${idx},'4')">4</button><button class="nk" onclick="nk(${idx},'5')">5</button><button class="nk" onclick="nk(${idx},'6')">6</button>
-        <button class="nk" onclick="nk(${idx},'7')">7</button><button class="nk" onclick="nk(${idx},'8')">8</button><button class="nk" onclick="nk(${idx},'9')">9</button>
-        <button class="nk clr" onclick="nk(${idx},'C')">CLR</button><button class="nk" onclick="nk(${idx},'0')">0</button><button class="nk del" onclick="nk(${idx},'DEL')">⌫</button>
-      </div>
+        </div>
     </div>
-    <div class="tog" id="heTog${idx}" onclick="toggleHE(${idx})"><div class="tog-inf"><div class="tog-t">⏰ Hora Extra</div><div class="tog-s">+50%</div></div><div class="sw"></div></div>`;
-  document.getElementById('pItens').appendChild(div);
-};
-window.remItem=function(idx){document.getElementById('pItem'+idx)?.remove()};
 
-// SALVAR PRODUÇÃO
-window.salvarProducao=async function(){
-  const data=document.getElementById('pData').value;
-  const funcId=parseInt(document.getElementById('pFunc').value);
-  if(!funcId){toast('Selecione um funcionário','error');return}
-  const itens=[];
-  document.querySelectorAll('#pItens .card').forEach((card,i)=>{
-    const pecaId=parseInt(card.querySelector('.peca-sel')?.value||'0');
-    const corId=parseInt(card.querySelector('.cor-sel')?.value||'0');
-    const idx=parseInt(card.id?.replace('pItem','')||i);
-    const qty=parseInt(S.prodNums[idx]||'0');
-    const he=S.prodHE[idx]||false;
-    if(pecaId&&corId&&qty>0)itens.push({pecaId,corId,quantidade:qty,horaExtra:he?1:0});
-  });
-  if(!itens.length){toast('Adicione pelo menos um item com quantidade','error');return}
+    <!-- Modal de Migração -->
+    <div id="modalMigracao" class="modal-migracao">
+        <div class="modal-content">
+            <h2>🔄 Migração para SQLite</h2>
+            <p>Transferindo dados do localStorage para o banco de dados...</p>
+            <div class="progress-bar">
+                <div id="progressoMigracao" class="progress"></div>
+            </div>
+            <div id="statusMigracao">Iniciando transferência...</div>
+            <div id="logMigracao" class="log-migracao"></div>
+        </div>
+    </div>
 
-  // Verificar armações
-  let msg='📊 VERIFICAÇÃO DE ARMAÇÕES:\n\n';let insuf=false;
-  for(const it of itens){
-    const ea=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);
-    const peca=byId(S.pecas,it.pecaId);const estq=ea?.quantidade||0;const ok=estq>=it.quantidade;
-    if(!ok)insuf=true;
-    msg+=`${peca?.nome||'?'}: Prod ${it.quantidade} | Est ${estq} ${ok?'✅':'⚠️ INSUF.'}\n`;
-  }
-  msg+=insuf?'\n⚠️ Haverá estoque negativo. Continuar?':'\n✅ Estoque OK. Confirmar?';
-  if(!confirm(msg))return;
+    <!-- Modal de Salvamento -->
+    <div id="modalSalvar" class="modal-salvar">
+        <div class="modal-salvar-content">
+            <h2>💾 Salvar Documento</h2>
+            <p id="modalSalvarMensagem">Escolha o formato para salvar o documento:</p>
+            <div class="opcoes-salvar" id="opcoesSalvar"></div>
+            <div id="statusSalvar"></div>
+            <button class="btn-cancelar" onclick="fecharModalSalvar()">Fechar</button>
+        </div>
+    </div>
 
-  showLoad('Registrando produção...');
-  try{
-    for(const it of itens){
-      const dados={data,funcionarioid:funcId,pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,horaextra:it.horaExtra?1:0,device_origin:'mobile'};
-      if(!S.demo&&S.sb&&S.online){
-        const r=await sbInsert('Producoes',dados);
-        await sbInsert('Movimentacoes',{data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,origem:'Produção',producaoid:r?.id,funcionarioid:funcId,device_origin:'mobile'});
-        const eaArm=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);
-        const nova=(eaArm?.quantidade||0)-it.quantidade;
-        if(eaArm)await sbUpdate('EstoqueArmacoes',eaArm.id,{quantidade:nova});
-        else await sbInsert('EstoqueArmacoes',{modeloid:it.pecaId,quantidade:-it.quantidade});
-        // Realtime atualiza o estado — não mutamos localmente
-      }else{
-        await idbAdd('fila',{tipo:'producao',dados,movDados:{data,tipo:'entrada',pecaId:it.pecaId,corId:it.corId,quantidade:it.quantidade,origem:'Produção',funcionarioId:funcId},ts:Date.now(),key:crypto.randomUUID()});
-        S.producoes.unshift({...dados,id:Date.now(),pecaid:it.pecaId,corid:it.corId,funcionarioid:funcId});
-        S.movimentacoes.unshift({data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,id:Date.now()});
-        const eaLocal=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);if(eaLocal)eaLocal.quantidade-=it.quantidade;
-      }
-    }
-    await updOQ();limparProd();atualizarHome();renderProdHoje();renderEstoque();
-    hideLoad();toast(`✅ Produção registrada!${!S.online||S.demo?' (offline)':''}`,S.online&&!S.demo?'success':'warn');
-    if(navigator.vibrate)navigator.vibrate([50,50,100]);
-  }catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}
-};
+    <!-- Modal de Estatísticas (Dashboard) -->
+    <div id="modalEstatisticas" class="modal-estatisticas">
+        <div class="modal-estatisticas-content">
+            <h2>📊 Dashboard de Estatísticas</h2>
+            <div id="estatisticasConteudo"></div>
+            <button class="btn-primary" onclick="fecharModalEstatisticas()">Fechar</button>
+        </div>
+    </div>
 
-window.limparProd=function(){
-  document.getElementById('pFunc').value='';document.getElementById('pData').value=hojeISO();
-  S.prodNums={0:'0'};S.prodHE={};
-  const nv=document.getElementById('nv0');const nd=document.getElementById('nd0');
-  if(nv){nv.textContent='0';nv.classList.add('ph')}if(nd)nd.classList.remove('has');
-  document.getElementById('heTog0')?.classList.remove('on');
-  document.querySelectorAll('.peca-sel,.cor-sel').forEach(s=>s.value='');
-  document.querySelectorAll('#pItens .card:not(#pItem0)').forEach(c=>c.remove());
-  S.itemCount=1;
-};
+    <!-- Cabeçalho -->
+    <header>
+        <div class="container" style="position: relative;">
+            <h1>Controle de Produção & Estoque</h1>
+            <button id="btnAtualizar" class="btn-atualizar" onclick="atualizarSistema()" title="Atualizar Sistema">
+                🔄
+            </button>
+        </div>
+    </header>
 
-function renderProdHoje(){
-  const hoje=hojeISO();const prods=S.producoes.filter(p=>p.data===hoje);
-  const el=document.getElementById('prodHojeList');
-  if(!prods.length){el.innerHTML='<div class="empty"><div class="ei">📋</div><p>Nenhum registro hoje</p></div>';return}
-  let tot=0;
-  el.innerHTML=prods.map(p=>{
-    const f=byId(S.funcionarios,p.funcionarioid??p.funcionarioId);const pc=byId(S.pecas,p.pecaid??p.pecaId);const c=byId(S.cores,p.corid??p.corId);
-    const vu=pc?((p.horaextra??p.horaExtra)?pc.valor*1.5:pc.valor):0;const vt=vu*(parseInt(p.quantidade)||0);tot+=vt;
-    return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${pc?.nome||'N/A'}</span>${(p.horaextra??p.horaExtra)?'<span class="badge-he">⏰ HE</span>':''}</div>
-      <div class="mob-rf"><div class="mob-fi">Funcionário<strong>${f?.nome||'N/A'}</strong></div><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div>
-      <div class="mob-fi">Quantidade<strong>${p.quantidade}</strong></div><div class="mob-fi">Valor<strong class="valor">${fmtMoeda(vt)}</strong></div></div></div>`;
-  }).join('')+`<div class="total-row"><span class="tl">Total do Dia</span><span class="tv">${fmtMoeda(tot)}</span></div>`;
-}
+    <!-- Menu Principal -->
+    <div class="container">
+        <div class="menu">
+            <button onclick="showSection('producao', this)" class="active">🏭 Produção</button>
+            <button onclick="showSection('modelos', this)">🪑 Modelos</button>
+            <button onclick="showSection('funcionarios', this)">👷 Funcionários</button>
+            <button onclick="showSection('cores', this)">🎨 Cores</button>
+            <button onclick="showSection('estoque', this)">📦 Estoque</button>
+            <button onclick="showSection('armacoes', this)">🔩 Armações</button>
+            <button onclick="showSection('saidas', this)">📤 Saídas</button>
+            <button onclick="showSection('relatorios', this)">📊 Relatórios</button>
+            <button onclick="showSection('backup', this)">💾 Backup</button>
+        </div>
 
-// ESTOQUE
-window.filtEst=function(tipo,btn){S.filtEst=tipo;document.querySelectorAll('#pageEstoque .pill').forEach(p=>p.classList.remove('active'));btn.classList.add('active');renderEstoque()};
-window.renderEstoque=function(){
-  const pId=parseInt(document.getElementById('estModelo').value)||null;
-  const cId=parseInt(document.getElementById('estCor').value)||null;
-  const q=document.getElementById('estPesq').value.toLowerCase();
-  const saldos={};
-  S.movimentacoes.forEach(m=>{
-    const _mp=m.pecaid??m.pecaId;const _mc=m.corid??m.corId;
-    if(pId&&_mp!==pId)return;if(cId&&_mc!==cId)return;
-    const k=`${_mp}-${_mc}`;
-    if(!saldos[k])saldos[k]={pecaId:_mp,corId:_mc,saldo:0};
-    saldos[k].saldo+=m.tipo==='entrada'?m.quantidade:-m.quantidade;
-  });
-  let rows=Object.values(saldos);
-  if(S.filtEst==='baixo')rows=rows.filter(r=>r.saldo>0&&r.saldo<10);
-  else if(S.filtEst==='critico')rows=rows.filter(r=>r.saldo>0&&r.saldo<5);
-  else if(S.filtEst==='zero')rows=rows.filter(r=>r.saldo<=0);
-  if(q)rows=rows.filter(r=>{const p=byId(S.pecas,r.pecaId??r.pecaid);const c=byId(S.cores,r.corId??r.corid);return(p?.nome||'').toLowerCase().includes(q)||(c?.nome||'').toLowerCase().includes(q)});
-  rows.sort((a,b)=>(byId(S.pecas,a.pecaId??a.pecaid)?.nome||'').localeCompare(byId(S.pecas,b.pecaId??b.pecaid)?.nome||''));
-  const el=document.getElementById('estoqueList');
-  if(!rows.length){el.innerHTML='<div class="empty"><div class="ei">📦</div><p>Nenhum item</p></div>';return}
-  el.innerHTML=rows.map(r=>{
-    const p=byId(S.pecas,r.pecaId??r.pecaid);const c=byId(S.cores,r.corId??r.corid);
-    const cls=r.saldo<=0?'sn':r.saldo<5?'sc2':r.saldo<10?'sb2':'sk';
-    return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'–'}</span><span class="${cls}" style="font-size:20px">${r.saldo}</span></div><div style="font-size:12px;color:var(--muted)">🎨 ${c?.nome||'–'}</div></div>`;
-  }).join('');
-};
+        <!-- SEÇÃO: PRODUÇÃO -->
+        <div id="producao" class="section active">
+            <h2>🏭 Registro de Produção Diária</h2>
+            
+            <form id="formProducao">
+                <input type="hidden" id="producaoId" value="">
+                <div class="form-row">
+                    <label for="dataProducao">📅 Data:</label>
+                    <input type="date" id="dataProducao" required>
+                </div>
+                <div class="form-row">
+                    <label for="funcionarioProducao">👷 Funcionário:</label>
+                    <select id="funcionarioProducao" required>
+                        <option value="">Selecione um funcionário</option>
+                    </select>
+                </div>
+                
+                <div id="itensProducao">
+                    <div class="itemProducao" data-index="0">
+                        <div class="form-row">
+                            <label for="pecaProducao">🪑 Modelo:</label>
+                            <select id="pecaProducao" class="peca-select" required>
+                                <option value="">Selecione um modelo</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="corProducao">🎨 Cor:</label>
+                            <select id="corProducao" class="cor-select" required>
+                                <option value="">Selecione uma cor</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="quantidade">📊 Quantidade:</label>
+                            <input type="number" class="quantidade" id="quantidade" min="1" required>
+                        </div>
+                        <div class="form-row">
+                            <label for="horaExtra">⏰ Hora Extra (+50%):</label>
+                            <input type="checkbox" class="hora-extra-checkbox" id="horaExtra">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-10">
+                    <button type="button" class="btn-primary" onclick="adicionarItemProducao()">
+                        ➕ Adicionar Peça
+                    </button>
+                    <button type="submit" id="btnSalvarProducao" class="btn-primary">
+                        💾 Registrar Produção
+                    </button>
+                    <button type="button" id="btnCancelarEdicao" style="display:none" 
+                            class="btn-cancelar" onclick="cancelarEdicao()">
+                        ❌ Cancelar
+                    </button>
+                </div>
+            </form>
 
-// SALDO SAÍDA
-window.updSaldo=function(){
-  const pId=parseInt(document.getElementById('sModelo').value);const cId=parseInt(document.getElementById('sCor').value);
-  const card=document.getElementById('saldoCard');
-  if(!pId||!cId){card.style.display='none';return}
-  const saldo=calcSaldo(pId,cId);const p=byId(S.pecas,pId);const c=byId(S.cores,cId);
-  card.style.display='block';
-  document.getElementById('saldoDesc').textContent=`${p?.nome||'–'} · ${c?.nome||'–'}`;
-  const el=document.getElementById('saldoNum');el.textContent=saldo;
-  el.style.color=saldo<=0?'var(--red2)':saldo<10?'var(--amber)':'var(--green2)';
-};
+            <h3>📋 Produção do Dia</h3>
+            <table id="tabelaProducao">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Funcionário</th>
+                        <th>Peça</th>
+                        <th>Cor</th>
+                        <th>Qtd</th>
+                        <th>Hora Extra</th>
+                        <th>Valor Unit.</th>
+                        <th>Valor Total</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
 
-// SALVAR SAÍDA
-window.salvarSaida=async function(){
-  const data=document.getElementById('sData').value;
-  const pecaId=parseInt(document.getElementById('sModelo').value);
-  const corId=parseInt(document.getElementById('sCor').value);
-  const quantidade=parseInt(S.sNum);
-  const obs=document.getElementById('sObs').value.trim();
-  if(!pecaId){toast('Selecione um modelo','error');return}
-  if(!corId){toast('Selecione uma cor','error');return}
-  if(!quantidade||quantidade<1){toast('Informe a quantidade','error');return}
-  const saldo=calcSaldo(pecaId,corId);
-  if(saldo<quantidade&&!confirm(`⚠️ Saldo insuficiente!\nSaldo: ${saldo} | Falta: ${quantidade-saldo}\nRegistrar mesmo assim?`))return;
-  const dados={data,tipo:'saida',pecaid:pecaId,corid:corId,quantidade,origem:obs||'Saída via mobile',device_origin:'mobile'};
-  showLoad('Registrando saída...');
-  const p=byId(S.pecas,pecaId);const c=byId(S.cores,corId);
-  try{
-    if(!S.demo&&S.sb&&S.online){
-      await sbInsert('Movimentacoes',dados);
-      // Realtime atualiza o estado
-    }else{
-      await idbAdd('fila',{tipo:'saida',dados,ts:Date.now(),key:crypto.randomUUID()});
-      S.movimentacoes.unshift({...dados,pecaId,corId,id:Date.now()});
-    }
-    await updOQ();limparSaida();renderEstoque();renderSaidas();atualizarHome();
-    hideLoad();toast(`✅ Saída registrada!${!S.online||S.demo?' (offline)':''}`,S.online&&!S.demo?'success':'warn');
-    if(navigator.vibrate)navigator.vibrate([50,50,100]);
-  }catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}
-};
-window.limparSaida=function(){
-  ['sModelo','sCor'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('sObs').value='';document.getElementById('sData').value=hojeISO();
-  S.sNum='0';const sv=document.getElementById('sVal');sv.textContent='0';sv.classList.add('ph');
-  document.getElementById('sDisp').classList.remove('has');document.getElementById('saldoCard').style.display='none';
-};
-function renderSaidas(){
-  const saidas=S.movimentacoes.filter(m=>m.tipo==='saida').slice(0,20);
-  const el=document.getElementById('saidasList');
-  if(!saidas.length){el.innerHTML='<div class="empty"><div class="ei">📤</div><p>Nenhuma saída</p></div>';return}
-  el.innerHTML=saidas.map(m=>{
-    const p=byId(S.pecas,m.pecaid??m.pecaId);const c=byId(S.cores,m.corid??m.corId);
-    return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span style="color:var(--red2);font-size:18px;font-weight:800">–${m.quantidade}</span></div>
-      <div class="mob-rf"><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Data<strong>${fmtData(m.data)}</strong></div>
-      <div class="mob-fi" style="grid-column:1/-1">Origem<strong>${m.origem||'–'}</strong></div></div></div>`;
-  }).join('');
-}
+        <!-- SEÇÃO: MODELOS -->
+        <div id="modelos" class="section">
+            <h2>🪑 Cadastro de Modelos</h2>
+            <form id="formPeca">
+                <input type="hidden" id="pecaId" value="">
+                <div class="form-row">
+                    <label for="nomePeca">Nome do Modelo:</label>
+                    <input type="text" id="nomePeca" required placeholder="Ex: Encosto de cadeira">
+                </div>
+                <div class="form-row">
+                    <label for="valorPeca">💰 Valor Unitário (R$):</label>
+                    <input type="number" id="valorPeca" step="0.01" min="0" required placeholder="0,00">
+                </div>
+                <div class="d-flex gap-10">
+                    <button type="submit" id="btnSalvarPeca" class="btn-primary">
+                        💾 Cadastrar Modelo
+                    </button>
+                    <button type="button" id="btnCancelarEdicaoPeca" style="display:none" 
+                            class="btn-cancelar" onclick="cancelarEdicaoPeca()">
+                        ❌ Cancelar
+                    </button>
+                </div>
+            </form>
 
-// ARMAÇÕES
-window.salvarArmacao=async function(){
-  const data=document.getElementById('aData').value;
-  const modeloId=parseInt(document.getElementById('aModelo').value);
-  const quantidade=parseInt(S.aNum);
-  if(!modeloId){toast('Selecione um modelo','error');return}
-  if(!quantidade||quantidade<1){toast('Informe a quantidade','error');return}
-  const dadosArm={data,modeloid:modeloId,quantidade,device_origin:'mobile'};
-  showLoad('Registrando armação...');
-  const p=byId(S.pecas,modeloId);
-  try{
-    if(!S.demo&&S.sb&&S.online){
-      await sbInsert('Armacoes',dadosArm);
-      const eaArm2=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===modeloId);
-      const novoSaldo=(eaArm2?.quantidade||0)+quantidade;
-      if(eaArm2)await sbUpdate('EstoqueArmacoes',eaArm2.id,{quantidade:novoSaldo});
-      else await sbInsert('EstoqueArmacoes',{modeloid:modeloId,quantidade:novoSaldo});
-      // Realtime atualiza o estado
-    }else{
-      await idbAdd('fila',{tipo:'armacao',dados:dadosArm,ts:Date.now(),key:crypto.randomUUID()});
-      S.armacoes.unshift({...dadosArm,id:Date.now()});
-      const eaOffline=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===modeloId);
-      if(eaOffline){eaOffline.quantidade+=quantidade;}else S.estoqueArmacoes.push({modeloid:modeloId,quantidade});
-    }
-    document.getElementById('aData').value=hojeISO();document.getElementById('aModelo').value='';
-    S.aNum='0';document.getElementById('aVal').textContent='0';document.getElementById('aVal').classList.add('ph');document.getElementById('aDisp').classList.remove('has');
-    await updOQ();renderArmacoes();atualizarHome();
-    hideLoad();toast(`✅ Chegada registrada!${!S.online||S.demo?' (offline)':''}`,S.online&&!S.demo?'success':'warn');
-  }catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}
-};
-function renderArmacoes(){
-  const eaMap={};S.estoqueArmacoes.forEach(e=>{eaMap[e.modeloid??e.modeloId]=e.quantidade});
-  const estEl=document.getElementById('armEstList');
-  const histEl=document.getElementById('armHistList');
-  estEl.innerHTML=Object.keys(eaMap).length?Object.entries(eaMap).map(([mid,qtd])=>{
-    const p=byId(S.pecas,parseInt(mid));
-    const cls=qtd<=0?'sn':qtd<5?'sc2':qtd<10?'sb2':'sk';
-    return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'–'}</span><span class="${cls}" style="font-size:20px">${qtd}</span></div><div style="font-size:11px;color:var(--muted)">Armações disponíveis</div></div>`;
-  }).join(''):'<div class="empty"><p>Nenhum estoque</p></div>';
-  histEl.innerHTML=S.armacoes.slice(0,20).map(a=>{
-    const p=byId(S.pecas,a.modeloid??a.modeloId);
-    return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'–'}</span><span style="color:var(--green2);font-size:18px;font-weight:800">+${a.quantidade}</span></div><div style="font-size:11px;color:var(--muted)">📅 ${fmtData(a.data)}</div></div>`;
-  }).join('');
-}
+            <h3>📋 Modelos Cadastrados</h3>
+            <table id="tabelaPecas">
+                <thead>
+                    <tr><th>Nome</th><th>Valor Unitário</th><th>Ações</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
 
-// CADASTROS
-window.cadAba=function(aba,btn){
-  document.querySelectorAll('#cadPills .pill').forEach(p=>p.classList.remove('active'));btn.classList.add('active');
-  document.getElementById('cadModelos').style.display=aba==='modelos'?'block':'none';
-  document.getElementById('cadFuncionarios').style.display=aba==='funcionarios'?'block':'none';
-  document.getElementById('cadCores').style.display=aba==='cores'?'block':'none';
-};
-window.salvarModelo=async function(){
-  const id=document.getElementById('pecaId').value;const nome=document.getElementById('nomePeca').value.trim();const valor=parseFloat(document.getElementById('valorPeca').value);
-  if(!nome||isNaN(valor)||valor<0){toast('Preencha nome e valor','error');return}
-  showLoad(id?'Atualizando...':'Cadastrando...');
-  try{
-    if(!S.demo&&S.sb&&S.online){
-      if(id)await sbUpdate('Pecas',parseInt(id),{nome,valor});else await sbInsert('Pecas',{nome,valor});
-      const{data}=await S.sb.from('Pecas').select('*').order('nome');S.pecas=data||[];
-    }else{
-      if(id){const p=byId(S.pecas,parseInt(id));if(p){p.nome=nome;p.valor=valor}}else S.pecas.push({id:Date.now(),nome,valor});
-    }
-    fillSelects();cancelarModelo();renderCadModelos();hideLoad();toast(id?'✅ Modelo atualizado!':'✅ Modelo cadastrado!','success');
-  }catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}
-};
-window.editarModelo=function(id){const p=byId(S.pecas,id);if(!p)return;document.getElementById('pecaId').value=p.id;document.getElementById('nomePeca').value=p.nome;document.getElementById('valorPeca').value=p.valor;document.getElementById('modeloFormTit').innerHTML='<div class="cico cg">✏️</div>Editar Modelo'};
-window.excluirModelo=async function(id){if(!confirm('⚠️ Excluir modelo?'))return;showLoad('Excluindo...');try{if(!S.demo&&S.sb&&S.online)await sbDelete('Pecas',id);S.pecas=S.pecas.filter(p=>p.id!==id);fillSelects();renderCadModelos();hideLoad();toast('✅ Excluído!','success')}catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}};
-window.cancelarModelo=function(){document.getElementById('pecaId').value='';document.getElementById('nomePeca').value='';document.getElementById('valorPeca').value='';document.getElementById('modeloFormTit').innerHTML='<div class="cico cg">🪑</div>Novo Modelo'};
-function renderCadModelos(){const el=document.getElementById('modelosList');el.innerHTML=S.pecas.length?S.pecas.map(p=>`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p.nome}</span><span class="valor">${fmtMoeda(p.valor)}</span></div><div class="mob-acts"><button class="ab ab-e" onclick="editarModelo(${p.id})">✏️ Editar</button><button class="ab ab-d" onclick="excluirModelo(${p.id})">🗑️</button></div></div>`).join(''):'<div class="empty"><div class="ei">🪑</div><p>Nenhum modelo</p></div>'}
+        <!-- SEÇÃO: FUNCIONÁRIOS -->
+        <div id="funcionarios" class="section">
+            <h2>👷 Cadastro de Funcionários</h2>
+            <form id="formFuncionario">
+                <input type="hidden" id="funcionarioId" value="">
+                <div class="form-row">
+                    <label for="nomeFuncionario">Nome do Funcionário:</label>
+                    <input type="text" id="nomeFuncionario" required placeholder="Ex: João Silva">
+                </div>
+                <div class="form-row">
+                    <label for="cargoFuncionario">Cargo:</label>
+                    <input type="text" id="cargoFuncionario" required placeholder="Ex: Operador de Produção">
+                </div>
+                <div class="d-flex gap-10">
+                    <button type="submit" id="btnSalvarFuncionario" class="btn-primary">
+                        💾 Cadastrar Funcionário
+                    </button>
+                    <button type="button" id="btnCancelarEdicaoFuncionario" style="display:none" 
+                            class="btn-cancelar" onclick="cancelarEdicaoFuncionario()">
+                        ❌ Cancelar
+                    </button>
+                </div>
+            </form>
 
-window.salvarFuncionario=async function(){const id=document.getElementById('funcId').value;const nome=document.getElementById('nomeFunc').value.trim();const cargo=document.getElementById('cargoFunc').value.trim();if(!nome||!cargo){toast('Preencha nome e cargo','error');return}showLoad(id?'Atualizando...':'Cadastrando...');try{if(!S.demo&&S.sb&&S.online){if(id)await sbUpdate('Funcionarios',parseInt(id),{nome,cargo});else await sbInsert('Funcionarios',{nome,cargo});const{data}=await S.sb.from('Funcionarios').select('*').order('nome');S.funcionarios=data||[];}else{if(id){const f=byId(S.funcionarios,parseInt(id));if(f){f.nome=nome;f.cargo=cargo}}else S.funcionarios.push({id:Date.now(),nome,cargo})}fillSelects();cancelarFunc();renderCadFunc();hideLoad();toast(id?'✅ Atualizado!':'✅ Cadastrado!','success')}catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}};
-window.editarFunc=function(id){const f=byId(S.funcionarios,id);if(!f)return;document.getElementById('funcId').value=f.id;document.getElementById('nomeFunc').value=f.nome;document.getElementById('cargoFunc').value=f.cargo};
-window.excluirFunc=async function(id){if(!confirm('⚠️ Excluir funcionário?'))return;showLoad('Excluindo...');try{if(!S.demo&&S.sb&&S.online)await sbDelete('Funcionarios',id);S.funcionarios=S.funcionarios.filter(f=>f.id!==id);fillSelects();renderCadFunc();hideLoad();toast('✅ Excluído!','success')}catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}};
-window.cancelarFunc=function(){document.getElementById('funcId').value='';document.getElementById('nomeFunc').value='';document.getElementById('cargoFunc').value=''};
-function renderCadFunc(){const el=document.getElementById('funcList');el.innerHTML=S.funcionarios.length?S.funcionarios.map(f=>`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${f.nome}</span><span class="badge-e">${f.cargo}</span></div><div class="mob-acts"><button class="ab ab-e" onclick="editarFunc(${f.id})">✏️</button><button class="ab ab-d" onclick="excluirFunc(${f.id})">🗑️</button></div></div>`).join(''):'<div class="empty"><div class="ei">👤</div><p>Nenhum funcionário</p></div>'}
+            <h3>📋 Funcionários Cadastrados</h3>
+            <table id="tabelaFuncionarios">
+                <thead>
+                    <tr><th>Nome</th><th>Cargo</th><th>Ações</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
 
-window.salvarCor=async function(){const id=document.getElementById('corId').value;const nome=document.getElementById('nomeCor').value.trim();if(!nome){toast('Informe a cor','error');return}showLoad(id?'Atualizando...':'Cadastrando...');try{if(!S.demo&&S.sb&&S.online){if(id)await sbUpdate('Cores',parseInt(id),{nome});else await sbInsert('Cores',{nome});const{data}=await S.sb.from('Cores').select('*').order('nome');S.cores=data||[];}else{if(id){const c=byId(S.cores,parseInt(id));if(c)c.nome=nome}else S.cores.push({id:Date.now(),nome})}fillSelects();cancelarCor();renderCadCores();hideLoad();toast(id?'✅ Atualizada!':'✅ Cadastrada!','success')}catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}};
-window.editarCor=function(id){const c=byId(S.cores,id);if(!c)return;document.getElementById('corId').value=c.id;document.getElementById('nomeCor').value=c.nome};
-window.excluirCor=async function(id){if(!confirm('⚠️ Excluir cor?'))return;showLoad('Excluindo...');try{if(!S.demo&&S.sb&&S.online)await sbDelete('Cores',id);S.cores=S.cores.filter(c=>c.id!==id);fillSelects();renderCadCores();hideLoad();toast('✅ Excluída!','success')}catch(e){hideLoad();toast('❌ Erro: '+e.message,'error')}};
-window.cancelarCor=function(){document.getElementById('corId').value='';document.getElementById('nomeCor').value=''};
-function renderCadCores(){const el=document.getElementById('coresList');el.innerHTML=S.cores.length?S.cores.map(c=>`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">🎨 ${c.nome}</span><div class="mob-acts" style="margin:0"><button class="ab ab-e" onclick="editarCor(${c.id})">✏️</button><button class="ab ab-d" onclick="excluirCor(${c.id})">🗑️</button></div></div></div>`).join(''):'<div class="empty"><div class="ei">🎨</div><p>Nenhuma cor</p></div>'}
+        <!-- SEÇÃO: CORES -->
+        <div id="cores" class="section">
+            <h2>🎨 Cadastro de Cores</h2>
+            <form id="formCor">
+                <input type="hidden" id="corId" value="">
+                <div class="form-row">
+                    <label for="nomeCor">Nome da Cor:</label>
+                    <input type="text" id="nomeCor" required placeholder="Ex: Vermelho Ferrari">
+                </div>
+                <div class="d-flex gap-10">
+                    <button type="submit" id="btnSalvarCor" class="btn-primary">
+                        💾 Cadastrar Cor
+                    </button>
+                    <button type="button" id="btnCancelarEdicaoCor" style="display:none" 
+                            class="btn-cancelar" onclick="cancelarEdicaoCor()">
+                        ❌ Cancelar
+                    </button>
+                </div>
+            </form>
+            
+            <h3>📋 Cores Cadastradas</h3>
+            <table id="tabelaCores">
+                <thead><tr><th>Nome</th><th>Ações</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
 
-// RELATÓRIOS
-window.relAba=function(aba,btn){
-  document.querySelectorAll('#relPills .pill').forEach(p=>p.classList.remove('active'));btn.classList.add('active');
-  ['Geral','Modelos','Estoque','Folha','Armacoes'].forEach(a=>{document.getElementById('rel'+a).style.display=aba===a.toLowerCase()?'block':'none'});
-};
-function filtrarProd(ini,fim,fId,pId,cId){return S.producoes.filter(p=>{if(ini&&p.data<ini)return false;if(fim&&p.data>fim)return false;if(fId&&p.funcionarioId!=fId)return false;if(pId&&p.pecaId!=pId)return false;if(cId&&p.corId!=cId)return false;return true})}
-window.gerarRelGeral=function(){
-  const ini=document.getElementById('rg_ini').value,fim=document.getElementById('rg_fim').value;
-  const fId=document.getElementById('rg_func').value,pId=document.getElementById('rg_peca').value,cId=document.getElementById('rg_cor').value;
-  const prods=filtrarProd(ini,fim,fId,pId,cId);
-  const el=document.getElementById('relGeralResult');
-  if(!prods.length){el.innerHTML='<div class="empty"><p>Nenhuma produção no período</p></div>';return}
-  let tot=0;
-  const grid=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-    <div class="mob-row" style="text-align:center"><div style="font-size:24px;font-weight:800;color:var(--green2)">${prods.length}</div><div style="font-size:11px;color:var(--muted)">Registros</div></div>
-    <div class="mob-row" style="text-align:center"><div style="font-size:24px;font-weight:800;color:var(--green2)">${prods.reduce((a,p)=>a+p.quantidade,0)}</div><div style="font-size:11px;color:var(--muted)">Unidades</div></div>
-  </div>`;
-  el.innerHTML=grid+prods.map(p=>{
-    const f=byId(S.funcionarios,p.funcionarioid??p.funcionarioId);const pc=byId(S.pecas,p.pecaid??p.pecaId);const c=byId(S.cores,p.corid??p.corId);
-    const vu=pc?((p.horaextra??p.horaExtra)?pc.valor*1.5:pc.valor):0;const vt=vu*(parseInt(p.quantidade)||0);tot+=vt;
-    return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${pc?.nome||'N/A'}</span>${(p.horaextra??p.horaExtra)?'<span class="badge-he">HE</span>':''}</div>
-      <div class="mob-rf"><div class="mob-fi">Funcionário<strong>${f?.nome||'N/A'}</strong></div><div class="mob-fi">Data<strong>${fmtData(p.data)}</strong></div>
-      <div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${p.quantidade}</strong></div>
-      <div class="mob-fi">V.Unit<strong class="valor">${fmtMoeda(vu)}</strong></div><div class="mob-fi">V.Total<strong class="valor">${fmtMoeda(vt)}</strong></div></div></div>`;
-  }).join('')+`<div class="total-row"><span class="tl">Total Geral</span><span class="tv">${fmtMoeda(tot)}</span></div>`;
-};
-window.gerarRelModelos=function(){
-  const ini=document.getElementById('rm_ini').value,fim=document.getElementById('rm_fim').value;
-  const prods=filtrarProd(ini,fim,'','','');const el=document.getElementById('relModelosResult');
-  const agrup={};prods.forEach(p=>{const k=`${p.pecaId}-${p.corId}`;if(!agrup[k])agrup[k]={pecaId:p.pecaId,corId:p.corId,quantidade:0};agrup[k].quantidade+=p.quantidade});
-  const rows=Object.values(agrup);if(!rows.length){el.innerHTML='<div class="empty"><p>Nenhum dado</p></div>';return}
-  let tot=0;
-  el.innerHTML=rows.map(r=>{const p=byId(S.pecas,r.pecaId);const c=byId(S.cores,r.corId);const vt=(p?.valor||0)*r.quantidade;tot+=vt;return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span class="valor">${fmtMoeda(vt)}</span></div><div class="mob-rf"><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${r.quantidade}</strong></div></div></div>`}).join('')+`<div class="total-row"><span class="tl">Total</span><span class="tv">${fmtMoeda(tot)}</span></div>`;
-};
-window.gerarRelEstoque=function(){
-  const ini=document.getElementById('re_ini').value,fim=document.getElementById('re_fim').value;
-  const tipo=document.getElementById('re_tipo').value,pId=document.getElementById('re_peca').value;
-  let movs=S.movimentacoes.filter(m=>{if(ini&&m.data<ini)return false;if(fim&&m.data>fim)return false;if(tipo&&m.tipo!==tipo)return false;if(pId&&m.pecaId!=pId)return false;return true});
-  const el=document.getElementById('relEstoqueResult');
-  if(!movs.length){el.innerHTML='<div class="empty"><p>Nenhuma movimentação</p></div>';return}
-  let saldo=0;
-  el.innerHTML=movs.map(m=>{const p=byId(S.pecas,m.pecaId);const c=byId(S.cores,m.corId);saldo+=m.tipo==='entrada'?m.quantidade:-m.quantidade;return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span class="${m.tipo==='entrada'?'badge-e':'badge-s'}">${m.tipo==='entrada'?'Entrada':'Saída'}</span></div><div class="mob-rf"><div class="mob-fi">Data<strong>${fmtData(m.data)}</strong></div><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${m.quantidade}</strong></div><div class="mob-fi">Origem<strong>${m.origem||'–'}</strong></div></div></div>`}).join('')+`<div class="total-row"><span class="tl">Saldo do Período</span><span class="tv" style="color:${saldo>=0?'var(--green2)':'var(--red2)'}">${saldo}</span></div>`;
-};
-window.gerarFolha=function(){
-  const mesAno=document.getElementById('rf_mes').value;if(!mesAno){toast('Selecione o mês/ano','error');return}
-  const[ano,mes]=mesAno.split('-');const ini=`${ano}-${mes}-01`,fim=`${ano}-${mes}-${new Date(ano,mes,0).getDate()}`;
-  const prods=S.producoes.filter(p=>p.data>=ini&&p.data<=fim);
-  const el=document.getElementById('relFolhaResult');
-  if(!prods.length){el.innerHTML='<div class="empty"><p>Nenhuma produção no período</p></div>';return}
-  const por={};
-  prods.forEach(p=>{const _fid=p.funcionarioid??p.funcionarioId;const _pid=p.pecaid??p.pecaId;if(!por[_fid])por[_fid]={total:0,itens:0,registros:0,he:0};const pc=byId(S.pecas,_pid);const vu=pc?((p.horaextra??p.horaExtra)?pc.valor*1.5:pc.valor):0;por[_fid].total+=vu*(parseInt(p.quantidade)||0);por[_fid].itens+=(parseInt(p.quantidade)||0);por[_fid].registros++;if(p.horaextra??p.horaExtra)por[_fid].he++});
-  let totGeral=0;
-  el.innerHTML=`<div class="mob-row" style="margin-bottom:14px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--green2)">${Object.keys(por).length} funcionários</div><div style="font-size:12px;color:var(--muted)">Folha ${mes}/${ano}</div></div>`+
-  Object.entries(por).map(([fId,d])=>{const f=byId(S.funcionarios,parseInt(fId));totGeral+=d.total;return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${f?.nome||'N/A'}</span><span class="valor">${fmtMoeda(d.total)}</span></div><div class="mob-rf"><div class="mob-fi">Itens<strong>${d.itens}</strong></div><div class="mob-fi">Registros<strong>${d.registros}</strong></div><div class="mob-fi">H.Extras<strong>${d.he}</strong></div></div></div>`}).join('')+
-  `<div class="total-row"><span class="tl">Total Geral da Folha</span><span class="tv">${fmtMoeda(totGeral)}</span></div>`;
-};
-window.gerarRelArmacoes=function(){
-  const ini=document.getElementById('ra_ini').value,fim=document.getElementById('ra_fim').value;
-  const mId=document.getElementById('ra_modelo').value;
-  const arm=S.armacoes.filter(a=>{if(ini&&a.data<ini)return false;if(fim&&a.data>fim)return false;if(mId&&(a.modeloid??a.modeloId)!=mId)return false;return true});
-  const el=document.getElementById('relArmacoesResult');
-  if(!arm.length){el.innerHTML='<div class="empty"><p>Nenhuma armação</p></div>';return}
-  const totQtd=arm.reduce((a,r)=>a+r.quantidade,0);
-  el.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;"><div class="mob-row" style="text-align:center"><div style="font-size:24px;font-weight:800;color:var(--green2)">${totQtd}</div><div style="font-size:11px;color:var(--muted)">Total Armações</div></div><div class="mob-row" style="text-align:center"><div style="font-size:24px;font-weight:800;color:var(--blue)">${arm.length}</div><div style="font-size:11px;color:var(--muted)">Chegadas</div></div></div>`+
-  arm.map(a=>{const p=byId(S.pecas,a.modeloid??a.modeloId);return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'–'}</span><span style="color:var(--green2);font-size:18px;font-weight:800">+${a.quantidade}</span></div><div style="font-size:11px;color:var(--muted)">📅 ${fmtData(a.data)}</div></div>`}).join('')+
-  `<div class="total-row"><span class="tl">Total do Período</span><span class="tv">${totQtd}</span></div>`;
-};
+        <!-- SEÇÃO: ESTOQUE -->
+        <div id="estoque" class="section">
+            <h2>📦 Controle de Estoque</h2>
+            
+            <div class="pesquisa-container">
+                <h3>🔍 Pesquisar no Estoque</h3>
+                <div class="pesquisa-rapida">
+                    <input type="text" id="pesquisaEstoque" placeholder="Pesquisar por modelo ou cor..." onkeyup="pesquisarEstoque()">
+                    <button class="btn-primary" onclick="mostrarEstatisticas()">📊 Ver Dashboard</button>
+                </div>
+                
+                <div class="filtros-avancados">
+                    <select id="filtroPecaEstoque">
+                        <option value="">Todas as peças</option>
+                    </select>
+                    
+                    <select id="filtroCorEstoque">
+                        <option value="">Todas as cores</option>
+                    </select>
+                    
+                    <input type="date" id="filtroDataInicio" placeholder="Data início">
+                    <input type="date" id="filtroDataFim" placeholder="Data fim">
+                    
+                    <div class="d-flex gap-10">
+                        <button class="btn-pesquisar" onclick="aplicarFiltrosEstoque()">🔍 Aplicar Filtros</button>
+                        <button class="btn-limpar" onclick="limparFiltrosEstoque()">🗑️ Limpar</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="resultadoPesquisa" class="resultado-info" style="display: none;">
+                <span id="infoResultado"></span>
+                <span id="loadingIndicator" style="display: none;" class="loading-spinner"></span>
+            </div>
+            
+            <h3>📈 Saldo Atual por Modelo e Cor</h3>
+            <table id="tabelaSaldos">
+                <thead>
+                    <tr><th>Modelo</th><th>Cor</th><th>Saldo</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
 
-// SYNC FILA
-window.syncFila=async function(){
-  if(!S.online){toast('Sem internet','warn');return}
-  if(S.demo){toast('Modo demo — configure o Supabase','info');return}
-  showLoad('Sincronizando...');
-  const fila=await idbAll('fila');let ok=0,fail=0;
-  for(const item of fila){
-    try{
-      if(item.tipo==='producao'){const r=await sbInsert('Producoes',item.dados);if(item.movDados)await sbInsert('Movimentacoes',{...item.movDados,producaoid:r?.id})}
-      else if(item.tipo==='saida'||item.tipo==='movimentacao')await sbInsert('Movimentacoes',item.dados);
-      else if(item.tipo==='armacao')await sbInsert('Armacoes',item.dados);
-      await idbDel('fila',item.id);ok++;
-    }catch(e){fail++}
-  }
-  await updOQ();hideLoad();
-  if(ok>0)toast(`✅ ${ok} item(ns) sincronizados!`,'success');
-  if(fail>0)toast(`⚠️ ${fail} falha(s)`,'warn');
-};
+        <!-- SEÇÃO: ARMAÇÕES -->
+        <div id="armacoes" class="section">
+            <h2>🔩 Controle de Armações</h2>
+            
+            <form id="formArmacao">
+                <input type="hidden" id="armacaoId" value="">
+                <div class="form-row">
+                    <label for="dataArmacao">📅 Data:</label>
+                    <input type="date" id="dataArmacao" required>
+                </div>
+                <div class="form-row">
+                    <label for="modeloArmacao">🪑 Modelo:</label>
+                    <select id="modeloArmacao" required>
+                        <option value="">Selecione um modelo</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label for="quantidadeArmacao">📊 Quantidade:</label>
+                    <input type="number" id="quantidadeArmacao" min="1" required>
+                </div>
+                <div class="d-flex gap-10">
+                    <button type="submit" id="btnSalvarArmacao" class="btn-primary">
+                        💾 Registrar Chegada
+                    </button>
+                    <button type="button" id="btnCancelarArmacao" style="display:none" 
+                            class="btn-cancelar" onclick="cancelarEdicaoArmacao()">
+                        ❌ Cancelar
+                    </button>
+                </div>
+            </form>
 
-// ONLINE/OFFLINE
-window.addEventListener('online',async()=>{S.online=true;updBadge();toast('✅ Conexão restaurada!','success');await syncFila();if(S.sb&&!S.demo)iniciarRealtime()});
-window.addEventListener('offline',()=>{S.online=false;updBadge();toast('📴 Modo offline ativo','warn')});
-function updBadge(){
-  const b=document.getElementById('sBadge');
-  if(!S.online){b.className='sbadge off';document.getElementById('sTxt').textContent='Offline';}
-  else if(!_rtChannel){b.className='sbadge on';document.getElementById('sTxt').textContent='Online';}
-}
+            <h3>📦 Estoque de Armações</h3>
+            <table id="tabelaArmacoes">
+                <thead>
+                    <tr>
+                        <th>Modelo</th>
+                        <th>Quantidade</th>
+                        <th>Última Chegada</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
 
-// NAVEGAÇÃO
-window.nav=function(nome){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
-  document.getElementById('page'+nome).classList.add('active');
-  document.getElementById('nav'+nome).classList.add('active');
-  document.querySelector('.main').scrollTop=0;
-  if(nome==='Estoque')renderEstoque();
-  if(nome==='Producao')renderProdHoje();
-  if(nome==='Saidas')renderSaidas();
-  if(nome==='Armacoes')renderArmacoes();
-  if(nome==='Home')atualizarHome();
-};
+            <h3>📋 Histórico de Chegadas</h3>
+            <table id="tabelaHistoricoArmacoes">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Modelo</th>
+                        <th>Quantidade</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
 
-// TOAST/LOAD
-window.toast=function(msg,tipo='info'){
-  const icons={success:'✅',error:'❌',warn:'⚠️',info:'ℹ️'};
-  const el=document.createElement('div');el.className=`toast ${tipo}`;
-  el.innerHTML=`<span>${icons[tipo]}</span><span>${msg}</span>`;
-  document.getElementById('toastWrap').appendChild(el);
-  setTimeout(()=>el.remove(),3800);
-};
-function showLoad(t='Carregando...'){document.getElementById('lTxt').textContent=t;document.getElementById('lOv').classList.remove('hidden')}
-function hideLoad(){document.getElementById('lOv').classList.add('hidden')}
+        <!-- SEÇÃO: SAÍDAS -->
+        <div id="saidas" class="section">
+            <h2>📤 Registro de Saídas</h2>
+            <form id="formSaida">
+                <input type="hidden" id="saidaId" value="">
+                <div class="form-row">
+                    <label for="dataSaida">📅 Data:</label>
+                    <input type="date" id="dataSaida" required>
+                </div>
+                <div class="form-row">
+                    <label for="pecaSaida">🪑 Modelo:</label>
+                    <select id="pecaSaida" required>
+                        <option value="">Selecione um modelo</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label for="corSaida">🎨 Cor:</label>
+                    <select id="corSaida" required>
+                        <option value="">Selecione uma cor</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label for="qtdSaida">📊 Quantidade:</label>
+                    <input type="number" id="qtdSaida" min="1" required>
+                </div>
+                <div class="form-row">
+                    <label for="obsSaida">📝 Observação:</label>
+                    <input type="text" id="obsSaida" placeholder="Destino, pedido, etc.">
+                </div>
+                <div class="d-flex gap-10">
+                    <button type="submit" id="btnSalvarSaida" class="btn-primary">
+                        💾 Registrar Saída
+                    </button>
+                    <button type="button" id="btnCancelarSaida" style="display:none" 
+                            class="btn-cancelar" onclick="cancelarSaida()">
+                        ❌ Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
 
-// BACKUP / APAGAR DADOS
-window.abrirBackup=function(){
-  if(document.getElementById('backupModal'))return;
-  const SENHA_BACKUP='dantas3101';
-  const tabelas=[
-    {id:'Producoes',label:'🏭 Produções'},
-    {id:'Movimentacoes',label:'📦 Movimentações'},
-    {id:'Armacoes',label:'🔩 Armações'},
-    {id:'EstoqueArmacoes',label:'🔩 Estoque de Armações'},
-    {id:'Pecas',label:'🪑 Modelos / Peças'},
-    {id:'Cores',label:'🎨 Cores'},
-    {id:'Funcionarios',label:'👤 Funcionários'},
-  ];
-  const modal=document.createElement('div');
-  modal.id='backupModal';
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;';
-  modal.innerHTML=`
-    <div style="width:100%;background:var(--bg2);border-radius:20px 20px 0 0;padding:24px 20px 32px;border-top:1px solid var(--border);max-height:90vh;overflow-y:auto">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-        <div style="font-size:17px;font-weight:800;color:#fff">🗄️ Backup & Apagar Dados</div>
-        <button onclick="fecharBackup()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1">✕</button>
-      </div>
+        <!-- SEÇÃO: RELATÓRIOS -->
+        <div id="relatorios" class="section">
+            <h2>📊 Relatórios</h2>
+            
+            <div class="tipo-relatorio">
+                <button id="btnRelatorioGeral" class="active" onclick="mudarTipoRelatorio('geral')">
+                    📈 Produção
+                </button>
+                <button id="btnRelatorioModelos" onclick="mudarTipoRelatorio('modelos')">
+                    🪑 Modelo/Cor
+                </button>
+                <button id="btnRelatorioEstoque" onclick="mudarTipoRelatorio('estoque')">
+                    📦 Estoque
+                </button>
+                <button id="btnRelatorioFolha" onclick="mudarTipoRelatorio('folha')">
+                    📋 Folha de Pagamento
+                </button>
+                <button id="btnRelatorioArmacoes" onclick="mudarTipoRelatorio('armacoes')">
+                    🔩 Armações
+                </button>
+            </div>
 
-      <div style="background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.3);border-radius:12px;padding:12px 14px;margin-bottom:18px;font-size:12px;color:#e74c3c;line-height:1.6">
-        ⚠️ <strong>Atenção:</strong> Esta ação apaga dados permanentemente do servidor. Não há desfazer.
-      </div>
+            <!-- Filtros Relatório Geral -->
+            <div id="filtrosRelatorioGeral">
+                <div class="form-row">
+                    <label for="dataInicio">Data Início:</label>
+                    <input type="date" id="dataInicio">
+                </div>
+                <div class="form-row">
+                    <label for="dataFim">Data Fim:</label>
+                    <input type="date" id="dataFim">
+                </div>
+                <div class="form-row">
+                    <label for="filtroFuncionario">Funcionário:</label>
+                    <select id="filtroFuncionario"><option value="">Todos</option></select>
+                </div>
+                <div class="form-row">
+                    <label for="filtroPeca">Modelo:</label>
+                    <select id="filtroPeca"><option value="">Todos</option></select>
+                </div>
+                <div class="form-row">
+                    <label for="filtroCor">Cor:</label>
+                    <select id="filtroCor"><option value="">Todas</option></select>
+                </div>
+                <button class="btn-primary" onclick="gerarRelatorio()">
+                    📊 Gerar Relatório
+                </button>
+            </div>
 
-      <div style="margin-bottom:16px">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:7px">🔒 Senha de Administrador</div>
-        <input id="bkpSenha" type="password" placeholder="Digite a senha..." style="width:100%;background:var(--bg3);border:2px solid var(--border);border-radius:12px;padding:13px 15px;font-size:15px;color:var(--text);-webkit-appearance:none">
-      </div>
+            <!-- Filtros Relatório Modelos -->
+            <div id="filtrosRelatorioModelos" style="display:none">
+                <div class="form-row">
+                    <label for="dataInicioPeca">Data Início:</label>
+                    <input type="date" id="dataInicioPeca">
+                </div>
+                <div class="form-row">
+                    <label for="dataFimPeca">Data Fim:</label>
+                    <input type="date" id="dataFimPeca">
+                </div>
+                <button class="btn-primary" onclick="gerarRelatorio()">
+                    📊 Gerar Relatório
+                </button>
+            </div>
 
-      <div style="margin-bottom:18px">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:10px">📋 Selecione as tabelas para apagar</div>
-        ${tabelas.map(t=>`
-          <label style="display:flex;align-items:center;gap:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer">
-            <input type="checkbox" id="bkp_${t.id}" style="width:18px;height:18px;accent-color:var(--red2);flex-shrink:0">
-            <span style="font-size:14px;font-weight:600;color:var(--text)">${t.label}</span>
-          </label>`).join('')}
-        <label style="display:flex;align-items:center;gap:12px;background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.3);border-radius:10px;padding:12px 14px;margin-top:4px;cursor:pointer">
-          <input type="checkbox" id="bkp_local" style="width:18px;height:18px;accent-color:var(--amber);flex-shrink:0">
-          <span style="font-size:14px;font-weight:600;color:var(--amber)">🗑️ Cache local (IndexedDB)</span>
-        </label>
-      </div>
+            <!-- Filtros Relatório Estoque -->
+            <div id="filtrosRelatorioEstoque" style="display:none">
+                <div class="form-row">
+                    <label for="dataInicioEst">Data Início:</label>
+                    <input type="date" id="dataInicioEst">
+                </div>
+                <div class="form-row">
+                    <label for="dataFimEst">Data Fim:</label>
+                    <input type="date" id="dataFimEst">
+                </div>
+                <div class="form-row">
+                    <label for="tipoMovEst">Tipo:</label>
+                    <select id="tipoMovEst">
+                        <option value="">Todos</option>
+                        <option value="entrada">Entradas</option>
+                        <option value="saida">Saídas</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label for="pecaEst">Modelo:</label>
+                    <select id="pecaEst"><option value="">Todos</option></select>
+                </div>
+                <div class="form-row">
+                    <label for="corEst">Cor:</label>
+                    <select id="corEst"><option value="">Todas</option></select>
+                </div>
+                <button class="btn-primary" onclick="gerarRelatorio()">
+                    📊 Gerar Relatório
+                </button>
+            </div>
 
-      <button onclick="executarApagar()" style="width:100%;padding:15px;background:var(--red2);color:#fff;border:none;border-radius:13px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px">🗑️ Apagar Selecionados</button>
-      <button onclick="fecharBackup()" style="width:100%;padding:13px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:13px;font-size:14px;font-weight:600;cursor:pointer">Cancelar</button>
-    </div>`;
-  document.body.appendChild(modal);
-  modal.addEventListener('click',e=>{if(e.target===modal)fecharBackup()});
+            <!-- Filtros Relatório Folha -->
+            <div id="filtrosRelatorioFolha" style="display:none">
+                <div class="form-row">
+                    <label for="mesFolha">📅 Mês/Ano:</label>
+                    <input type="month" id="mesFolha" required>
+                </div>
+                <button class="btn-primary" onclick="gerarListaFolhaPagamento()">
+                    📋 Gerar Folha de Pagamento
+                </button>
+            </div>
 
-  window._bkpTabelas=tabelas;
-  window._bkpSenha=SENHA_BACKUP;
-};
+            <!-- Filtros Relatório Armações -->
+            <div id="filtrosRelatorioArmacoes" style="display:none">
+                <div class="form-row">
+                    <label for="dataInicioArm">Data Início:</label>
+                    <input type="date" id="dataInicioArm">
+                </div>
+                <div class="form-row">
+                    <label for="dataFimArm">Data Fim:</label>
+                    <input type="date" id="dataFimArm">
+                </div>
+                <div class="form-row">
+                    <label for="filtroModeloArm">Modelo:</label>
+                    <select id="filtroModeloArm">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <button class="btn-primary" onclick="gerarRelatorio()">
+                    📊 Gerar Relatório
+                </button>
+            </div>
 
-window.fecharBackup=function(){
-  document.getElementById('backupModal')?.remove();
-};
+            <!-- Resultado Relatório Geral -->
+            <div id="resultadoRelatorioGeral">
+                <h3>📈 Produção
+                    <button class="btn-apagar" onclick="apagarProducaoSelecionada()">
+                        🗑️ Apagar Selecionada
+                    </button>
+                </h3>
+                <table id="tabelaRelatorio">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;">
+                                <input type="checkbox" id="selecionarTodos" 
+                                       onchange="selecionarTodasProducoes(this.checked)">
+                            </th>
+                            <th>Data</th>
+                            <th>Funcionário</th>
+                            <th>Modelo</th>
+                            <th>Cor</th>
+                            <th>Qtd</th>
+                            <th>Hora Extra</th>
+                            <th>Valor Unit.</th>
+                            <th>Valor Total</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="8" style="text-align:right;font-weight:bold">
+                                Total Geral:
+                            </td>
+                            <td id="totalGeral" class="valor">R$ 0,00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                
+                <div class="text-center mt-20">
+                    <button class="btn-primary" onclick="exportarDados()">
+                        📤 Exportar Produção CSV
+                    </button>
+                </div>
+            </div>
 
-window.executarApagar=async function(){
-  const senha=document.getElementById('bkpSenha').value;
-  if(senha!==window._bkpSenha){
-    toast('❌ Senha incorreta','error');
-    document.getElementById('bkpSenha').style.borderColor='var(--red2)';
-    return;
-  }
-  const selecionadas=window._bkpTabelas.filter(t=>document.getElementById('bkp_'+t.id)?.checked);
-  const local=document.getElementById('bkp_local')?.checked;
-  if(!selecionadas.length&&!local){toast('Selecione ao menos uma opção','warn');return}
+            <!-- Resultado Relatório Modelos -->
+            <div id="resultadoRelatorioModelos" style="display:none">
+                <h3>📊 Produção por Modelos e Cores</h3>
+                <table id="tabelaRelatorioModelos">
+                    <thead>
+                        <tr>
+                            <th>Modelo</th>
+                            <th>Cor</th>
+                            <th>Quantidade Total</th>
+                            <th>Valor Unitário</th>
+                            <th>Valor Total</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="4" style="text-align:right;font-weight:bold">
+                                Total Geral:
+                            </td>
+                            <td id="totalGeralModelos" class="valor">R$ 0,00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
 
-  const nomes=selecionadas.map(t=>t.label).join(', ')+(local?' + Cache local':'');
-  if(!confirm(`⚠️ Confirmar apagar permanentemente:\n\n${nomes}\n\nEsta ação não pode ser desfeita!`))return;
+            <!-- Resultado Relatório Estoque -->
+            <div id="resultadoRelatorioEstoque" style="display:none">
+                <h3>📦 Movimentações de Estoque</h3>
+                <table id="tabelaRelatorioEstoque">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Tipo</th>
+                            <th>Modelo</th>
+                            <th>Cor</th>
+                            <th>Quantidade</th>
+                            <th>Origem/Obs.</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="4" style="text-align:right;font-weight:bold">
+                                Saldo do Período:
+                            </td>
+                            <td id="saldoPeriodo" class="valor" colspan="2">0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <div class="text-center mt-20">
+                    <button class="btn-primary" onclick="exportarEstoqueCSV()">
+                        📤 Exportar Estoque CSV
+                    </button>
+                </div>
+            </div>
 
-  fecharBackup();
-  showLoad('Apagando dados...');
-  let erros=0;
+            <!-- Resultado Relatório Folha -->
+            <div id="resultadoRelatorioFolha" style="display:none">
+                <h3>📋 Folha de Pagamento</h3>
+                <div id="resumoFolhaPagamento">
+                    <p>Selecione o mês e clique em "Gerar Folha de Pagamento" para visualizar a lista de funcionários.</p>
+                </div>
+                <div id="tabelaFolhaPagamento" style="margin-top: 30px;"></div>
+            </div>
 
-  // Apagar tabelas no Supabase
-  for(const t of selecionadas){
-    try{
-      if(!S.sb||!S.online)throw new Error('Sem conexão');
-      const{error}=await S.sb.from(t.id).delete().neq('id',0);
-      if(error)throw error;
-      // Limpa estado local
-      const map={Producoes:'producoes',Movimentacoes:'movimentacoes',Armacoes:'armacoes',EstoqueArmacoes:'estoqueArmacoes',Pecas:'pecas',Cores:'cores',Funcionarios:'funcionarios'};
-      if(map[t.id])S[map[t.id]]=[];
-    }catch(e){console.error('Erro ao apagar '+t.id,e);erros++}
-  }
+            <!-- Resultado Relatório Armações -->
+            <div id="resultadoRelatorioArmacoes" style="display:none">
+                <h3>🔩 Relatório de Armações</h3>
+                
+                <div id="resumoArmacoes"></div>
+                
+                <h3>📋 Detalhamento por Dia</h3>
+                <table id="tabelaRelatorioArmacoes">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Dia da Semana</th>
+                            <th>Modelo</th>
+                            <th>Quantidade</th>
+                            <th>Acumulado do Modelo</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" style="text-align:right;font-weight:bold">Total Geral:</td>
+                            <td id="totalArmacoesPeriodo" class="valor">0</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+                
+                <div class="text-center mt-20">
+                    <button class="btn-primary" onclick="exportarRelatorioArmacoes()">
+                        📤 Exportar Relatório CSV
+                    </button>
+                </div>
+            </div>
+        </div>
 
-  // Apagar cache local
-  if(local){
-    try{
-      if(S.idb){S.idb.close();S.idb=null}
-      for(const db of['syscad_m','SysCadeiras']){
-        await new Promise(r=>{const q=indexedDB.deleteDatabase(db);q.onsuccess=r;q.onerror=r;q.onblocked=r});
-      }
-      localStorage.clear();sessionStorage.clear();
-    }catch(e){erros++}
-  }
+        <!-- SEÇÃO: BACKUP E SEGURANÇA -->
+        <div id="backup" class="section">
+            <h2>💾 Backup e Segurança</h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 20px;">
+                
+                <!-- Card: Backup do Banco -->
+                <div style="background: #f8f9fa; padding: 25px; border-radius: 10px; border-left: 5px solid #3498db;">
+                    <h3 style="margin-top: 0; color: #2c3e50;">📦 Backup do Banco</h3>
+                    <p style="color: #7f8c8d; margin-bottom: 20px;">
+                        Cria uma cópia completa do banco de dados SQLite com otimização (VACUUM).
+                    </p>
+                    <button class="btn-primary" onclick="criarBackup()" style="width: 100%;">
+                        🔵 Fazer Backup Agora
+                    </button>
+                </div>
+                
+                <!-- Card: Restaurar Backup -->
+                <div style="background: #f8f9fa; padding: 25px; border-radius: 10px; border-left: 5px solid #e74c3c;">
+                    <h3 style="margin-top: 0; color: #2c3e50;">🔄 Restaurar Backup</h3>
+                    <p style="color: #7f8c8d; margin-bottom: 20px;">
+                        Restaura um backup anterior (.db). O sistema será reiniciado automaticamente.
+                    </p>
+                    <button class="btn-primary" onclick="restaurarBackup()" style="width: 100%; background: #e74c3c;">
+                        🔴 Restaurar Backup
+                    </button>
+                </div>
+                
+                <!-- Card: Exportar JSON -->
+                <div style="background: #f8f9fa; padding: 25px; border-radius: 10px; border-left: 5px solid #27ae60;">
+                    <h3 style="margin-top: 0; color: #2c3e50;">📄 Exportar para JSON</h3>
+                    <p style="color: #7f8c8d; margin-bottom: 20px;">
+                        Exporta todos os dados do sistema para formato JSON (legível).
+                    </p>
+                    <button class="btn-primary" onclick="exportarJSON()" style="width: 100%; background: #27ae60;">
+                        🟢 Exportar JSON
+                    </button>
+                </div>
+                
+                <!-- Card: Importar JSON -->
+                <div style="background: #f8f9fa; padding: 25px; border-radius: 10px; border-left: 5px solid #f39c12;">
+                    <h3 style="margin-top: 0; color: #2c3e50;">📂 Importar JSON</h3>
+                    <p style="color: #7f8c8d; margin-bottom: 20px;">
+                        Importa dados de um arquivo JSON previamente exportado.
+                    </p>
+                    <button class="btn-primary" onclick="importarJSON()" style="width: 100%; background: #f39c12;">
+                        🟡 Importar JSON
+                    </button>
+                </div>
 
-  hideLoad();
-  if(erros>0){
-    toast(`⚠️ Concluído com ${erros} erro(s)`, 'warn');
-  }else{
-    toast('✅ Dados apagados com sucesso!','success');
-  }
+                <!-- Card: Apagar Todos os Dados (CORRIGIDO COM ID) -->
+                <div style="background: #f8f9fa; padding: 25px; border-radius: 10px; border-left: 5px solid #e74c3c;">
+                    <h3 style="margin-top: 0; color: #2c3e50;">⚠️ Apagar Todos os Dados</h3>
+                    <p style="color: #7f8c8d; margin-bottom: 20px;">
+                        Remove TODOS os registros do sistema. Esta ação é irreversível!
+                    </p>
+                    <button id="btnApagarTodosDados" class="btn-primary" onclick="apagarTodosDados()" style="width: 100%; background: #e74c3c;">
+                        🗑️ Apagar Todos os Dados
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Informações -->
+            <div style="margin-top: 30px; background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                <h3 style="margin-top: 0; color: #2c3e50;">📋 Informações</h3>
+                <div id="backupInfo" style="color: #7f8c8d; font-size: 14px;">
+                    <p>⚡ O backup cria uma cópia exata do banco de dados SQLite.</p>
+                    <p>🔧 O comando VACUUM é executado automaticamente para otimizar o arquivo.</p>
+                    <p>📅 Os arquivos são nomeados como: backup-YYYY-MM-DD.db</p>
+                    <p>⚠️ Ao restaurar, o sistema reinicia automaticamente.</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
-  // Re-renderiza tudo
-  fillSelects();renderProdHoje();renderEstoque();renderSaidas();renderArmacoes();atualizarHome();
+    <!-- Comprovante de Saída -->
+    <div id="comprovanteSaida" class="comprovante-saida oculto">
+        <div class="comprovante-header">
+            <h2>COMPROVANTE DE SAÍDA</h2>
+            <p>SysCadeiras - Controle de Estoque</p>
+        </div>
+        
+        <div class="comprovante-detalhes">
+            <div class="comprovante-item">
+                <strong>📅 Data:</strong> <span id="compData"></span>
+            </div>
+            <div class="comprovante-item">
+                <strong>🪑 Modelo:</strong> <span id="compPeca"></span>
+            </div>
+            <div class="comprovante-item">
+                <strong>🎨 Cor:</strong> <span id="compCor"></span>
+            </div>
+            <div class="comprovante-item">
+                <strong>📊 Quantidade:</strong> <span id="compQuantidade"></span>
+            </div>
+            <div class="comprovante-item">
+                <strong>📝 Observação:</strong> <span id="compObs"></span>
+            </div>
+        </div>
+        
+        <div class="comprovante-total">
+            <p>✅ SAÍDA REGISTRADA NO SISTEMA</p>
+        </div>
+        
+        <div class="botoes-comprovante">
+            <button class="btn-primary" onclick="fecharComprovante()">❌ Fechar</button>
+            <button class="btn-primary" onclick="salvarComprovante('saida')">💾 Salvar Comprovante</button>
+        </div>
+    </div>
 
-  if(local){
-    setTimeout(()=>window.location.reload(true),2000);
-  }
-};
+    <!-- Comprovante de Produção -->
+    <div id="comprovanteProducao" class="comprovante-producao oculto">
+        <div class="comprovante-header">
+            <h2>PEDIDO DE PRODUÇÃO</h2>
+            <p>SysCadeiras - Itens em Falta no Estoque</p>
+        </div>
+        
+        <div class="comprovante-detalhes" id="detalhesProducao"></div>
+        
+        <div class="comprovante-total">
+            <p>🔄 PRODUÇÃO NECESSÁRIA PARA REPOR ESTOQUE</p>
+        </div>
+        
+        <div class="botoes-comprovante">
+            <button class="btn-primary" onclick="fecharComprovanteProducao()">❌ Fechar</button>
+            <button class="btn-primary" onclick="salvarComprovante('producao')">💾 Salvar Pedido</button>
+        </div>
+    </div>
 
-// BOOT
-async function boot(){
-  await openIDB();
-  await initSB();
-  updBadge();
-  if(S.demo)document.getElementById('demoBox').style.display='block';
-}
-boot();
-</script>
+    <!-- Botão Instalar PWA -->
+    <button id="btnInstall" class="btn-install">📲</button>
+
+    <script src="script.js"></script>
 </body>
 </html>
