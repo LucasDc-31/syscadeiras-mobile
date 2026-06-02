@@ -141,11 +141,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
 .hi-s{font-size:11px;color:var(--muted)}
 .hi-q{font-size:18px;font-weight:800;color:#fff;flex-shrink:0}
 .hi-q.neg{color:var(--red2)}
-.hbadge{display:inline-block;font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;margin-left:5px;vertical-align:middle}
-.hb-off{background:rgba(243,156,18,.2);color:var(--amber)}
-.hb-syn{background:rgba(46,204,113,.2);color:var(--green2)}
-
-/* MOB TABLE */
+.badge-he{background:rgba(243,156,18,.15);color:var(--amber);font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px}
 .mob-row{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:8px}
 .mob-rh{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .mob-rt{font-size:14px;font-weight:700;color:var(--text)}
@@ -230,13 +226,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
       <div class="ico">🪑</div>
       <div><h1>SysCadeiras</h1><small id="userLbl">Operador</small></div>
     </div>
-    <div style="display:flex;align-items:center;gap:6px">
-      <button class="rbtn" id="rBtn" onclick="atualizarTudo()" title="Atualizar dados">🔄</button>
-      <div id="arBadge" style="display:flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:4px 9px;font-size:10px;font-weight:700;color:var(--muted)">
-        <span style="color:var(--green2);font-size:9px">⏱</span>
-        <span id="arCountdown" style="color:var(--text);min-width:18px;text-align:right">20s</span>
-        <button id="arToggleBtn" onclick="arToggle()" title="Pausar auto-refresh" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:10px;padding:0 0 0 2px;line-height:1">⏸</button>
-      </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="rbtn" id="rBtn" onclick="abrirBackup()" title="Backup / Apagar dados" style="font-size:18px">🗄️</button>
       <div class="sbadge on" id="sBadge"><div class="dot"></div><span id="sTxt">Online</span></div>
     </div>
   </div>
@@ -553,11 +544,6 @@ function idbAdd(store,data){return new Promise((res,rej)=>{const tx=S.idb.transa
 function idbAll(store){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readonly');const req=tx.objectStore(store).getAll();req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error)})}
 function idbDel(store,id){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readwrite');const req=tx.objectStore(store).delete(id);req.onsuccess=res;req.onerror=()=>rej(req.error)})}
 function idbClear(store){return new Promise((res,rej)=>{const tx=S.idb.transaction([store],'readwrite');const req=tx.objectStore(store).clear();req.onsuccess=res;req.onerror=()=>rej(req.error)})}
-async function purgeHistAntigo(){
-  const hoje=new Date();hoje.setHours(0,0,0,0);const corte=hoje.getTime();
-  const all=await idbAll('hist');
-  for(const it of all){if(it.ts<corte)await idbDel('hist',it.id)}
-}
 
 async function updOQ(){
   const fila=await idbAll('fila');const n=fila.length;
@@ -610,135 +596,58 @@ async function carregarDados(){
   hideLoad();
 }
 
+let _rtChannel=null;
 function updRtBadge(status){
-  // status: 'connecting' | 'live' | 'error'
   const badge=document.getElementById('sBadge');
   const dot=badge?.querySelector('.dot');
   const txt=document.getElementById('sTxt');
-  const arB=document.getElementById('arBadge');
   if(status==='live'){
-    if(dot)dot.style.background='var(--green2)';
+    if(dot){dot.style.background='var(--green2)';dot.style.animation='pulse 2s infinite'}
     if(txt)txt.textContent='Ao Vivo';
-    if(arB)arB.title='Realtime ativo — auto-refresh em standby';
-    // Quando realtime está ativo, pausamos o auto-refresh (é redundante)
-    arStop();
-    const arEl=document.getElementById('arCountdown');
-    if(arEl)arEl.textContent='RT';
-    const arBtn=document.getElementById('arToggleBtn');
-    if(arBtn)arBtn.style.display='none';
+    badge.className='sbadge on';
   }else if(status==='connecting'){
     if(dot){dot.style.background='var(--amber)';dot.style.animation='none'}
     if(txt)txt.textContent='Conectando';
   }else{
-    // error — volta para auto-refresh
     if(dot){dot.style.background='var(--muted)';dot.style.animation='none'}
     if(txt)txt.textContent='Online';
-    const arEl=document.getElementById('arCountdown');
-    if(arEl)arEl.textContent='20s';
-    const arBtn=document.getElementById('arToggleBtn');
-    if(arBtn)arBtn.style.display='';
-    if(S.online&&S.sb&&!S.demo)arStart();
+    badge.className='sbadge on';
   }
-}
-
-let _rtChannel=null;
-async function diagRealtime(){
-  // Verifica se as tabelas estão na publication
-  try{
-    const{data}=await S.sb.rpc('check_rt_tables').catch(()=>({data:null}));
-    if(!data){
-      // rpc não existe, tenta query direta
-      const{data:rows}=await S.sb
-        .from('pg_publication_tables')
-        .select('tablename')
-        .eq('pubname','supabase_realtime')
-        .catch(()=>({data:null}));
-      if(rows)console.log('[RT] Tabelas na publication:',rows.map(r=>r.tablename));
-      else console.log('[RT] Não foi possível verificar pg_publication_tables (normal em projetos com RLS)');
-    }
-  }catch(e){}
-  // Verifica sessão ativa
-  const{data:{session}}=await S.sb.auth.getSession();
-  console.log('[RT] Sessão ativa:', session?`user: ${session.user.email}`:'❌ SEM SESSÃO — isso bloqueia o Realtime!');
 }
 function iniciarRealtime(){
   if(!S.sb)return;
-  diagRealtime(); // diagnóstico no console
-  if(_rtChannel){try{S.sb.removeChannel(_rtChannel)}catch(e){};_rtChannel=null}
+  if(_rtChannel){try{S.sb.removeChannel(_rtChannel)}catch(e){}_rtChannel=null}
   updRtBadge('connecting');
-
-  const flash=()=>{
-    // pisca levemente a topbar para sinalizar dado novo
-    const tb=document.querySelector('.topbar');
-    if(!tb)return;
-    tb.style.transition='background .15s';
-    tb.style.background='rgba(39,174,96,.18)';
-    setTimeout(()=>{tb.style.background=''},400);
-  };
-
-  _rtChannel=S.sb.channel('mob-rt-v2',{config:{broadcast:{self:false}}})
-    .on('postgres_changes',{event:'*',schema:'public',table:'Producoes'},async(payload)=>{
-      await reloadT('Producoes');
-      if(payload.eventType==='DELETE'){S.producoes=S.producoes.filter(r=>r.id!==payload.old?.id);await idbClear('hist')}
-      renderProdHoje();atualizarHome();flash();
-      if(payload.eventType==='INSERT')toast('🏭 Produção registrada pelo desktop','info');
-      if(payload.eventType==='DELETE')toast('🗑 Produção removida pelo desktop','warn');
+  const flash=()=>{const tb=document.querySelector('.topbar');if(!tb)return;tb.style.transition='background .15s';tb.style.background='rgba(39,174,96,.18)';setTimeout(()=>{tb.style.background=''},400)};
+  _rtChannel=S.sb.channel('mob-rt-v4',{config:{broadcast:{self:false}}})
+    .on('postgres_changes',{event:'*',schema:'public',table:'Producoes'},async(p)=>{
+      await reloadT('Producoes');renderProdHoje();atualizarHome();flash();
+      if(p.eventType==='INSERT')toast('🏭 Produção atualizada','info');
+      if(p.eventType==='DELETE')toast('🗑 Produção removida','warn');
     })
-    .on('postgres_changes',{event:'*',schema:'public',table:'Movimentacoes'},async(payload)=>{
-      await reloadT('Movimentacoes');
-      if(payload.eventType==='DELETE'){S.movimentacoes=S.movimentacoes.filter(r=>r.id!==payload.old?.id);await idbClear('hist')}
-      renderEstoque();renderSaidas();atualizarHome();flash();
-      if(payload.eventType==='INSERT')toast(`📦 Nova movimentação: ${payload.new?.tipo||''}`.trim(),'info');
-      if(payload.eventType==='DELETE')toast('🗑 Movimentação removida','warn');
+    .on('postgres_changes',{event:'*',schema:'public',table:'Movimentacoes'},async(p)=>{
+      await reloadT('Movimentacoes');renderEstoque();renderSaidas();atualizarHome();flash();
+      if(p.eventType==='DELETE')toast('🗑 Movimentação removida','warn');
     })
-    .on('postgres_changes',{event:'*',schema:'public',table:'Pecas'},async()=>{
-      await reloadT('Pecas');fillSelects();renderEstoque();flash();
-      toast('🪑 Modelos atualizados','info');
-    })
-    .on('postgres_changes',{event:'*',schema:'public',table:'Cores'},async()=>{
-      await reloadT('Cores');fillSelects();flash();
-      toast('🎨 Cores atualizadas','info');
-    })
-    .on('postgres_changes',{event:'*',schema:'public',table:'Funcionarios'},async()=>{
-      await reloadT('Funcionarios');fillSelects();flash();
-      toast('👤 Funcionários atualizados','info');
-    })
-    .on('postgres_changes',{event:'*',schema:'public',table:'Armacoes'},async(payload)=>{
+    .on('postgres_changes',{event:'*',schema:'public',table:'Pecas'},async()=>{await reloadT('Pecas');fillSelects();renderEstoque();flash()})
+    .on('postgres_changes',{event:'*',schema:'public',table:'Cores'},async()=>{await reloadT('Cores');fillSelects();flash()})
+    .on('postgres_changes',{event:'*',schema:'public',table:'Funcionarios'},async()=>{await reloadT('Funcionarios');fillSelects();flash()})
+    .on('postgres_changes',{event:'*',schema:'public',table:'Armacoes'},async(p)=>{
       await reloadT('Armacoes');await reloadT('EstoqueArmacoes');renderArmacoes();atualizarHome();flash();
-      if(payload.eventType==='INSERT')toast('🔩 Nova chegada de armação','info');
+      if(p.eventType==='INSERT')toast('🔩 Armação registrada','info');
+      if(p.eventType==='DELETE')toast('🗑 Armação removida','warn');
     })
-    .on('postgres_changes',{event:'*',schema:'public',table:'EstoqueArmacoes'},async()=>{
-      await reloadT('EstoqueArmacoes');renderArmacoes();renderEstoque();
-    })
-    .subscribe(async(status,err)=>{
-      console.log('[RT] status:', status, err||'');
-      if(status==='SUBSCRIBED'){
-        updRtBadge('live');
-        refreshTudo(); // sincroniza estado atual ao conectar
-        console.log('[RT] ✅ Canal ativo — atualizações em tempo real');
-      }else if(status==='CHANNEL_ERROR'){
+    .on('postgres_changes',{event:'*',schema:'public',table:'EstoqueArmacoes'},async()=>{await reloadT('EstoqueArmacoes');renderArmacoes();renderEstoque()})
+    .subscribe((status,err)=>{
+      console.log('[RT]',status,err||'');
+      if(status==='SUBSCRIBED')updRtBadge('live');
+      else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
         updRtBadge('error');
-        console.error('[RT] ❌ Erro no canal:', err);
         setTimeout(()=>{if(S.online&&S.sb&&!S.demo)iniciarRealtime()},5000);
-      }else if(status==='TIMED_OUT'){
-        updRtBadge('error');
-        console.warn('[RT] ⏱ Timeout, reconectando em 5s…');
-        setTimeout(()=>{if(S.online&&S.sb&&!S.demo)iniciarRealtime()},5000);
-      }else if(status==='CLOSED'){
-        updRtBadge('error');
-        console.warn('[RT] Canal fechado');
-      }
+      }else if(status==='CLOSED')updRtBadge('error');
     });
 }
 
-async function refreshTudo(){
-  await Promise.all([
-    reloadT('Producoes'),reloadT('Movimentacoes'),
-    reloadT('Pecas'),reloadT('Cores'),
-    reloadT('Funcionarios'),reloadT('Armacoes'),reloadT('EstoqueArmacoes')
-  ]);
-  fillSelects();renderProdHoje();renderEstoque();renderSaidas();renderArmacoes();atualizarHome();
-}
 async function reloadT(tabela){
   if(!S.sb)return;
   const map={Pecas:'pecas',Cores:'cores',Funcionarios:'funcionarios',Producoes:'producoes',Movimentacoes:'movimentacoes',Armacoes:'armacoes',EstoqueArmacoes:'estoqueArmacoes'};
@@ -780,8 +689,6 @@ function iniciarApp(){
   atualizarHome();
   if(S.sb)iniciarRealtime();
   updOQ();
-  // auto-refresh é fallback — iniciarRealtime() o pausará se RT conectar
-  if(S.sb&&!S.demo)arStart();
 }
 
 function fillSelects(){
@@ -812,13 +719,19 @@ async function atualizarHome(){
   document.getElementById('gTxt').textContent=`${sd}, ${(S.user?.nome||'Operador').split(' ')[0]}! 👋`;
   document.getElementById('gDate').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
   const hoje=hojeISO();
-  const ph=S.producoes.filter(p=>(p.data||'').substring(0,10)===hoje).reduce((a,p)=>a+(parseInt(p.quantidade)||0),0);
+  const ph=S.producoes.filter(p=>p.data===hoje).reduce((a,p)=>a+(parseInt(p.quantidade)||0),0);
   document.getElementById('sHoje').textContent=ph||'0';
   document.getElementById('sTotal').textContent=S.producoes.reduce((a,p)=>a+(parseInt(p.quantidade)||0),0);
   document.getElementById('sFunc').textContent=S.funcionarios.length;
   document.getElementById('sMov').textContent=S.movimentacoes.length;
-  const hist=await idbAll('hist');
-  const last=hist.sort((a,b)=>b.ts-a.ts).slice(0,5);
+  // Últimos lançamentos direto do estado Supabase — sem cache local
+  const gid=v=>v.pecaid??v.pecaId;const gic=v=>v.corid??v.corId;
+  const gif=v=>v.funcionarioid??v.funcionarioId;const gim=v=>v.modeloid??v.modeloId;
+  const gts=v=>{try{return new Date(v.created_at||v.data+'T00:00:00').getTime()}catch{return 0}};
+  const ultProd=(S.producoes||[]).slice(0,5).map(r=>({tipo:'prod',desc:(S.pecas.find(p=>p.id===gid(r))?.nome||'?')+' · '+(S.cores.find(c=>c.id===gic(r))?.nome||'?'),sub:S.funcionarios.find(f=>f.id===gif(r))?.nome||'',qtd:r.quantidade,ts:gts(r)}));
+  const ultMov=(S.movimentacoes||[]).filter(r=>r.tipo==='saida').slice(0,5).map(r=>({tipo:'saida',desc:(S.pecas.find(p=>p.id===gid(r))?.nome||'?')+' · '+(S.cores.find(c=>c.id===gic(r))?.nome||'?'),sub:r.obs||r.origem||'',qtd:r.quantidade,ts:gts(r)}));
+  const ultArm=(S.armacoes||[]).slice(0,3).map(r=>({tipo:'arm',desc:'Armação: '+(S.pecas.find(p=>p.id===gim(r))?.nome||'?'),sub:'Chegada',qtd:r.quantidade,ts:gts(r)}));
+  const last=[...ultProd,...ultMov,...ultArm].sort((a,b)=>b.ts-a.ts).slice(0,5);
   document.getElementById('homeHist').innerHTML=last.length?last.map(histRow).join(''):'<div class="empty"><p>Nenhum lançamento ainda</p></div>';
   await updOQ();
 }
@@ -826,10 +739,8 @@ async function atualizarHome(){
 function histRow(it){
   const isProd=it.tipo==='prod';const isAr=it.tipo==='arm';
   const hora=new Date(it.ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  const badge=it.sync?'<span class="hbadge hb-syn">✓sync</span>':'<span class="hbadge hb-off">offline</span>';
-  const cls=isProd?'ip':isAr?'ia':'is';
-  const ico=isProd?'🏭':isAr?'🔩':'📤';
-  return`<div class="hi-row"><div class="hi-ic ${cls}">${ico}</div><div class="hi-inf"><div class="hi-t">${it.desc||'–'}${badge}</div><div class="hi-s">${it.sub||''} · ${hora}</div></div><div class="hi-q${isProd||isAr?'':' neg'}">${isProd||isAr?'+':'–'}${it.qtd}</div></div>`;
+  const cls=isProd?'ip':isAr?'ia':'is';const ico=isProd?'🏭':isAr?'🔩':'📤';
+  return`<div class="hi-row"><div class="hi-ic ${cls}">${ico}</div><div class="hi-inf"><div class="hi-t">${it.desc||'–'}</div><div class="hi-s">${it.sub||''} · ${hora}</div></div><div class="hi-q${isProd||isAr?'':' neg'}">${isProd||isAr?'+':'–'}${it.qtd}</div></div>`;
 }
 
 // NUMPAD
@@ -908,18 +819,15 @@ window.salvarProducao=async function(){
         await sbInsert('Movimentacoes',{data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,origem:'Produção',producaoid:r?.id,funcionarioid:funcId,device_origin:'mobile'});
         const eaArm=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);
         const nova=(eaArm?.quantidade||0)-it.quantidade;
-        if(eaArm){await sbUpdate('EstoqueArmacoes',eaArm.id,{quantidade:nova});eaArm.quantidade=nova;}
+        if(eaArm)await sbUpdate('EstoqueArmacoes',eaArm.id,{quantidade:nova});
         else await sbInsert('EstoqueArmacoes',{modeloid:it.pecaId,quantidade:-it.quantidade});
-        S.producoes.unshift({...dados,id:r?.id,pecaid:it.pecaId,corid:it.corId,funcionarioid:funcId,horaextra:it.horaExtra?1:0});
-        S.movimentacoes.unshift({data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,id:Date.now()});
+        // Realtime atualiza o estado — não mutamos localmente
       }else{
         await idbAdd('fila',{tipo:'producao',dados,movDados:{data,tipo:'entrada',pecaId:it.pecaId,corId:it.corId,quantidade:it.quantidade,origem:'Produção',funcionarioId:funcId},ts:Date.now(),key:crypto.randomUUID()});
         S.producoes.unshift({...dados,id:Date.now(),pecaid:it.pecaId,corid:it.corId,funcionarioid:funcId});
         S.movimentacoes.unshift({data,tipo:'entrada',pecaid:it.pecaId,corid:it.corId,quantidade:it.quantidade,id:Date.now()});
+        const eaLocal=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);if(eaLocal)eaLocal.quantidade-=it.quantidade;
       }
-      const eaLocal=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===it.pecaId);if(eaLocal)eaLocal.quantidade-=it.quantidade;
-      const func=byId(S.funcionarios,funcId);const peca=byId(S.pecas,it.pecaId);const cor=byId(S.cores,it.corId);
-      await idbAdd('hist',{tipo:'prod',desc:`${peca?.nome||'?'} · ${cor?.nome||'?'}`,sub:func?.nome||'',qtd:it.quantidade,sync:S.online&&!S.demo,ts:Date.now()});
     }
     await updOQ();limparProd();atualizarHome();renderProdHoje();renderEstoque();
     hideLoad();toast(`✅ Produção registrada!${!S.online||S.demo?' (offline)':''}`,S.online&&!S.demo?'success':'warn');
@@ -939,7 +847,7 @@ window.limparProd=function(){
 };
 
 function renderProdHoje(){
-  const hoje=hojeISO();const prods=S.producoes.filter(p=>(p.data||'').substring(0,10)===hoje);
+  const hoje=hojeISO();const prods=S.producoes.filter(p=>p.data===hoje);
   const el=document.getElementById('prodHojeList');
   if(!prods.length){el.innerHTML='<div class="empty"><div class="ei">📋</div><p>Nenhum registro hoje</p></div>';return}
   let tot=0;
@@ -1009,9 +917,13 @@ window.salvarSaida=async function(){
   showLoad('Registrando saída...');
   const p=byId(S.pecas,pecaId);const c=byId(S.cores,corId);
   try{
-    if(!S.demo&&S.sb&&S.online){await sbInsert('Movimentacoes',dados);S.movimentacoes.unshift({...dados,pecaId,corId,id:Date.now()});}
-    else{await idbAdd('fila',{tipo:'saida',dados,ts:Date.now(),key:crypto.randomUUID()});S.movimentacoes.unshift({...dados,pecaId,corId,id:Date.now()});}
-    await idbAdd('hist',{tipo:'saida',desc:`${p?.nome||'?'} · ${c?.nome||'?'}`,sub:obs||'',qtd:quantidade,sync:S.online&&!S.demo,ts:Date.now()});
+    if(!S.demo&&S.sb&&S.online){
+      await sbInsert('Movimentacoes',dados);
+      // Realtime atualiza o estado
+    }else{
+      await idbAdd('fila',{tipo:'saida',dados,ts:Date.now(),key:crypto.randomUUID()});
+      S.movimentacoes.unshift({...dados,pecaId,corId,id:Date.now()});
+    }
     await updOQ();limparSaida();renderEstoque();renderSaidas();atualizarHome();
     hideLoad();toast(`✅ Saída registrada!${!S.online||S.demo?' (offline)':''}`,S.online&&!S.demo?'success':'warn');
     if(navigator.vibrate)navigator.vibrate([50,50,100]);
@@ -1049,18 +961,16 @@ window.salvarArmacao=async function(){
     if(!S.demo&&S.sb&&S.online){
       await sbInsert('Armacoes',dadosArm);
       const eaArm2=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===modeloId);
-      const saldoAtual=eaArm2?.quantidade||0;
-      const novoSaldo=saldoAtual+quantidade;
-      if(eaArm2){await sbUpdate('EstoqueArmacoes',eaArm2.id,{quantidade:novoSaldo});eaArm2.quantidade=novoSaldo;}
-      else{await sbInsert('EstoqueArmacoes',{modeloid:modeloId,quantidade:novoSaldo});S.estoqueArmacoes.push({modeloid:modeloId,quantidade:novoSaldo});}
-      S.armacoes.unshift({...dadosArm,id:Date.now()});
+      const novoSaldo=(eaArm2?.quantidade||0)+quantidade;
+      if(eaArm2)await sbUpdate('EstoqueArmacoes',eaArm2.id,{quantidade:novoSaldo});
+      else await sbInsert('EstoqueArmacoes',{modeloid:modeloId,quantidade:novoSaldo});
+      // Realtime atualiza o estado
     }else{
       await idbAdd('fila',{tipo:'armacao',dados:dadosArm,ts:Date.now(),key:crypto.randomUUID()});
       S.armacoes.unshift({...dadosArm,id:Date.now()});
       const eaOffline=S.estoqueArmacoes.find(e=>(e.modeloid??e.modeloId)===modeloId);
       if(eaOffline){eaOffline.quantidade+=quantidade;}else S.estoqueArmacoes.push({modeloid:modeloId,quantidade});
     }
-    await idbAdd('hist',{tipo:'arm',desc:`Armação: ${p?.nome||'?'}`,sub:'Chegada',qtd:quantidade,sync:S.online&&!S.demo,ts:Date.now()});
     document.getElementById('aData').value=hojeISO();document.getElementById('aModelo').value='';
     S.aNum='0';document.getElementById('aVal').textContent='0';document.getElementById('aVal').classList.add('ph');document.getElementById('aDisp').classList.remove('has');
     await updOQ();renderArmacoes();atualizarHome();
@@ -1125,7 +1035,7 @@ window.relAba=function(aba,btn){
   document.querySelectorAll('#relPills .pill').forEach(p=>p.classList.remove('active'));btn.classList.add('active');
   ['Geral','Modelos','Estoque','Folha','Armacoes'].forEach(a=>{document.getElementById('rel'+a).style.display=aba===a.toLowerCase()?'block':'none'});
 };
-function filtrarProd(ini,fim,fId,pId,cId){return S.producoes.filter(p=>{if(ini&&p.data<ini)return false;if(fim&&p.data>fim)return false;if(fId&&(p.funcionarioid??p.funcionarioId)!=fId)return false;if(pId&&(p.pecaid??p.pecaId)!=pId)return false;if(cId&&(p.corid??p.corId)!=cId)return false;return true})}
+function filtrarProd(ini,fim,fId,pId,cId){return S.producoes.filter(p=>{if(ini&&p.data<ini)return false;if(fim&&p.data>fim)return false;if(fId&&p.funcionarioId!=fId)return false;if(pId&&p.pecaId!=pId)return false;if(cId&&p.corId!=cId)return false;return true})}
 window.gerarRelGeral=function(){
   const ini=document.getElementById('rg_ini').value,fim=document.getElementById('rg_fim').value;
   const fId=document.getElementById('rg_func').value,pId=document.getElementById('rg_peca').value,cId=document.getElementById('rg_cor').value;
@@ -1149,7 +1059,7 @@ window.gerarRelGeral=function(){
 window.gerarRelModelos=function(){
   const ini=document.getElementById('rm_ini').value,fim=document.getElementById('rm_fim').value;
   const prods=filtrarProd(ini,fim,'','','');const el=document.getElementById('relModelosResult');
-  const agrup={};prods.forEach(p=>{const _pid=p.pecaid??p.pecaId;const _cid=p.corid??p.corId;const k=`${_pid}-${_cid}`;if(!agrup[k])agrup[k]={pecaId:_pid,corId:_cid,quantidade:0};agrup[k].quantidade+=parseInt(p.quantidade)||0});
+  const agrup={};prods.forEach(p=>{const k=`${p.pecaId}-${p.corId}`;if(!agrup[k])agrup[k]={pecaId:p.pecaId,corId:p.corId,quantidade:0};agrup[k].quantidade+=p.quantidade});
   const rows=Object.values(agrup);if(!rows.length){el.innerHTML='<div class="empty"><p>Nenhum dado</p></div>';return}
   let tot=0;
   el.innerHTML=rows.map(r=>{const p=byId(S.pecas,r.pecaId);const c=byId(S.cores,r.corId);const vt=(p?.valor||0)*r.quantidade;tot+=vt;return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span class="valor">${fmtMoeda(vt)}</span></div><div class="mob-rf"><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${r.quantidade}</strong></div></div></div>`}).join('')+`<div class="total-row"><span class="tl">Total</span><span class="tv">${fmtMoeda(tot)}</span></div>`;
@@ -1157,11 +1067,11 @@ window.gerarRelModelos=function(){
 window.gerarRelEstoque=function(){
   const ini=document.getElementById('re_ini').value,fim=document.getElementById('re_fim').value;
   const tipo=document.getElementById('re_tipo').value,pId=document.getElementById('re_peca').value;
-  let movs=S.movimentacoes.filter(m=>{if(ini&&m.data<ini)return false;if(fim&&m.data>fim)return false;if(tipo&&m.tipo!==tipo)return false;if(pId&&(m.pecaid??m.pecaId)!=pId)return false;return true});
+  let movs=S.movimentacoes.filter(m=>{if(ini&&m.data<ini)return false;if(fim&&m.data>fim)return false;if(tipo&&m.tipo!==tipo)return false;if(pId&&m.pecaId!=pId)return false;return true});
   const el=document.getElementById('relEstoqueResult');
   if(!movs.length){el.innerHTML='<div class="empty"><p>Nenhuma movimentação</p></div>';return}
   let saldo=0;
-  el.innerHTML=movs.map(m=>{const p=byId(S.pecas,m.pecaid??m.pecaId);const c=byId(S.cores,m.corid??m.corId);saldo+=m.tipo==='entrada'?m.quantidade:-m.quantidade;return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span class="${m.tipo==='entrada'?'badge-e':'badge-s'}">${m.tipo==='entrada'?'Entrada':'Saída'}</span></div><div class="mob-rf"><div class="mob-fi">Data<strong>${fmtData(m.data)}</strong></div><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${m.quantidade}</strong></div><div class="mob-fi">Origem<strong>${m.origem||'–'}</strong></div></div></div>`}).join('')+`<div class="total-row"><span class="tl">Saldo do Período</span><span class="tv" style="color:${saldo>=0?'var(--green2)':'var(--red2)'}">${saldo}</span></div>`;
+  el.innerHTML=movs.map(m=>{const p=byId(S.pecas,m.pecaId);const c=byId(S.cores,m.corId);saldo+=m.tipo==='entrada'?m.quantidade:-m.quantidade;return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span class="${m.tipo==='entrada'?'badge-e':'badge-s'}">${m.tipo==='entrada'?'Entrada':'Saída'}</span></div><div class="mob-rf"><div class="mob-fi">Data<strong>${fmtData(m.data)}</strong></div><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${m.quantidade}</strong></div><div class="mob-fi">Origem<strong>${m.origem||'–'}</strong></div></div></div>`}).join('')+`<div class="total-row"><span class="tl">Saldo do Período</span><span class="tv" style="color:${saldo>=0?'var(--green2)':'var(--red2)'}">${saldo}</span></div>`;
 };
 window.gerarFolha=function(){
   const mesAno=document.getElementById('rf_mes').value;if(!mesAno){toast('Selecione o mês/ano','error');return}
@@ -1209,18 +1119,11 @@ window.syncFila=async function(){
 
 // ONLINE/OFFLINE
 window.addEventListener('online',async()=>{S.online=true;updBadge();toast('✅ Conexão restaurada!','success');await syncFila();if(S.sb&&!S.demo)iniciarRealtime()});
-window.addEventListener('offline',()=>{S.online=false;updBadge();toast('📴 Modo offline ativo','warn');arStop();const el=document.getElementById('arCountdown');if(el)el.textContent='–'});
+window.addEventListener('offline',()=>{S.online=false;updBadge();toast('📴 Modo offline ativo','warn')});
 function updBadge(){
   const b=document.getElementById('sBadge');
-  if(!S.online){
-    b.className='sbadge off';
-    document.getElementById('sTxt').textContent='Offline';
-  }else if(_rtChannel){
-    // deixa updRtBadge cuidar quando realtime está ativo
-  }else{
-    b.className='sbadge on';
-    document.getElementById('sTxt').textContent='Online';
-  }
+  if(!S.online){b.className='sbadge off';document.getElementById('sTxt').textContent='Offline';}
+  else if(!_rtChannel){b.className='sbadge on';document.getElementById('sTxt').textContent='Online';}
 }
 
 // NAVEGAÇÃO
@@ -1248,74 +1151,124 @@ window.toast=function(msg,tipo='info'){
 function showLoad(t='Carregando...'){document.getElementById('lTxt').textContent=t;document.getElementById('lOv').classList.remove('hidden')}
 function hideLoad(){document.getElementById('lOv').classList.add('hidden')}
 
-// ATUALIZAR TUDO
-window.atualizarTudo=async function(){
-  if(!S.sb||S.demo){toast('Sem conexão com o servidor','warn');return}
-  const btn=document.getElementById('rBtn');
-  btn.classList.add('spin');
-  try{
-    await carregarDados();
-    fillSelects();
-    renderProdHoje();
-    renderEstoque();
-    renderSaidas();
-    renderArmacoes();
-    atualizarHome();
-    toast('✅ Dados atualizados!','success');
-  }catch(e){toast('❌ Erro ao atualizar','error')}
-  finally{btn.classList.remove('spin')}
+// BACKUP / APAGAR DADOS
+window.abrirBackup=function(){
+  if(document.getElementById('backupModal'))return;
+  const SENHA_BACKUP='dantas3101';
+  const tabelas=[
+    {id:'Producoes',label:'🏭 Produções'},
+    {id:'Movimentacoes',label:'📦 Movimentações'},
+    {id:'Armacoes',label:'🔩 Armações'},
+    {id:'EstoqueArmacoes',label:'🔩 Estoque de Armações'},
+    {id:'Pecas',label:'🪑 Modelos / Peças'},
+    {id:'Cores',label:'🎨 Cores'},
+    {id:'Funcionarios',label:'👤 Funcionários'},
+  ];
+  const modal=document.createElement('div');
+  modal.id='backupModal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;';
+  modal.innerHTML=`
+    <div style="width:100%;background:var(--bg2);border-radius:20px 20px 0 0;padding:24px 20px 32px;border-top:1px solid var(--border);max-height:90vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div style="font-size:17px;font-weight:800;color:#fff">🗄️ Backup & Apagar Dados</div>
+        <button onclick="fecharBackup()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1">✕</button>
+      </div>
+
+      <div style="background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.3);border-radius:12px;padding:12px 14px;margin-bottom:18px;font-size:12px;color:#e74c3c;line-height:1.6">
+        ⚠️ <strong>Atenção:</strong> Esta ação apaga dados permanentemente do servidor. Não há desfazer.
+      </div>
+
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:7px">🔒 Senha de Administrador</div>
+        <input id="bkpSenha" type="password" placeholder="Digite a senha..." style="width:100%;background:var(--bg3);border:2px solid var(--border);border-radius:12px;padding:13px 15px;font-size:15px;color:var(--text);-webkit-appearance:none">
+      </div>
+
+      <div style="margin-bottom:18px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:10px">📋 Selecione as tabelas para apagar</div>
+        ${tabelas.map(t=>`
+          <label style="display:flex;align-items:center;gap:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer">
+            <input type="checkbox" id="bkp_${t.id}" style="width:18px;height:18px;accent-color:var(--red2);flex-shrink:0">
+            <span style="font-size:14px;font-weight:600;color:var(--text)">${t.label}</span>
+          </label>`).join('')}
+        <label style="display:flex;align-items:center;gap:12px;background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.3);border-radius:10px;padding:12px 14px;margin-top:4px;cursor:pointer">
+          <input type="checkbox" id="bkp_local" style="width:18px;height:18px;accent-color:var(--amber);flex-shrink:0">
+          <span style="font-size:14px;font-weight:600;color:var(--amber)">🗑️ Cache local (IndexedDB)</span>
+        </label>
+      </div>
+
+      <button onclick="executarApagar()" style="width:100%;padding:15px;background:var(--red2);color:#fff;border:none;border-radius:13px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px">🗑️ Apagar Selecionados</button>
+      <button onclick="fecharBackup()" style="width:100%;padding:13px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:13px;font-size:14px;font-weight:600;cursor:pointer">Cancelar</button>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click',e=>{if(e.target===modal)fecharBackup()});
+
+  window._bkpTabelas=tabelas;
+  window._bkpSenha=SENHA_BACKUP;
 };
 
-// AUTO REFRESH
-let _arTimer=null,_arCount=20,_arRunning=false;
-function arTick(){
-  _arCount--;
-  const el=document.getElementById('arCountdown');
-  if(el)el.textContent=_arCount+'s';
-  if(_arCount<=0){
-    _arCount=20;
-    if(el)el.textContent='20s';
-    arRefresh();
+window.fecharBackup=function(){
+  document.getElementById('backupModal')?.remove();
+};
+
+window.executarApagar=async function(){
+  const senha=document.getElementById('bkpSenha').value;
+  if(senha!==window._bkpSenha){
+    toast('❌ Senha incorreta','error');
+    document.getElementById('bkpSenha').style.borderColor='var(--red2)';
+    return;
   }
-}
-async function arRefresh(){
-  if(_arRunning||!S.sb||S.demo||!S.online)return;
-  _arRunning=true;
-  try{
-    await carregarDados();
-    fillSelects();
-    const pagina=document.querySelector('.page.active');
-    if(pagina){
-      const id=pagina.id;
-      if(id==='pageHome')atualizarHome();
-      else if(id==='pageEstoque')renderEstoque();
-      else if(id==='pageProducao')renderProdHoje();
-      else if(id==='pageSaidas')renderSaidas();
-      else if(id==='pageArmacoes')renderArmacoes();
-    }
-    const el=document.getElementById('arLastUp');
-    if(el){const now=new Date();el.textContent=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0')+':'+now.getSeconds().toString().padStart(2,'0')}
-  }catch(e){console.warn('Auto-refresh falhou:',e)}
-  finally{_arRunning=false}
-}
-function arStart(){
-  if(_arTimer)return;
-  _arCount=20;
-  _arTimer=setInterval(arTick,1000);
-}
-function arStop(){
-  if(_arTimer){clearInterval(_arTimer);_arTimer=null}
-}
-window.arToggle=function(){
-  const btn=document.getElementById('arToggleBtn');
-  if(_arTimer){arStop();if(btn){btn.textContent='▶';btn.title='Iniciar auto-refresh'}}
-  else{arStart();if(btn){btn.textContent='⏸';btn.title='Pausar auto-refresh'}}
+  const selecionadas=window._bkpTabelas.filter(t=>document.getElementById('bkp_'+t.id)?.checked);
+  const local=document.getElementById('bkp_local')?.checked;
+  if(!selecionadas.length&&!local){toast('Selecione ao menos uma opção','warn');return}
+
+  const nomes=selecionadas.map(t=>t.label).join(', ')+(local?' + Cache local':'');
+  if(!confirm(`⚠️ Confirmar apagar permanentemente:\n\n${nomes}\n\nEsta ação não pode ser desfeita!`))return;
+
+  fecharBackup();
+  showLoad('Apagando dados...');
+  let erros=0;
+
+  // Apagar tabelas no Supabase
+  for(const t of selecionadas){
+    try{
+      if(!S.sb||!S.online)throw new Error('Sem conexão');
+      const{error}=await S.sb.from(t.id).delete().neq('id',0);
+      if(error)throw error;
+      // Limpa estado local
+      const map={Producoes:'producoes',Movimentacoes:'movimentacoes',Armacoes:'armacoes',EstoqueArmacoes:'estoqueArmacoes',Pecas:'pecas',Cores:'cores',Funcionarios:'funcionarios'};
+      if(map[t.id])S[map[t.id]]=[];
+    }catch(e){console.error('Erro ao apagar '+t.id,e);erros++}
+  }
+
+  // Apagar cache local
+  if(local){
+    try{
+      if(S.idb){S.idb.close();S.idb=null}
+      for(const db of['syscad_m','SysCadeiras']){
+        await new Promise(r=>{const q=indexedDB.deleteDatabase(db);q.onsuccess=r;q.onerror=r;q.onblocked=r});
+      }
+      localStorage.clear();sessionStorage.clear();
+    }catch(e){erros++}
+  }
+
+  hideLoad();
+  if(erros>0){
+    toast(`⚠️ Concluído com ${erros} erro(s)`, 'warn');
+  }else{
+    toast('✅ Dados apagados com sucesso!','success');
+  }
+
+  // Re-renderiza tudo
+  fillSelects();renderProdHoje();renderEstoque();renderSaidas();renderArmacoes();atualizarHome();
+
+  if(local){
+    setTimeout(()=>window.location.reload(true),2000);
+  }
 };
 
 // BOOT
 async function boot(){
   await openIDB();
-  await purgeHistAntigo();
   await initSB();
   updBadge();
   if(S.demo)document.getElementById('demoBox').style.display='block';
