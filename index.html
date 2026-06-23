@@ -16,6 +16,8 @@
   --red:#c0392b;--red2:#e74c3c;--text:#ecf0f1;--muted:#7f8c8d;
   --sb:env(safe-area-inset-bottom,0px);--st:env(safe-area-inset-top,0px)
 }
+.frase-dia{flex-shrink:0;margin-bottom:26px;font-size:12.5px;font-style:italic;color:#eafffa;background:linear-gradient(135deg,var(--green),var(--blue));padding:9px 18px;border-radius:30px;text-align:center;max-width:320px;box-shadow:0 8px 20px rgba(39,174,96,.25);animation:fraseIn .5s ease;min-height:14px}
+@keyframes fraseIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 html,body{height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI',sans-serif;font-size:15px;line-height:1.5;display:flex;flex-direction:column}
 
@@ -203,6 +205,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
   <div class="ll">🪑</div>
   <div class="lt">SysCadeiras</div>
   <div class="ls">Sistema de Controle · Chão de Fábrica</div>
+  <div class="frase-dia" id="fraseDoDia"></div>
   <div class="lcard">
     <div class="demo-box" id="demoBox">
       <strong>⚙️ Modo Demonstração Ativo</strong>
@@ -497,6 +500,53 @@ const DEMO_USERS = [
   {email:'operador@fabrica.com',senha:'1234',nome:'Operador',role:'operador'},
   {email:'admin@fabrica.com',senha:'dantas3101',nome:'Administrador',role:'admin'},
 ];
+
+const FRASES_LOGIN = [
+  "A persistência vence o talento. — Elon Musk.",
+  "“Sonhe grande, comece pequeno, aja agora.” — Jeff Bezos",
+  '“Seu tempo é limitado, não o desperdice.” — Steve Jobs',
+  '“O risco vem de não saber o que você está fazendo.” — Warren Buffett',
+  "“Fracassar é parte do processo.” — Elon Musk",
+  '“Feito é melhor que perfeito.” — Mark Zuckerberg',
+  '“Invista em você mesmo.” — Warren Buffett',
+  '“Ideias valem pouco sem execução.” — Larry Page',
+  '“A inovação distingue líderes.” — Steve Jobs',
+  '“Não tenha medo de ousar.” — Richard Branson',
+  '“Aprenda com os erros rapidamente.” — Bill Gates',
+  '“O sucesso vem da disciplina.” — Carlos Slim',
+  '“Grandes coisas levam tempo.” — Jeff Bezos',
+  '“Seja resiliente sempre.” — Elon Musk',
+  '“Trabalhe com propósito.” — Jack Ma',
+  '“Aqui é pressão todo dia, sem moleza! se foda, falou.” - Agrotaigo',
+  '“Nunca pare de aprender.” — Bill Gates',
+  '“Coragem cria oportunidades.” — Richard Branson',
+  '“Simplifique o complicado.” — Steve Jobs',
+  '"Aquietai-vos e sabei que eu sou Deus", - Salmo 46:10',
+  '“Foque no longo prazo.” — Warren Buffett',
+  '"Não temas, porque eu sou contigo; não te assombres, porque eu sou o teu Deus", - Isaías 41:10',
+  '“Execute rápido, ajuste depois.” — Mark Zuckerberg',
+  '“O fracasso ensina mais que o sucesso.” — Jack Ma',
+  '“Construa algo que importe.” — Larry Page',
+  'Bendito o homem que confia no Senhor e cuja esperança é o Senhor", - Jeremias 17:7',
+  '“Seja apaixonado pelo que faz.” — Elon Musk',
+  '“Pense diferente.” — Steve Jobs',
+  '“Comece antes de estar pronto.” — Jeff Bezos',
+  '“Ação gera resultado.” — Carlos Slim',
+  '“Disciplina supera motivação.” — Warren Buffett',
+  '“Seja útil para o mundo.” — Bill Gates',
+  '“Grandes sonhos exigem coragem.” — Richard Branson',
+  '“Quem levanta cedo já sai na frente.”',
+  '"Dor é temporária. Desistir dura para sempre", - Lance Armstrong',
+  '"Faça hoje o que os outros não fazem para ter amanhã o que os outros não têm", - Rai',
+  '"Porque para Deus nada é impossível", - Lucas 1:37',
+];
+
+function exibirFraseLogin(){
+  const el=document.getElementById('fraseDoDia');
+  if(!el)return;
+  const i=Math.floor(Math.random()*FRASES_LOGIN.length);
+  el.textContent=FRASES_LOGIN[i];
+}
 
 const S = {
   user:null,sb:null,online:navigator.onLine,
@@ -1270,6 +1320,7 @@ window.executarApagar=async function(){
 async function boot(){
   await openIDB();
   await initSB();
+  exibirFraseLogin();
   updBadge();
   if(S.demo)document.getElementById('demoBox').style.display='block';
 }
