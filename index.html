@@ -1035,7 +1035,7 @@ window.relAba=function(aba,btn){
   document.querySelectorAll('#relPills .pill').forEach(p=>p.classList.remove('active'));btn.classList.add('active');
   ['Geral','Modelos','Estoque','Folha','Armacoes'].forEach(a=>{document.getElementById('rel'+a).style.display=aba===a.toLowerCase()?'block':'none'});
 };
-function filtrarProd(ini,fim,fId,pId,cId){return S.producoes.filter(p=>{if(ini&&p.data<ini)return false;if(fim&&p.data>fim)return false;if(fId&&p.funcionarioId!=fId)return false;if(pId&&p.pecaId!=pId)return false;if(cId&&p.corId!=cId)return false;return true})}
+function filtrarProd(ini,fim,fId,pId,cId){return S.producoes.filter(p=>{if(ini&&p.data<ini)return false;if(fim&&p.data>fim)return false;if(fId&&(p.funcionarioid??p.funcionarioId)!=fId)return false;if(pId&&(p.pecaid??p.pecaId)!=pId)return false;if(cId&&(p.corid??p.corId)!=cId)return false;return true})}
 window.gerarRelGeral=function(){
   const ini=document.getElementById('rg_ini').value,fim=document.getElementById('rg_fim').value;
   const fId=document.getElementById('rg_func').value,pId=document.getElementById('rg_peca').value,cId=document.getElementById('rg_cor').value;
@@ -1059,7 +1059,7 @@ window.gerarRelGeral=function(){
 window.gerarRelModelos=function(){
   const ini=document.getElementById('rm_ini').value,fim=document.getElementById('rm_fim').value;
   const prods=filtrarProd(ini,fim,'','','');const el=document.getElementById('relModelosResult');
-  const agrup={};prods.forEach(p=>{const k=`${p.pecaId}-${p.corId}`;if(!agrup[k])agrup[k]={pecaId:p.pecaId,corId:p.corId,quantidade:0};agrup[k].quantidade+=p.quantidade});
+  const agrup={};prods.forEach(p=>{const pid=p.pecaid??p.pecaId;const cid=p.corid??p.corId;const k=`${pid}-${cid}`;if(!agrup[k])agrup[k]={pecaId:pid,corId:cid,quantidade:0};agrup[k].quantidade+=parseInt(p.quantidade)||0});
   const rows=Object.values(agrup);if(!rows.length){el.innerHTML='<div class="empty"><p>Nenhum dado</p></div>';return}
   let tot=0;
   el.innerHTML=rows.map(r=>{const p=byId(S.pecas,r.pecaId);const c=byId(S.cores,r.corId);const vt=(p?.valor||0)*r.quantidade;tot+=vt;return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span class="valor">${fmtMoeda(vt)}</span></div><div class="mob-rf"><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${r.quantidade}</strong></div></div></div>`}).join('')+`<div class="total-row"><span class="tl">Total</span><span class="tv">${fmtMoeda(tot)}</span></div>`;
@@ -1067,11 +1067,11 @@ window.gerarRelModelos=function(){
 window.gerarRelEstoque=function(){
   const ini=document.getElementById('re_ini').value,fim=document.getElementById('re_fim').value;
   const tipo=document.getElementById('re_tipo').value,pId=document.getElementById('re_peca').value;
-  let movs=S.movimentacoes.filter(m=>{if(ini&&m.data<ini)return false;if(fim&&m.data>fim)return false;if(tipo&&m.tipo!==tipo)return false;if(pId&&m.pecaId!=pId)return false;return true});
+  let movs=S.movimentacoes.filter(m=>{if(ini&&m.data<ini)return false;if(fim&&m.data>fim)return false;if(tipo&&m.tipo!==tipo)return false;const mid=m.pecaid??m.pecaId;if(pId&&mid!=pId)return false;return true});
   const el=document.getElementById('relEstoqueResult');
   if(!movs.length){el.innerHTML='<div class="empty"><p>Nenhuma movimentação</p></div>';return}
   let saldo=0;
-  el.innerHTML=movs.map(m=>{const p=byId(S.pecas,m.pecaId);const c=byId(S.cores,m.corId);saldo+=m.tipo==='entrada'?m.quantidade:-m.quantidade;return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span class="${m.tipo==='entrada'?'badge-e':'badge-s'}">${m.tipo==='entrada'?'Entrada':'Saída'}</span></div><div class="mob-rf"><div class="mob-fi">Data<strong>${fmtData(m.data)}</strong></div><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${m.quantidade}</strong></div><div class="mob-fi">Origem<strong>${m.origem||'–'}</strong></div></div></div>`}).join('')+`<div class="total-row"><span class="tl">Saldo do Período</span><span class="tv" style="color:${saldo>=0?'var(--green2)':'var(--red2)'}">${saldo}</span></div>`;
+  el.innerHTML=movs.map(m=>{const p=byId(S.pecas,m.pecaid??m.pecaId);const c=byId(S.cores,m.corid??m.corId);saldo+=m.tipo==='entrada'?parseInt(m.quantidade)||0:-(parseInt(m.quantidade)||0);return`<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span class="${m.tipo==='entrada'?'badge-e':'badge-s'}">${m.tipo==='entrada'?'Entrada':'Saída'}</span></div><div class="mob-rf"><div class="mob-fi">Data<strong>${fmtData(m.data)}</strong></div><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${m.quantidade}</strong></div><div class="mob-fi">Origem<strong>${m.origem||'–'}</strong></div></div></div>`}).join('')+`<div class="total-row"><span class="tl">Saldo do Período</span><span class="tv" style="color:${saldo>=0?'var(--green2)':'var(--red2)'}">${saldo}</span></div>`;
 };
 window.gerarFolha=function(){
   const mesAno=document.getElementById('rf_mes').value;if(!mesAno){toast('Selecione o mês/ano','error');return}
