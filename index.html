@@ -210,7 +210,11 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
       <strong>⚙️ Modo Demonstração Ativo</strong>
       Login: operador@fabrica.com / 1234<br>
       Admin: admin@fabrica.com / dantas3101<br>
-      Configure SUPABASE_URL e SUPABASE_KEY para usar o banco real.
+      Configure SUPABASE_URL e SUPABASE_KEY para conectar ao mesmo servidor do Desktop.
+    </div>
+    <div class="demo-box" id="syncInfoBox" style="display:block;background:rgba(39,174,96,.08);border-color:rgba(39,174,96,.3)">
+      <strong style="color:var(--green2)">🔗 Login sincronizado</strong>
+      Use o mesmo e-mail e senha da sua conta criada no SysCadeiras Desktop.
     </div>
     <label class="lbl">E-mail</label>
     <input class="inp" type="email" id="lEmail" placeholder="operador@fabrica.com" inputmode="email" autocomplete="username">
@@ -495,10 +499,43 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
 const SUPABASE_URL = 'https://wbsxoffpugmajmzxofid.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_2qHQZTclYZFbskhwoumTvA__enYh_vx';
 
+// ─────────────────────────────────────────────────────────────────────────
+// LOGIN SINCRONIZADO COM O DESKTOP
+// As contas de usuário (nome, e-mail, senha, permissões) são criadas e
+// gerenciadas exclusivamente no app Desktop (SQLite local = fonte da
+// verdade). O Desktop espelha cada conta na tabela "Usuarios" do Supabase
+// (com a senha já hasheada via scrypt — nunca em texto puro). Este app
+// Mobile apenas LÊ essa tabela para autenticar login e escuta mudanças em
+// tempo real, então uma conta criada/editada/desativada no Desktop aparece
+// aqui automaticamente, sem precisar reabrir o app.
+// Nenhum usuário é criado/editado a partir do Mobile — isso continua
+// exclusivo do Desktop, como já era antes.
+// ─────────────────────────────────────────────────────────────────────────
 const DEMO_USERS = [
-  {email:'operador@fabrica.com',senha:'1234',nome:'Operador',role:'operador'},
-  {email:'admin@fabrica.com',senha:'dantas3101',nome:'Administrador',role:'admin'},
+  {email:'operador@fabrica.com',senha:'1234',nome:'Operador (demo)',role:'operador'},
+  {email:'admin@fabrica.com',senha:'dantas3101',nome:'Administrador (demo)',role:'admin'},
 ];
+
+// Verifica uma senha em texto puro contra o hash scrypt salvo pelo Desktop
+// (formato "salt:hash", gerado por authUtils.js -> crypto.scryptSync).
+// Usa scrypt-js com os mesmos parâmetros padrão do Node (N=16384, r=8, p=1),
+// o que produz byte-a-byte o mesmo hash que o Desktop calcula.
+async function verificarSenhaScrypt(senha, armazenado){
+  if(!armazenado)return false;
+  if(!armazenado.includes(':')){
+    // Formato legado (btoa), mantido só por compatibilidade com bancos antigos
+    try{return btoa(senha)===armazenado}catch(e){return false}
+  }
+  const[salt,hashSalvoHex]=armazenado.split(':');
+  try{
+    const{scrypt}=await import('https://cdn.jsdelivr.net/npm/scrypt-js@3.0.1/+esm');
+    const enc=new TextEncoder();
+    const derivedKey=await scrypt(enc.encode(senha),enc.encode(salt),16384,8,1,64);
+    const hashTentativa=Array.from(derivedKey).map(b=>b.toString(16).padStart(2,'0')).join('');
+    // Comparação simples (sem timing-safe no browser, suficiente para este caso de uso)
+    return hashTentativa===hashSalvoHex;
+  }catch(e){console.warn('Erro ao verificar senha:',e);return false}
+}
 
 const FRASES_LOGIN = [
   "A persistência vence o talento. — Elon Musk.",
@@ -687,6 +724,26 @@ function iniciarRealtime(){
       if(p.eventType==='DELETE')toast('🗑 Armação removida','warn');
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'EstoqueArmacoes'},async()=>{await reloadT('EstoqueArmacoes');renderArmacoes();renderEstoque()})
+    .on('postgres_changes',{event:'*',schema:'public',table:'Usuarios'},async(p)=>{
+      // Conta do próprio usuário logado foi editada/excluída/desativada no Desktop
+      if(!S.user)return;
+      if(p.eventType==='DELETE'&&p.old?.id===S.user.id){
+        toast('⚠️ Sua conta foi removida. Você será desconectado.','warn');
+        setTimeout(()=>window.location.reload(),2500);
+        return;
+      }
+      if((p.eventType==='UPDATE'||p.eventType==='INSERT')&&p.new?.id===S.user.id){
+        if(!p.new.ativo){
+          toast('⚠️ Sua conta foi desativada. Você será desconectado.','warn');
+          setTimeout(()=>window.location.reload(),2500);
+          return;
+        }
+        let permissoes=[];
+        try{permissoes=typeof p.new.permissoes==='string'?JSON.parse(p.new.permissoes):(p.new.permissoes||[])}catch(e){permissoes=[]}
+        S.user={...S.user,nome:p.new.nome,role:p.new.role,permissoes};
+        toast('🔄 Suas permissões foram atualizadas','info');
+      }
+    })
     .subscribe((status,err)=>{
       console.log('[RT]',status,err||'');
       if(status==='SUBSCRIBED')updRtBadge('live');
@@ -705,9 +762,9 @@ async function reloadT(tabela){
   catch(e){console.warn('reloadT',tabela,e)}
 }
 
-// LOGIN
+// LOGIN — autentica contra a tabela Usuarios (gerenciada no Desktop)
 window.doLogin=async function(){
-  const email=document.getElementById('lEmail').value.trim();
+  const email=document.getElementById('lEmail').value.trim().toLowerCase();
   const senha=document.getElementById('lSenha').value;
   const errEl=document.getElementById('lErr');
   errEl.textContent='';
@@ -719,9 +776,14 @@ window.doLogin=async function(){
       if(!u){hideLoad();errEl.textContent='❌ Usuário ou senha incorretos';return}
       S.user=u;
     }else{
-      const{error}=await S.sb.auth.signInWithPassword({email,password:senha});
-      if(error){hideLoad();errEl.textContent='❌ Usuário ou senha incorretos';return}
-      S.user={email,nome:email.split('@')[0],role:'operador'};
+      const{data:usuario,error}=await S.sb.from('Usuarios').select('*').eq('email',email).maybeSingle();
+      if(error||!usuario){hideLoad();errEl.textContent='❌ Usuário ou senha incorretos';return}
+      if(!usuario.ativo){hideLoad();errEl.textContent='❌ Usuário inativo. Contate o administrador.';return}
+      const senhaOk=await verificarSenhaScrypt(senha,usuario.senha_hash);
+      if(!senhaOk){hideLoad();errEl.textContent='❌ Usuário ou senha incorretos';return}
+      let permissoes=[];
+      try{permissoes=typeof usuario.permissoes==='string'?JSON.parse(usuario.permissoes):(usuario.permissoes||[])}catch(e){permissoes=[]}
+      S.user={id:usuario.id,email:usuario.email,nome:usuario.nome,role:usuario.role,permissoes};
     }
     await carregarDados();iniciarApp();hideLoad();
   }catch(e){hideLoad();errEl.textContent='❌ Erro: '+e.message}
@@ -1321,7 +1383,10 @@ async function boot(){
   await initSB();
   exibirFraseLogin();
   updBadge();
-  if(S.demo)document.getElementById('demoBox').style.display='block';
+  if(S.demo){
+    document.getElementById('demoBox').style.display='block';
+    const si=document.getElementById('syncInfoBox');if(si)si.style.display='none';
+  }
 }
 boot();
 </script>
