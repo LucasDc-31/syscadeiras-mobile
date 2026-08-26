@@ -276,7 +276,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
       <div class="ph2">🏭 Registrar Produção</div>
       <div class="ps">Lançar produção diária</div>
       <div class="fg"><div class="fl">📅 Data</div><input class="fi" type="date" id="pData"></div>
-      <div class="fg"><div class="fl">👤 Funcionário</div><select class="fs" id="pFunc"><option value="">Selecionar...</option></select></div>
+      <div class="fg"><div class="fl">👤 Funcionário</div><select class="fs" id="pFunc"><option value="">Selecionar...</option></select><div id="avisoPFuncTravado" style="display:none;font-size:11px;color:var(--muted);margin-top:4px;">🔒 Sua conta só pode registrar produção em seu próprio nome.</div></div>
       <div id="pItens">
         <div class="card" style="margin-bottom:12px;" id="pItem0">
           <div class="ctit"><div class="cico cg">🪑</div>Item 1</div>
@@ -437,16 +437,16 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
       <div class="ph2">📊 Relatórios</div>
       <div class="ps">Produção, Estoque e Folha de Pagamento</div>
       <div class="pills" id="relPills">
-        <button class="pill active" onclick="relAba('geral',this)">📈 Geral</button>
-        <button class="pill" onclick="relAba('modelos',this)">🪑 Modelos</button>
-        <button class="pill" onclick="relAba('estoque',this)">📦 Estoque</button>
-        <button class="pill" onclick="relAba('folha',this)">💰 Folha</button>
-        <button class="pill" onclick="relAba('armacoes',this)">🔩 Armações</button>
+        <button class="pill active" id="pillRelGeral" onclick="relAba('geral',this)">📈 Geral</button>
+        <button class="pill" id="pillRelModelos" onclick="relAba('modelos',this)">🪑 Modelos</button>
+        <button class="pill" id="pillRelEstoque" onclick="relAba('estoque',this)">📦 Estoque</button>
+        <button class="pill" id="pillRelFolha" onclick="relAba('folha',this)">💰 Folha</button>
+        <button class="pill" id="pillRelArmacoes" onclick="relAba('armacoes',this)">🔩 Armações</button>
       </div>
       <div id="relGeral">
         <div class="fg"><div class="fl">📅 Data Início</div><input class="fi" type="date" id="rg_ini"></div>
         <div class="fg"><div class="fl">📅 Data Fim</div><input class="fi" type="date" id="rg_fim"></div>
-        <div class="fg"><div class="fl">👤 Funcionário</div><select class="fs" id="rg_func"><option value="">Todos</option></select></div>
+        <div class="fg" id="fgRgFunc"><div class="fl">👤 Funcionário</div><select class="fs" id="rg_func"><option value="">Todos</option></select></div>
         <div class="fg"><div class="fl">🪑 Modelo</div><select class="fs" id="rg_peca"><option value="">Todos</option></select></div>
         <div class="fg"><div class="fl">🎨 Cor</div><select class="fs" id="rg_cor"><option value="">Todas</option></select></div>
         <button class="btn btn-b" onclick="gerarRelGeral()" style="margin-bottom:14px;">📊 Gerar Relatório</button>
@@ -746,8 +746,9 @@ function iniciarRealtime(){
         }
         let permissoes=[];
         try{permissoes=typeof p.new.permissoes==='string'?JSON.parse(p.new.permissoes):(p.new.permissoes||[])}catch(e){permissoes=[]}
-        S.user={...S.user,nome:p.new.nome,role:p.new.role,permissoes};
+        S.user={...S.user,nome:p.new.nome,role:p.new.role,permissoes,funcionarioId:p.new.funcionarioid??null};
         aplicarPermissoesUI();
+        aplicarRestricaoFuncionarioProducaoMobile();
         toast('🔄 Suas permissões foram atualizadas','info');
       }
     })
@@ -790,7 +791,9 @@ window.doLogin=async function(){
       if(!senhaOk){hideLoad();errEl.textContent='❌ Usuário ou senha incorretos';return}
       let permissoes=[];
       try{permissoes=typeof usuario.permissoes==='string'?JSON.parse(usuario.permissoes):(usuario.permissoes||[])}catch(e){permissoes=[]}
-      S.user={id:usuario.id,email:usuario.email,nome:usuario.nome,role:usuario.role,permissoes};
+      // funcionarioid vem do Supabase (coluna minúscula) — é o que liga esta
+      // conta a um funcionário específico e ativa a trava "só produção própria".
+      S.user={id:usuario.id,email:usuario.email,nome:usuario.nome,role:usuario.role,permissoes,funcionarioId:usuario.funcionarioid??null};
     }
     await carregarDados();iniciarApp();hideLoad();
   }catch(e){hideLoad();errEl.textContent='❌ Erro: '+e.message}
@@ -816,6 +819,7 @@ function fillSelects(){
   const cO=S.cores.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
   const ph=v=>`<option value="">Selecionar...</option>`+v;
   document.getElementById('pFunc').innerHTML=ph(fO);
+  aplicarRestricaoFuncionarioProducaoMobile();
   document.querySelectorAll('.peca-sel').forEach(s=>s.innerHTML=ph(pO));
   document.querySelectorAll('.cor-sel').forEach(s=>s.innerHTML=ph(cO));
   document.getElementById('sModelo').innerHTML=ph(pO);
@@ -905,7 +909,10 @@ window.remItem=function(idx){document.getElementById('pItem'+idx)?.remove()};
 // SALVAR PRODUÇÃO
 window.salvarProducao=async function(){
   const data=document.getElementById('pData').value;
-  const funcId=parseInt(document.getElementById('pFunc').value);
+  // Conta restrita à própria produção nunca registra em nome de outro
+  // funcionário — ignora qualquer valor que o select possa ter (mesmo que
+  // adulterado via console) e usa sempre o próprio funcionarioId.
+  const funcId=usuarioRestritoAPropriaProducaoMobile()?S.user.funcionarioId:parseInt(document.getElementById('pFunc').value);
   if(!funcId){toast('Selecione um funcionário','error');return}
   const itens=[];
   document.querySelectorAll('#pItens .card').forEach((card,i)=>{
@@ -956,6 +963,7 @@ window.salvarProducao=async function(){
 
 window.limparProd=function(){
   document.getElementById('pFunc').value='';document.getElementById('pData').value=hojeISO();
+  aplicarRestricaoFuncionarioProducaoMobile(); // reaplica o "trava no meu próprio nome" após o reset
   S.prodNums={0:'0'};S.prodHE={};
   const nv=document.getElementById('nv0');const nd=document.getElementById('nd0');
   if(nv){nv.textContent='0';nv.classList.add('ph')}if(nd)nd.classList.remove('has');
@@ -1151,10 +1159,19 @@ function renderCadCores(){const el=document.getElementById('coresList');el.inner
 
 // RELATÓRIOS
 window.relAba=function(aba,btn){
+  // Reforço: mesmo chamando relAba() direto (ex.: console), não abre um
+  // relatório fora da granularidade liberada para esta conta.
+  if(!temAcessoRelatorioMobile(aba)){
+    toast('🚫 Sua conta não tem permissão para ver este relatório','error');
+    return;
+  }
   document.querySelectorAll('#relPills .pill').forEach(p=>p.classList.remove('active'));btn.classList.add('active');
   ['Geral','Modelos','Estoque','Folha','Armacoes'].forEach(a=>{document.getElementById('rel'+a).style.display=aba===a.toLowerCase()?'block':'none'});
 };
-function filtrarProd(ini,fim,fId,pId,cId){return S.producoes.filter(p=>{if(ini&&p.data<ini)return false;if(fim&&p.data>fim)return false;if(fId&&(p.funcionarioid??p.funcionarioId)!=fId)return false;if(pId&&(p.pecaid??p.pecaId)!=pId)return false;if(cId&&(p.corid??p.corId)!=cId)return false;return true})}
+// Fonte-base já filtrada pela regra "conta restrita só vê a própria
+// produção" (producoesVisiveisParaUsuarioMobile) — igual ao Desktop, para
+// que nenhum relatório precise reimplementar essa checagem por conta própria.
+function filtrarProd(ini,fim,fId,pId,cId){return producoesVisiveisParaUsuarioMobile().filter(p=>{if(ini&&p.data<ini)return false;if(fim&&p.data>fim)return false;if(fId&&(p.funcionarioid??p.funcionarioId)!=fId)return false;if(pId&&(p.pecaid??p.pecaId)!=pId)return false;if(cId&&(p.corid??p.corId)!=cId)return false;return true})}
 window.gerarRelGeral=function(){
   const ini=document.getElementById('rg_ini').value,fim=document.getElementById('rg_fim').value;
   const fId=document.getElementById('rg_func').value,pId=document.getElementById('rg_peca').value,cId=document.getElementById('rg_cor').value;
@@ -1195,7 +1212,7 @@ window.gerarRelEstoque=function(){
 window.gerarFolha=function(){
   const mesAno=document.getElementById('rf_mes').value;if(!mesAno){toast('Selecione o mês/ano','error');return}
   const[ano,mes]=mesAno.split('-');const ini=`${ano}-${mes}-01`,fim=`${ano}-${mes}-${new Date(ano,mes,0).getDate()}`;
-  const prods=S.producoes.filter(p=>p.data>=ini&&p.data<=fim);
+  const prods=producoesVisiveisParaUsuarioMobile().filter(p=>p.data>=ini&&p.data<=fim);
   const el=document.getElementById('relFolhaResult');
   if(!prods.length){el.innerHTML='<div class="empty"><p>Nenhuma produção no período</p></div>';return}
   const por={};
@@ -1268,6 +1285,104 @@ function updBadge(){
 // mas no desktop equivale a 3 permissões distintas (modelos/funcionarios/
 // cores) — por isso é tratada como caso especial em temAcesso().
 const SECAO_PARA_PERMISSAO={Producao:'producao',Saidas:'saidas',Estoque:'estoque',Armacoes:'armacoes',Relatorios:'relatorios',Cadastros:'cadastros'};
+
+// ─────────────────────────────────────────────────────────────────────────
+// RESTRIÇÃO "SÓ MINHA PRODUÇÃO" (funcionário) — mesma regra do Desktop
+// ─────────────────────────────────────────────────────────────────────────
+// Conta não-admin vinculada a um funcionário (S.user.funcionarioId setado
+// pelo login — ver doLogin/realtime acima) só pode registrar produção em
+// nome dela mesma, e só enxerga a própria produção nos relatórios pessoais.
+// IMPORTANTE (mesma ressalva do bloco de permissões logo abaixo): esta é
+// uma trava client-side. O Mobile fala direto com o Supabase, sem um
+// processo intermediário como o main.js do Desktop, então tecnicamente é
+// possível contornar isso via DevTools/Postman com a chave pública exposta
+// no código. A correção definitiva no banco exigiria Row Level Security
+// (RLS) no Supabase comparando auth.uid() com a coluna funcionarioid.
+function usuarioRestritoAPropriaProducaoMobile(){
+  return !!S.user && S.user.role!=='admin' && S.user.funcionarioId!=null;
+}
+
+// Fonte única para relatórios pessoais: filtra a lista de produções pela
+// regra acima. Admin (ou conta sem funcionarioId vinculado) continua vendo tudo.
+function producoesVisiveisParaUsuarioMobile(){
+  if(!usuarioRestritoAPropriaProducaoMobile())return S.producoes;
+  return S.producoes.filter(p=>(p.funcionarioid??p.funcionarioId)===S.user.funcionarioId);
+}
+
+// Trava o select de funcionário na tela de Produção: pré-seleciona e
+// desabilita quando a conta é restrita à própria produção.
+function aplicarRestricaoFuncionarioProducaoMobile(){
+  const campo=document.getElementById('pFunc');
+  const aviso=document.getElementById('avisoPFuncTravado');
+  if(!campo)return;
+  const restrito=usuarioRestritoAPropriaProducaoMobile();
+  if(restrito){
+    campo.value=String(S.user.funcionarioId);
+    campo.disabled=true;
+    campo.style.opacity='0.7';
+    if(aviso)aviso.style.display='block';
+  }else{
+    campo.disabled=false;
+    campo.style.opacity='';
+    if(aviso)aviso.style.display='none';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SUB-PERMISSÕES DE RELATÓRIO — mesmo esquema do Desktop (script.js), com
+// os mesmos ids de prefixo, pra uma conta configurada em qualquer um dos
+// dois apps se comportar igual no outro.
+// ─────────────────────────────────────────────────────────────────────────
+const PREFIXO_RELATORIO='relatorio_';
+const RELATORIOS_DISPONIVEIS=[
+  {id:'producao',tipo:'geral',label:'📈 Produção'},
+  {id:'modelocor',tipo:'modelos',label:'🪑 Modelo/Cor'},
+  {id:'folha',tipo:'folha',label:'💰 Folha de Pagamento'},
+  {id:'armacoes',tipo:'armacoes',label:'🔩 Armações'},
+  {id:'estoque',tipo:'estoque',label:'📦 Estoque'},
+];
+function possuiSubPermissoesDeRelatorioMobile(permissoes){
+  return RELATORIOS_DISPONIVEIS.some(r=>permissoes.includes(PREFIXO_RELATORIO+r.id));
+}
+function temAcessoRelatorioMobile(tipo){
+  if(!temPermissao('relatorios'))return false;
+  if(!S.user||S.user.role==='admin')return true;
+  const p=Array.isArray(S.user.permissoes)?S.user.permissoes:[];
+  if(p.includes('*'))return true;
+  if(!possuiSubPermissoesDeRelatorioMobile(p))return true; // compat: conta antiga sem granularidade
+  const item=RELATORIOS_DISPONIVEIS.find(r=>r.tipo===tipo);
+  return item?p.includes(PREFIXO_RELATORIO+item.id):true;
+}
+function primeiroTipoRelatorioPermitidoMobile(){
+  const item=RELATORIOS_DISPONIVEIS.find(r=>temAcessoRelatorioMobile(r.tipo));
+  return item?item.tipo:null;
+}
+// Mostra/oculta as pills de relatório e garante que a aba aberta seja uma
+// que a conta realmente pode ver. Também esconde o filtro "Funcionário" do
+// relatório Geral para contas restritas (já só veem a própria produção).
+function aplicarPermissoesNasAbasDeRelatorioMobile(){
+  const mapaBtn={geral:'pillRelGeral',modelos:'pillRelModelos',folha:'pillRelFolha',armacoes:'pillRelArmacoes',estoque:'pillRelEstoque'};
+  RELATORIOS_DISPONIVEIS.forEach(r=>{
+    const btn=document.getElementById(mapaBtn[r.tipo]);
+    if(!btn)return;
+    btn.style.display=temAcessoRelatorioMobile(r.tipo)?'':'none';
+  });
+  const abaAtivaBtn=document.querySelector('#relPills .pill.active');
+  const abaAtivaTipo=abaAtivaBtn?Object.keys(mapaBtn).find(t=>mapaBtn[t]===abaAtivaBtn.id):null;
+  if(!abaAtivaTipo||!temAcessoRelatorioMobile(abaAtivaTipo)){
+    const primeiro=primeiroTipoRelatorioPermitidoMobile();
+    if(primeiro){
+      const primeiroBtn=document.getElementById(mapaBtn[primeiro]);
+      if(primeiroBtn)relAba(primeiro,primeiroBtn);
+    }
+  }
+  const fgRgFunc=document.getElementById('fgRgFunc');
+  if(fgRgFunc){
+    const restrito=usuarioRestritoAPropriaProducaoMobile();
+    fgRgFunc.style.display=restrito?'none':'';
+    if(restrito){const el=document.getElementById('rg_func');if(el)el.value=''}
+  }
+}
 
 // Checagem "de baixo nível": recebe direto um id de permissão real
 // ('producao','modelos','backup', etc. — os mesmos data-sec do HTML).
@@ -1379,6 +1494,8 @@ window.nav=function(nome){
   if(nome==='Saidas')renderSaidas();
   if(nome==='Armacoes')renderArmacoes();
   if(nome==='Cadastros')ajustarAbaCadastros();
+  if(nome==='Relatorios')aplicarPermissoesNasAbasDeRelatorioMobile();
+  if(nome==='Producao')aplicarRestricaoFuncionarioProducaoMobile();
   if(nome==='Home')atualizarHome();
 };
 
