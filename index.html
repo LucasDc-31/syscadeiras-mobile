@@ -1298,12 +1298,6 @@ body {
     <div class="lt">SysCadeiras</div>
     <div class="frase-dia" id="fraseDoDia"></div>
     <div class="lcard">
-      <div class="demo-box" id="demoBox">
-        <strong>⚙️ Modo Demonstração Ativo</strong>
-        Login: operador@fabrica.com / 1234<br>
-        Admin: admin@fabrica.com / dantas3101<br>
-        Configure SUPABASE_URL e SUPABASE_KEY para conectar ao mesmo servidor do Desktop.
-      </div>
       <div class="demo-box" id="syncInfoBox" style="display:block;background:rgba(39,174,96,.08);border-color:rgba(39,174,96,.3)">
         <strong style="color:var(--green2)">🔗 Login sincronizado</strong>
         Use o mesmo e-mail e senha da sua conta criada no SysCadeiras Desktop.
@@ -1809,27 +1803,11 @@ const SUPABASE_KEY = 'sb_publishable_2qHQZTclYZFbskhwoumTvA__enYh_vx';
 // ─────────────────────────────────────────────────────────────────────────
 
 // ============================================================
-// 2. USUÁRIOS DEMO E AUTENTICAÇÃO
+// 2. AUTENTICAÇÃO
 // ============================================================
-const DEMO_USERS = [
-  // Em modo demo (sem Supabase configurado) o operador recebe todas as
-  // seções liberadas, só pra não travar os testes locais. Os ids usados são
-  // os mesmos gravados pelo Desktop (script.js/main.js): producao, saidas,
-  // estoque, armacoes, modelos, funcionarios, cores, relatorios, backup.
-  {
-    email: 'operador@fabrica.com',
-    senha: '1234',
-    nome: 'Operador (demo)',
-    role: 'operador',
-    permissoes: ['producao', 'saidas', 'estoque', 'armacoes', 'modelos', 'funcionarios', 'cores', 'relatorios']
-  },
-  {
-    email: 'admin@fabrica.com',
-    senha: 'dantas3101',
-    nome: 'Administrador (demo)',
-    role: 'admin'
-  },
-];
+// A opção de "login offline" (modo demo, com usuários fixos que entravam
+// sem validar contra o servidor) foi removida — login agora exige sempre
+// uma conta real, validada contra a tabela "Usuarios" no Supabase.
 
 // Verifica uma senha em texto puro contra o hash scrypt salvo pelo Desktop
 // (formato "salt:hash", gerado por authUtils.js -> crypto.scryptSync).
@@ -2491,56 +2469,52 @@ window.doLogin = async function() {
     errEl.textContent = 'Preencha usuário e senha';
     return
   }
+  if (!S.sb) {
+    errEl.textContent = '❌ Sem conexão com o servidor. Verifique sua internet e tente novamente.';
+    return
+  }
   showLoad('Entrando...');
   try {
-    if (S.demo) {
-      const u = DEMO_USERS.find(u => u.email === email && u.senha === senha);
-      if (!u) {
-        hideLoad();
-        errEl.textContent = '❌ Usuário ou senha incorretos';
-        return
-      }
-      S.user = u;
-    } else {
-      const {
-        data: usuario,
-        error
-      } = await S.sb.from('Usuarios').select('*').eq('email', email).maybeSingle();
-      if (error || !usuario) {
-        hideLoad();
-        errEl.textContent = '❌ Usuário ou senha incorretos';
-        return
-      }
-      if (!usuario.ativo) {
-        hideLoad();
-        errEl.textContent = '❌ Este usuário está bloqueado. Contate um administrador.';
-        return
-      }
-      const senhaOk = await verificarSenhaScrypt(senha, usuario.senha_hash);
-      if (!senhaOk) {
-        hideLoad();
-        errEl.textContent = '❌ Usuário ou senha incorretos';
-        return
-      }
-      let permissoes = [];
-      try {
-        permissoes = typeof usuario.permissoes === 'string' ? JSON.parse(usuario.permissoes) : (usuario.permissoes || [])
-      } catch (e) {
-        permissoes = []
-      }
-      // funcionarioId vincula a conta a um registro de Funcionarios (login
-      // pessoal criado automaticamente no Desktop ao cadastrar o funcionário)
-      // — mesmo campo usado pelo Desktop para restringir produção/relatórios
-      // à própria pessoa. Sem isso aqui, o mobile ignoraria essa regra.
-      S.user = {
-        id: usuario.id,
-        email: usuario.email,
-        nome: usuario.nome,
-        role: usuario.role,
-        permissoes,
-        funcionarioId: usuario.funcionarioid ?? usuario.funcionarioId ?? null
-      };
+    // Login sempre validado contra o Supabase — não existe mais um modo
+    // offline/demo que permitisse entrar sem checar usuário/senha reais.
+    const {
+      data: usuario,
+      error
+    } = await S.sb.from('Usuarios').select('*').eq('email', email).maybeSingle();
+    if (error || !usuario) {
+      hideLoad();
+      errEl.textContent = '❌ Usuário ou senha incorretos';
+      return
     }
+    if (!usuario.ativo) {
+      hideLoad();
+      errEl.textContent = '❌ Este usuário está bloqueado. Contate um administrador.';
+      return
+    }
+    const senhaOk = await verificarSenhaScrypt(senha, usuario.senha_hash);
+    if (!senhaOk) {
+      hideLoad();
+      errEl.textContent = '❌ Usuário ou senha incorretos';
+      return
+    }
+    let permissoes = [];
+    try {
+      permissoes = typeof usuario.permissoes === 'string' ? JSON.parse(usuario.permissoes) : (usuario.permissoes || [])
+    } catch (e) {
+      permissoes = []
+    }
+    // funcionarioId vincula a conta a um registro de Funcionarios (login
+    // pessoal criado automaticamente no Desktop ao cadastrar o funcionário)
+    // — mesmo campo usado pelo Desktop para restringir produção/relatórios
+    // à própria pessoa. Sem isso aqui, o mobile ignoraria essa regra.
+    S.user = {
+      id: usuario.id,
+      email: usuario.email,
+      nome: usuario.nome,
+      role: usuario.role,
+      permissoes,
+      funcionarioId: usuario.funcionarioid ?? usuario.funcionarioId ?? null
+    };
     await carregarDados();
     iniciarApp();
     hideLoad();
@@ -2638,9 +2612,12 @@ async function atualizarHome() {
     month: 'long'
   });
   const hoje = hojeISO();
-  const ph = S.producoes.filter(p => p.data === hoje).reduce((a, p) => a + (parseInt(p.quantidade) || 0), 0);
+  // Usa producoesVisiveisParaUsuario() para que uma conta não-admin veja
+  // aqui só os próprios números/lançamentos, nunca os de outros funcionários.
+  const producoesVisiveis = producoesVisiveisParaUsuario();
+  const ph = producoesVisiveis.filter(p => p.data === hoje).reduce((a, p) => a + (parseInt(p.quantidade) || 0), 0);
   document.getElementById('sHoje').textContent = ph || '0';
-  document.getElementById('sTotal').textContent = S.producoes.reduce((a, p) => a + (parseInt(p.quantidade) || 0), 0);
+  document.getElementById('sTotal').textContent = producoesVisiveis.reduce((a, p) => a + (parseInt(p.quantidade) || 0), 0);
   document.getElementById('sFunc').textContent = S.funcionarios.length;
   document.getElementById('sMov').textContent = S.movimentacoes.length;
   // Últimos lançamentos direto do estado Supabase — sem cache local
@@ -2655,7 +2632,7 @@ async function atualizarHome() {
       return 0
     }
   };
-  const ultProd = (S.producoes || []).slice(0, 5).map(r => ({
+  const ultProd = (producoesVisiveis || []).slice(0, 5).map(r => ({
     tipo: 'prod',
     desc: (S.pecas.find(p => p.id === gid(r))?.nome || '?') + ' · ' + (S.cores.find(c => c.id === gic(r))?.nome || '?'),
     sub: S.funcionarios.find(f => f.id === gif(r))?.nome || '',
@@ -3790,10 +3767,12 @@ function temPermissao(idPermissao) {
 // ver a própria produção — nunca a de outro funcionário — e só no dia de
 // hoje. Idêntico ao Desktop (ver usuarioRestritoAPropriaProducao em script.js).
 function usuarioRestritoAPropriaProducao() {
-  if (!S.user || S.user.role === 'admin') return false;
-  const p = Array.isArray(S.user.permissoes) ? S.user.permissoes : [];
-  if (p.includes('*')) return false;
-  return S.user.funcionarioId != null;
+  // Regra: TODO usuário que não é admin só pode ver/registrar a própria
+  // produção — sem exceções. Antes, uma conta não-admin com permissão '*'
+  // ou sem funcionarioId vinculado escapava dessa trava e enxergava a
+  // produção de todos os funcionários; isso foi corrigido: a única conta
+  // que não é restrita é a de role === 'admin'.
+  return !!S.user && S.user.role !== 'admin';
 }
 
 // Fonte única para qualquer tela que liste produções (relatório geral,
@@ -4314,9 +4293,12 @@ async function boot() {
   exibirFraseLogin();
   updBadge();
   if (S.demo) {
-    document.getElementById('demoBox').style.display = 'block';
+    // Servidor não configurado: não existe mais login offline/demo — apenas
+    // avisa que a tela de login não vai funcionar até o Supabase ser configurado.
     const si = document.getElementById('syncInfoBox');
     if (si) si.style.display = 'none';
+    const errEl = document.getElementById('lErr');
+    if (errEl) errEl.textContent = '⚠️ Servidor não configurado. Contate o administrador.';
   }
 }
 boot();
