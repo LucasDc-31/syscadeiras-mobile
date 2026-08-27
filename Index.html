@@ -1,0 +1,4325 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="theme-color" content="#2c3e50">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SysCadeiras">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>SysCadeiras Mobile</title>
+<style>
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent
+}
+
+:root {
+  --bg: #0f1923;
+  --bg2: #16212e;
+  --bg3: #1d2b3a;
+  --card: #192636;
+  --border: #243344;
+  --green: #27ae60;
+  --green2: #2ecc71;
+  --blue: #2980b9;
+  --amber: #f39c12;
+  --red: #c0392b;
+  --red2: #e74c3c;
+  --text: #ecf0f1;
+  --muted: #7f8c8d;
+  --sb: env(safe-area-inset-bottom, 0px);
+  --st: env(safe-area-inset-top, 0px)
+}
+
+.frase-dia {
+  flex-shrink: 0;
+  margin-bottom: 26px;
+  font-size: 12.5px;
+  font-style: italic;
+  color: #eafffa;
+  background: linear-gradient(135deg, var(--green), var(--blue));
+  padding: 9px 18px;
+  border-radius: 30px;
+  text-align: center;
+  max-width: 320px;
+  box-shadow: 0 8px 20px rgba(39, 174, 96, .25);
+  animation: fraseIn .5s ease;
+  min-height: 14px
+}
+
+@keyframes fraseIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px)
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0)
+  }
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column
+}
+
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+#loginScreen {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(160deg, #0f1923 0%, #1a2f1a 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  z-index: 9999
+}
+
+.ll {
+  width: 90px;
+  height: 90px;
+  background: linear-gradient(135deg, var(--green), var(--blue));
+  border-radius: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 46px;
+  margin-bottom: 18px;
+  box-shadow: 0 20px 50px rgba(39, 174, 96, .2)
+}
+
+.lt {
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 4px
+}
+
+.ls {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 32px
+}
+
+.lcard {
+  width: 100%;
+  max-width: 380px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px 24px
+}
+
+.demo-box {
+  background: rgba(41, 128, 185, .08);
+  border: 1px solid rgba(41, 128, 185, .3);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: #7fb3d3;
+  line-height: 1.7;
+  display: none
+}
+
+.demo-box strong {
+  display: block;
+  color: var(--blue);
+  font-size: 13px;
+  margin-bottom: 2px
+}
+
+.lbl {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  margin-bottom: 7px
+}
+
+.inp {
+  width: 100%;
+  background: var(--bg3);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 14px;
+  -webkit-appearance: none;
+  transition: border-color .2s
+}
+
+.inp:focus {
+  outline: none;
+  border-color: var(--green)
+}
+
+.lerr {
+  color: var(--red2);
+  font-size: 13px;
+  text-align: center;
+  min-height: 20px;
+  margin-bottom: 10px
+}
+
+
+/* ============================================================
+   TOPBAR
+   ============================================================ */
+.topbar {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: calc(var(--st)+10px) 14px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  z-index: 100
+}
+
+.tlogo {
+  display: flex;
+  align-items: center;
+  gap: 10px
+}
+
+.tlogo .ico {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--green), var(--blue));
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  flex-shrink: 0
+}
+
+.tlogo h1 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff
+}
+
+.tlogo small {
+  display: block;
+  font-size: 10px;
+  color: var(--muted)
+}
+
+.sbadge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 5px 11px;
+  font-size: 11px;
+  font-weight: 700;
+  transition: all .3s
+}
+
+.sbadge .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green2);
+  animation: pulse 2s infinite
+}
+
+.sbadge.off .dot {
+  background: var(--amber);
+  animation: none
+}
+
+.sbadge.off {
+  color: var(--amber)
+}
+
+.sbadge.on {
+  color: var(--green2)
+}
+
+.rbtn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  transition: all .2s;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center
+}
+
+.rbtn:active {
+  background: var(--bg3);
+  color: var(--green2)
+}
+
+.rbtn.spin {
+  animation: spinIcon .7s linear infinite;
+  color: var(--green2)
+}
+
+@keyframes spinIcon {
+  from {
+    transform: rotate(0deg)
+  }
+
+  to {
+    transform: rotate(360deg)
+  }
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1)
+  }
+
+  50% {
+    opacity: .5;
+    transform: scale(.8)
+  }
+}
+
+
+/* ============================================================
+   NAV
+   ============================================================ */
+.nav {
+  display: flex;
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  padding: 0 0 var(--sb);
+  flex-shrink: 0;
+  z-index: 100;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none
+}
+
+.nav::-webkit-scrollbar {
+  display: none
+}
+
+.nb {
+  flex: 0 0 auto;
+  min-width: 55px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 8px 6px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  cursor: pointer;
+  transition: color .2s;
+  position: relative
+}
+
+.nb .ni {
+  font-size: 20px;
+  line-height: 1;
+  transition: transform .2s
+}
+
+.nb.active {
+  color: var(--green2)
+}
+
+.nb.active .ni {
+  transform: scale(1.1)
+}
+
+.nb::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 15%;
+  right: 15%;
+  height: 2px;
+  background: var(--green2);
+  border-radius: 0 0 2px 2px;
+  opacity: 0;
+  transition: opacity .2s
+}
+
+.nb.active::before {
+  opacity: 1
+}
+
+
+/* ============================================================
+   MAIN
+   ============================================================ */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: none
+}
+
+.main::-webkit-scrollbar {
+  display: none
+}
+
+.page {
+  display: none;
+  padding: 14px 13px 28px
+}
+
+.page.active {
+  display: block
+}
+
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 13px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  -webkit-appearance: none
+}
+
+.btn:active {
+  transform: scale(.97)
+}
+
+.btn:disabled {
+  opacity: .5
+}
+
+.btn-g {
+  background: linear-gradient(135deg, var(--green), #1e8449);
+  color: #fff
+}
+
+.btn-b {
+  background: linear-gradient(135deg, var(--blue), #1f618d);
+  color: #fff
+}
+
+.btn-r {
+  background: var(--red2);
+  color: #fff
+}
+
+.btn-a {
+  background: var(--amber);
+  color: #fff
+}
+
+.btn-sec {
+  background: var(--bg3);
+  color: var(--text);
+  border: 1px solid var(--border)
+}
+
+.btn-sm {
+  width: auto;
+  padding: 9px 16px;
+  font-size: 13px;
+  border-radius: 10px
+}
+
+.row-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px
+}
+
+
+/* ============================================================
+   FIELDS
+   ============================================================ */
+.fg {
+  margin-bottom: 15px
+}
+
+.fl {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--muted);
+  margin-bottom: 7px
+}
+
+.fs,
+.fi,
+.ft {
+  width: 100%;
+  background: var(--bg3);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 13px 15px;
+  font-size: 15px;
+  color: var(--text);
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color .2s, box-shadow .2s
+}
+
+.fs:focus,
+.fi:focus,
+.ft:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(39, 174, 96, .1)
+}
+
+.fs {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%237f8c8d' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  padding-right: 38px
+}
+
+.ft {
+  min-height: 80px;
+  resize: none;
+  line-height: 1.5
+}
+
+.fi[type=date],
+.fi[type=month] {
+  color-scheme: dark
+}
+
+
+/* ============================================================
+   TOGGLE
+   ============================================================ */
+.tog {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg3);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 15px;
+  cursor: pointer;
+  transition: border-color .2s
+}
+
+.tog.on {
+  border-color: var(--green)
+}
+
+.tog-inf .tog-t {
+  font-size: 15px;
+  font-weight: 600
+}
+
+.tog-inf .tog-s {
+  font-size: 12px;
+  color: var(--muted)
+}
+
+.sw {
+  width: 48px;
+  height: 25px;
+  background: var(--border);
+  border-radius: 13px;
+  position: relative;
+  flex-shrink: 0;
+  transition: background .2s
+}
+
+.sw::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 19px;
+  height: 19px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform .2s
+}
+
+.tog.on .sw {
+  background: var(--green)
+}
+
+.tog.on .sw::after {
+  transform: translateX(23px)
+}
+
+
+/* ============================================================
+   NUMPAD
+   ============================================================ */
+.np-disp {
+  background: var(--bg);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 14px 10px;
+  text-align: right;
+  margin-bottom: 10px;
+  transition: border-color .2s
+}
+
+.np-disp.has {
+  border-color: var(--green)
+}
+
+.np-val {
+  font-size: 44px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: -2px;
+  min-height: 52px
+}
+
+.np-val.ph {
+  color: var(--muted);
+  font-size: 28px;
+  font-weight: 400;
+  padding-top: 6px
+}
+
+.np-lbl {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-top: 3px
+}
+
+.np-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px
+}
+
+.nk {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  height: 62px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .1s;
+  user-select: none
+}
+
+.nk:active {
+  background: var(--green);
+  color: #fff;
+  transform: scale(.94)
+}
+
+.nk.del {
+  background: var(--bg2);
+  color: var(--red2);
+  font-size: 18px
+}
+
+.nk.clr {
+  background: var(--bg2);
+  color: var(--amber);
+  font-size: 12px;
+  font-weight: 800
+}
+
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  padding: 16px;
+  margin-bottom: 12px
+}
+
+.ctit {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 7px
+}
+
+.cico {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0
+}
+
+.cg {
+  background: rgba(39, 174, 96, .15)
+}
+
+.cb {
+  background: rgba(41, 128, 185, .15)
+}
+
+.ca {
+  background: rgba(243, 156, 18, .15)
+}
+
+.cr {
+  background: rgba(231, 76, 60, .15)
+}
+
+
+/* ============================================================
+   HOME
+   ============================================================ */
+.greeting {
+  margin-bottom: 14px
+}
+
+.greeting h2 {
+  font-size: 21px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -.4px
+}
+
+.greeting p {
+  font-size: 13px;
+  color: var(--muted)
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px
+}
+
+.sc {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 14px
+}
+
+.sv {
+  font-size: 30px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -1px;
+  line-height: 1;
+  margin-bottom: 3px
+}
+
+.sl {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600
+}
+
+.sc.hi {
+  background: linear-gradient(135deg, rgba(39, 174, 96, .15), rgba(39, 174, 96, .05));
+  border-color: rgba(39, 174, 96, .3)
+}
+
+.sc.hi .sv {
+  color: var(--green2)
+}
+
+.qa-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px
+}
+
+.qa {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .15s
+}
+
+.qa:active {
+  transform: scale(.96);
+  border-color: var(--green)
+}
+
+.qa .qi {
+  font-size: 26px;
+  margin-bottom: 7px
+}
+
+.qa .ql {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text)
+}
+
+.qa .qs {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px
+}
+
+.oq {
+  background: rgba(243, 156, 18, .08);
+  border: 1px solid rgba(243, 156, 18, .3);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px
+}
+
+.oq.hidden {
+  display: none
+}
+
+.oq-t {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--amber)
+}
+
+.oq-s {
+  font-size: 11px;
+  color: var(--muted)
+}
+
+.oq-btn {
+  background: var(--amber);
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  padding: 7px 13px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0
+}
+
+
+/* ============================================================
+   HISTORY
+   ============================================================ */
+.hi-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(36, 51, 68, .6)
+}
+
+.hi-row:last-child {
+  border-bottom: none
+}
+
+.hi-ic {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0
+}
+
+.ip {
+  background: rgba(39, 174, 96, .12)
+}
+
+.is {
+  background: rgba(192, 57, 43, .12)
+}
+
+.ia {
+  background: rgba(243, 156, 18, .12)
+}
+
+.hi-inf {
+  flex: 1;
+  min-width: 0
+}
+
+.hi-t {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis
+}
+
+.hi-s {
+  font-size: 11px;
+  color: var(--muted)
+}
+
+.hi-q {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0
+}
+
+.hi-q.neg {
+  color: var(--red2)
+}
+
+.badge-he {
+  background: rgba(243, 156, 18, .15);
+  color: var(--amber);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 7px
+}
+
+.mob-row {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 8px
+}
+
+.mob-rh {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px
+}
+
+.mob-rt {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text)
+}
+
+.mob-rf {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 10px
+}
+
+.mob-fi {
+  font-size: 12px;
+  color: var(--muted)
+}
+
+.mob-fi strong {
+  display: block;
+  color: var(--text);
+  font-size: 13px;
+  margin-top: 1px
+}
+
+.mob-acts {
+  display: flex;
+  gap: 8px
+}
+
+.ab {
+  flex: 1;
+  padding: 9px;
+  border: none;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px
+}
+
+.ab-e {
+  background: rgba(41, 128, 185, .15);
+  color: var(--blue)
+}
+
+.ab-d {
+  background: rgba(192, 57, 43, .15);
+  color: var(--red2)
+}
+
+
+/* ============================================================
+   ESTOQUE
+   ============================================================ */
+.sk {
+  color: var(--green2);
+  font-weight: 800
+}
+
+.sb2 {
+  color: var(--amber);
+  font-weight: 800
+}
+
+.sc2 {
+  color: var(--red2);
+  font-weight: 800
+}
+
+.sn {
+  color: var(--red2);
+  font-weight: 800
+}
+
+.pills {
+  display: flex;
+  gap: 7px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  padding-bottom: 3px;
+  scrollbar-width: none
+}
+
+.pills::-webkit-scrollbar {
+  display: none
+}
+
+.pill {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all .15s
+}
+
+.pill.active {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green)
+}
+
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+.toast-wrap {
+  position: fixed;
+  bottom: calc(65px + var(--sb) + 10px);
+  left: 10px;
+  right: 10px;
+  z-index: 9000;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  pointer-events: none
+}
+
+.toast {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  animation: tIn .3s cubic-bezier(.175, .885, .32, 1.275);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .4)
+}
+
+.toast.success {
+  border-color: rgba(46, 204, 113, .4);
+  color: var(--green2)
+}
+
+.toast.error {
+  border-color: rgba(231, 76, 60, .4);
+  color: var(--red2)
+}
+
+.toast.warn {
+  border-color: rgba(243, 156, 18, .4);
+  color: var(--amber)
+}
+
+.toast.info {
+  border-color: rgba(41, 128, 185, .4);
+  color: #5dade2
+}
+
+@keyframes tIn {
+  from {
+    transform: translateY(20px);
+    opacity: 0
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1
+  }
+}
+
+
+/* ============================================================
+   LOADING
+   ============================================================ */
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--border);
+  border-top-color: var(--green2);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  margin: 0 auto
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg)
+  }
+}
+
+.load-ov {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 25, 35, .88);
+  backdrop-filter: blur(4px);
+  z-index: 8000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px
+}
+
+.load-ov.hidden {
+  display: none
+}
+
+.load-t {
+  font-size: 14px;
+  color: var(--muted)
+}
+
+
+/* ============================================================
+   MISC
+   ============================================================ */
+.ph2 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -.4px;
+  margin-bottom: 3px
+}
+
+.ps {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 18px
+}
+
+.sec-lbl {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--muted);
+  margin-bottom: 10px;
+  margin-top: 4px
+}
+
+.sep {
+  height: 1px;
+  background: var(--border);
+  margin: 14px 0
+}
+
+.empty {
+  text-align: center;
+  padding: 40px 16px;
+  color: var(--muted)
+}
+
+.empty .ei {
+  font-size: 44px;
+  margin-bottom: 10px
+}
+
+.badge-e {
+  background: rgba(39, 174, 96, .15);
+  color: var(--green2);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 7px
+}
+
+.badge-s {
+  background: rgba(192, 57, 43, .15);
+  color: var(--red2);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 7px
+}
+
+.badge-he {
+  background: rgba(243, 156, 18, .15);
+  color: var(--amber);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 7px
+}
+
+.valor {
+  color: var(--green2);
+  font-weight: 700
+}
+
+.saldo-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 18px;
+  display: none
+}
+
+.total-row {
+  background: var(--bg3);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px
+}
+
+.total-row .tl {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600
+}
+
+.total-row .tv {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--green2)
+}
+</style>
+</head>
+
+<body>
+
+  <!-- LOGIN -->
+  <div id="loginScreen">
+    <div class="ll">🪑</div>
+    <div class="lt">SysCadeiras</div>
+    <div class="frase-dia" id="fraseDoDia"></div>
+    <div class="lcard">
+      <div class="demo-box" id="demoBox">
+        <strong>⚙️ Modo Demonstração Ativo</strong>
+        Login: operador@fabrica.com / 1234<br>
+        Admin: admin@fabrica.com / dantas3101<br>
+        Configure SUPABASE_URL e SUPABASE_KEY para conectar ao mesmo servidor do Desktop.
+      </div>
+      <div class="demo-box" id="syncInfoBox" style="display:block;background:rgba(39,174,96,.08);border-color:rgba(39,174,96,.3)">
+        <strong style="color:var(--green2)">🔗 Login sincronizado</strong>
+        Use o mesmo e-mail e senha da sua conta criada no SysCadeiras Desktop.
+      </div>
+      <label class="lbl">E-mail</label>
+      <input class="inp" type="email" id="lEmail" placeholder="operador@fabrica.com" inputmode="email" autocomplete="username">
+      <label class="lbl">Senha</label>
+      <input class="inp" type="password" id="lSenha" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+      <div class="lerr" id="lErr"></div>
+      <button class="btn btn-g" onclick="doLogin()">🔐 Entrar</button>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="appShell" style="display:none;flex-direction:column;height:100%;">
+    <div class="topbar">
+      <div class="tlogo">
+        <div class="ico">🪑</div>
+        <div>
+          <h1>SysCadeiras</h1><small id="userLbl">Operador</small>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="rbtn" id="rBtn" data-sec="backup" onclick="abrirBackup()" title="Backup / Apagar dados" style="font-size:18px">🗄️</button>
+        <div class="sbadge on" id="sBadge">
+          <div class="dot"></div><span id="sTxt">Online</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="main">
+
+      <!-- HOME -->
+      <div class="page active" id="pageHome">
+        <div class="greeting" style="padding-top:4px;">
+          <h2 id="gTxt">Olá! 👋</h2>
+          <p id="gDate">Carregando...</p>
+        </div>
+        <div class="oq hidden" id="oqCard">
+          <span style="font-size:26px;flex-shrink:0">📤</span>
+          <div style="flex:1">
+            <div class="oq-t"><span id="oqN">0</span> na fila offline</div>
+            <div class="oq-s">Reconecte para sincronizar</div>
+          </div>
+          <button class="oq-btn" onclick="syncFila()">Sync</button>
+        </div>
+        <div class="stats-grid">
+          <div class="sc hi">
+            <div class="sv" id="sHoje">–</div>
+            <div class="sl">Prod. hoje</div>
+          </div>
+          <div class="sc">
+            <div class="sv" id="sTotal">–</div>
+            <div class="sl">Total geral</div>
+          </div>
+          <div class="sc">
+            <div class="sv" id="sFunc">–</div>
+            <div class="sl">Funcionários</div>
+          </div>
+          <div class="sc">
+            <div class="sv" id="sMov">–</div>
+            <div class="sl">Movimentações</div>
+          </div>
+        </div>
+        <div class="sec-lbl">Ações Rápidas</div>
+        <div class="qa-grid">
+          <div class="qa" data-sec="producao" onclick="nav('Producao')">
+            <div class="qi">🏭</div>
+            <div class="ql">Produção</div>
+            <div class="qs">Registrar produção</div>
+          </div>
+          <div class="qa" data-sec="saidas" onclick="nav('Saidas')">
+            <div class="qi">📤</div>
+            <div class="ql">Saída</div>
+            <div class="qs">Registrar saída</div>
+          </div>
+          <div class="qa" data-sec="estoque" onclick="nav('Estoque')">
+            <div class="qi">📦</div>
+            <div class="ql">Estoque</div>
+            <div class="qs">Ver saldos</div>
+          </div>
+          <div class="qa" data-sec="relatorios" onclick="nav('Relatorios')">
+            <div class="qi">📊</div>
+            <div class="ql">Relatórios</div>
+            <div class="qs">Gerar relatórios</div>
+          </div>
+        </div>
+        <div style="margin-top:14px;">
+          <div class="sec-lbl">Últimos Lançamentos</div>
+          <div class="card" id="homeHist">
+            <div class="empty">
+              <p>Carregando...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRODUÇÃO -->
+      <div class="page" id="pageProducao">
+        <div class="ph2">🏭 Registrar Produção</div>
+        <div class="ps">Lançar produção diária</div>
+        <div class="fg">
+          <div class="fl">📅 Data</div><input class="fi" type="date" id="pData">
+        </div>
+        <div class="fg">
+          <div class="fl">👤 Funcionário</div><select class="fs" id="pFunc">
+            <option value="">Selecionar...</option>
+          </select>
+        </div>
+        <div id="pItens">
+          <div class="card" style="margin-bottom:12px;" id="pItem0">
+            <div class="ctit">
+              <div class="cico cg">🪑</div>Item 1
+            </div>
+            <div class="fg">
+              <div class="fl">Modelo</div><select class="fs peca-sel">
+                <option value="">Selecionar...</option>
+              </select>
+            </div>
+            <div class="fg">
+              <div class="fl">Cor</div><select class="fs cor-sel">
+                <option value="">Selecionar...</option>
+              </select>
+            </div>
+            <div class="fg">
+              <div class="fl">📊 Quantidade</div>
+              <div class="np-disp" id="nd0">
+                <div class="np-val ph" id="nv0">0</div>
+                <div class="np-lbl">unidades</div>
+              </div>
+              <div class="np-grid">
+                <button class="nk" onclick="nk(0,'1')">1</button><button class="nk" onclick="nk(0,'2')">2</button><button class="nk" onclick="nk(0,'3')">3</button>
+                <button class="nk" onclick="nk(0,'4')">4</button><button class="nk" onclick="nk(0,'5')">5</button><button class="nk" onclick="nk(0,'6')">6</button>
+                <button class="nk" onclick="nk(0,'7')">7</button><button class="nk" onclick="nk(0,'8')">8</button><button class="nk" onclick="nk(0,'9')">9</button>
+                <button class="nk clr" onclick="nk(0,'C')">CLR</button><button class="nk" onclick="nk(0,'0')">0</button><button class="nk del" onclick="nk(0,'DEL')">⌫</button>
+              </div>
+            </div>
+            <div class="tog" id="heTog0" onclick="toggleHE(0)">
+              <div class="tog-inf">
+                <div class="tog-t">⏰ Hora Extra</div>
+                <div class="tog-s">+50% no valor por peça</div>
+              </div>
+              <div class="sw" id="heSw0"></div>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-sec" style="margin-bottom:10px;" onclick="addItem()">➕ Adicionar Peça</button>
+        <button class="btn btn-g" onclick="salvarProducao()" style="margin-bottom:8px;">💾 Registrar Produção</button>
+        <button class="btn btn-sec" onclick="limparProd()">🗑️ Limpar</button>
+        <div class="sep"></div>
+        <div class="sec-lbl">Produção de Hoje</div>
+        <div id="prodHojeList">
+          <div class="empty">
+            <div class="ei">📋</div>
+            <p>Nenhum registro hoje</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ESTOQUE -->
+      <div class="page" id="pageEstoque">
+        <div class="ph2">📦 Estoque Atual</div>
+        <div class="ps">Saldo por modelo e cor</div>
+        <div class="fg"><input class="fi" type="text" id="estPesq" placeholder="🔍 Pesquisar..." oninput="renderEstoque()"></div>
+        <div class="fg">
+          <div class="fl">Modelo</div><select class="fs" id="estModelo" onchange="renderEstoque()">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div class="fg">
+          <div class="fl">Cor</div><select class="fs" id="estCor" onchange="renderEstoque()">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <div class="pills">
+          <button class="pill active" onclick="filtEst('todos',this)">Todos</button>
+          <button class="pill" onclick="filtEst('baixo',this)">⚠️ Baixo</button>
+          <button class="pill" onclick="filtEst('critico',this)">🔴 Crítico</button>
+          <button class="pill" onclick="filtEst('zero',this)">⛔ Zerado</button>
+        </div>
+        <div id="estoqueList">
+          <div class="empty">
+            <div class="ei">📦</div>
+            <p>Carregando...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SAÍDAS -->
+      <div class="page" id="pageSaidas">
+        <div class="ph2">📤 Saída de Estoque</div>
+        <div class="ps">Registrar retirada de peças</div>
+        <div class="fg">
+          <div class="fl">📅 Data</div><input class="fi" type="date" id="sData">
+        </div>
+        <div class="fg">
+          <div class="fl">🪑 Modelo</div><select class="fs" id="sModelo" onchange="updSaldo()">
+            <option value="">Selecionar...</option>
+          </select>
+        </div>
+        <div class="fg">
+          <div class="fl">🎨 Cor</div><select class="fs" id="sCor" onchange="updSaldo()">
+            <option value="">Selecionar...</option>
+          </select>
+        </div>
+        <div class="saldo-card" id="saldoCard">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.07em">Saldo Disponível</div>
+              <div style="font-size:12px;color:var(--text);margin-top:2px" id="saldoDesc">–</div>
+            </div>
+            <div style="font-size:34px;font-weight:800;" id="saldoNum">–</div>
+          </div>
+        </div>
+        <div class="fg">
+          <div class="fl">📊 Quantidade</div>
+          <div class="np-disp" id="sDisp">
+            <div class="np-val ph" id="sVal">0</div>
+            <div class="np-lbl">unidades</div>
+          </div>
+          <div class="np-grid">
+            <button class="nk" onclick="nks('1')">1</button><button class="nk" onclick="nks('2')">2</button><button class="nk" onclick="nks('3')">3</button>
+            <button class="nk" onclick="nks('4')">4</button><button class="nk" onclick="nks('5')">5</button><button class="nk" onclick="nks('6')">6</button>
+            <button class="nk" onclick="nks('7')">7</button><button class="nk" onclick="nks('8')">8</button><button class="nk" onclick="nks('9')">9</button>
+            <button class="nk clr" onclick="nks('C')">CLR</button><button class="nk" onclick="nks('0')">0</button><button class="nk del" onclick="nks('DEL')">⌫</button>
+          </div>
+        </div>
+        <div class="fg">
+          <div class="fl">📝 Observação (opcional)</div><textarea class="ft" id="sObs" placeholder="Ex: cliente João, pedido #123..."></textarea>
+        </div>
+        <button class="btn btn-r" onclick="salvarSaida()" style="margin-bottom:8px;">📤 Confirmar Saída</button>
+        <button class="btn btn-sec" onclick="limparSaida()">🗑️ Limpar</button>
+        <div class="sep"></div>
+        <div class="sec-lbl">Últimas Saídas</div>
+        <div id="saidasList">
+          <div class="empty">
+            <div class="ei">📤</div>
+            <p>Nenhuma saída</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ARMAÇÕES -->
+      <div class="page" id="pageArmacoes">
+        <div class="ph2">🔩 Armações</div>
+        <div class="ps">Controle de chegada de armações</div>
+        <div class="card" style="margin-bottom:14px;">
+          <div class="ctit">
+            <div class="cico ca">🔩</div>Registrar Chegada
+          </div>
+          <div class="fg">
+            <div class="fl">📅 Data</div><input class="fi" type="date" id="aData">
+          </div>
+          <div class="fg">
+            <div class="fl">🪑 Modelo</div><select class="fs" id="aModelo">
+              <option value="">Selecionar modelo...</option>
+            </select>
+          </div>
+          <div class="fg">
+            <div class="fl">📊 Quantidade</div>
+            <div class="np-disp" id="aDisp">
+              <div class="np-val ph" id="aVal">0</div>
+              <div class="np-lbl">unidades</div>
+            </div>
+            <div class="np-grid">
+              <button class="nk" onclick="nka('1')">1</button><button class="nk" onclick="nka('2')">2</button><button class="nk" onclick="nka('3')">3</button>
+              <button class="nk" onclick="nka('4')">4</button><button class="nk" onclick="nka('5')">5</button><button class="nk" onclick="nka('6')">6</button>
+              <button class="nk" onclick="nka('7')">7</button><button class="nk" onclick="nka('8')">8</button><button class="nk" onclick="nka('9')">9</button>
+              <button class="nk clr" onclick="nka('C')">CLR</button><button class="nk" onclick="nka('0')">0</button><button class="nk del" onclick="nka('DEL')">⌫</button>
+            </div>
+          </div>
+          <button class="btn btn-g" onclick="salvarArmacao()">✅ Registrar Chegada</button>
+        </div>
+        <div class="sec-lbl">Estoque de Armações</div>
+        <div id="armEstList">
+          <div class="empty">
+            <div class="ei">🔩</div>
+            <p>Carregando...</p>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div class="sec-lbl">Histórico de Chegadas</div>
+        <div id="armHistList">
+          <div class="empty">
+            <div class="ei">📋</div>
+            <p>Nenhum registro</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CADASTROS -->
+      <div class="page" id="pageCadastros">
+        <div class="ph2">⚙️ Cadastros</div>
+        <div class="ps">Modelos, Funcionários e Cores</div>
+        <div class="pills" id="cadPills">
+          <button class="pill active" data-sec="modelos" onclick="cadAba('modelos',this)">🪑 Modelos</button>
+          <button class="pill" data-sec="funcionarios" onclick="cadAba('funcionarios',this)">👤 Funcionários</button>
+          <button class="pill" data-sec="cores" onclick="cadAba('cores',this)">🎨 Cores</button>
+        </div>
+        <div id="cadModelos">
+          <div class="card" style="margin-bottom:12px;">
+            <div class="ctit" id="modeloFormTit">
+              <div class="cico cg">🪑</div>Novo Modelo
+            </div>
+            <input type="hidden" id="pecaId">
+            <div class="fg">
+              <div class="fl">Nome do Modelo</div><input class="fi" type="text" id="nomePeca" placeholder="Ex: Cadeira Executiva 3001">
+            </div>
+            <div class="fg">
+              <div class="fl">💰 Valor Unitário (R$)</div><input class="fi" type="number" id="valorPeca" step="0.01" min="0" placeholder="0,00">
+            </div>
+            <div class="row-btns">
+              <button class="btn btn-g btn-sm" onclick="salvarModelo()">💾 Salvar</button>
+              <button class="btn btn-sec btn-sm" onclick="cancelarModelo()">❌ Cancelar</button>
+            </div>
+          </div>
+          <div class="sec-lbl">Modelos Cadastrados</div>
+          <div id="modelosList">
+            <div class="empty">
+              <div class="ei">🪑</div>
+              <p>Carregando...</p>
+            </div>
+          </div>
+        </div>
+        <div id="cadFuncionarios" style="display:none">
+          <div class="card" style="margin-bottom:12px;">
+            <div class="ctit" id="funcFormTit">
+              <div class="cico cb">👤</div>Novo Funcionário
+            </div>
+            <input type="hidden" id="funcId">
+            <div class="fg">
+              <div class="fl">Nome</div><input class="fi" type="text" id="nomeFunc" placeholder="Ex: João Silva">
+            </div>
+            <div class="fg">
+              <div class="fl">Cargo</div><input class="fi" type="text" id="cargoFunc" placeholder="Ex: Montador">
+            </div>
+            <div class="row-btns">
+              <button class="btn btn-g btn-sm" onclick="salvarFuncionario()">💾 Salvar</button>
+              <button class="btn btn-sec btn-sm" onclick="cancelarFunc()">❌ Cancelar</button>
+            </div>
+          </div>
+          <div class="sec-lbl">Funcionários</div>
+          <div id="funcList">
+            <div class="empty">
+              <div class="ei">👤</div>
+              <p>Carregando...</p>
+            </div>
+          </div>
+        </div>
+        <div id="cadCores" style="display:none">
+          <div class="card" style="margin-bottom:12px;">
+            <div class="ctit" id="corFormTit">
+              <div class="cico cr">🎨</div>Nova Cor
+            </div>
+            <input type="hidden" id="corId">
+            <div class="fg">
+              <div class="fl">Nome da Cor</div><input class="fi" type="text" id="nomeCor" placeholder="Ex: Preto Fosco">
+            </div>
+            <div class="row-btns">
+              <button class="btn btn-g btn-sm" onclick="salvarCor()">💾 Salvar</button>
+              <button class="btn btn-sec btn-sm" onclick="cancelarCor()">❌ Cancelar</button>
+            </div>
+          </div>
+          <div class="sec-lbl">Cores</div>
+          <div id="coresList">
+            <div class="empty">
+              <div class="ei">🎨</div>
+              <p>Carregando...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RELATÓRIOS -->
+      <div class="page" id="pageRelatorios">
+        <div class="ph2">📊 Relatórios</div>
+        <div class="ps">Produção, Estoque e Folha de Pagamento</div>
+        <div class="pills" id="relPills">
+          <button class="pill active" onclick="relAba('geral',this)">📈 Geral</button>
+          <button class="pill" onclick="relAba('modelos',this)">🪑 Modelos</button>
+          <button class="pill" onclick="relAba('estoque',this)">📦 Estoque</button>
+          <button class="pill" onclick="relAba('folha',this)">💰 Folha</button>
+          <button class="pill" onclick="relAba('armacoes',this)">🔩 Armações</button>
+        </div>
+        <div id="relGeral">
+          <div class="fg">
+            <div class="fl">📅 Data Início</div><input class="fi" type="date" id="rg_ini">
+          </div>
+          <div class="fg">
+            <div class="fl">📅 Data Fim</div><input class="fi" type="date" id="rg_fim">
+          </div>
+          <div class="fg">
+            <div class="fl">👤 Funcionário</div><select class="fs" id="rg_func">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div class="fg">
+            <div class="fl">🪑 Modelo</div><select class="fs" id="rg_peca">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <div class="fg">
+            <div class="fl">🎨 Cor</div><select class="fs" id="rg_cor">
+              <option value="">Todas</option>
+            </select>
+          </div>
+          <button class="btn btn-b" onclick="gerarRelGeral()" style="margin-bottom:14px;">📊 Gerar Relatório</button>
+          <div id="relGeralResult"></div>
+        </div>
+        <div id="relModelos" style="display:none">
+          <div class="fg">
+            <div class="fl">📅 Data Início</div><input class="fi" type="date" id="rm_ini">
+          </div>
+          <div class="fg">
+            <div class="fl">📅 Data Fim</div><input class="fi" type="date" id="rm_fim">
+          </div>
+          <button class="btn btn-b" onclick="gerarRelModelos()" style="margin-bottom:14px;">📊 Gerar Relatório</button>
+          <div id="relModelosResult"></div>
+        </div>
+        <div id="relEstoque" style="display:none">
+          <div class="fg">
+            <div class="fl">📅 Data Início</div><input class="fi" type="date" id="re_ini">
+          </div>
+          <div class="fg">
+            <div class="fl">📅 Data Fim</div><input class="fi" type="date" id="re_fim">
+          </div>
+          <div class="fg">
+            <div class="fl">Tipo</div><select class="fs" id="re_tipo">
+              <option value="">Todos</option>
+              <option value="entrada">Entradas</option>
+              <option value="saida">Saídas</option>
+            </select>
+          </div>
+          <div class="fg">
+            <div class="fl">Modelo</div><select class="fs" id="re_peca">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <button class="btn btn-b" onclick="gerarRelEstoque()" style="margin-bottom:14px;">📊 Gerar Relatório</button>
+          <div id="relEstoqueResult"></div>
+        </div>
+        <div id="relFolha" style="display:none">
+          <div class="fg">
+            <div class="fl">📅 Mês/Ano</div><input class="fi" type="month" id="rf_mes">
+          </div>
+          <button class="btn btn-b" onclick="gerarFolha()" style="margin-bottom:14px;">💰 Gerar Folha de Pagamento</button>
+          <div id="relFolhaResult"></div>
+        </div>
+        <div id="relArmacoes" style="display:none">
+          <div class="fg">
+            <div class="fl">📅 Data Início</div><input class="fi" type="date" id="ra_ini">
+          </div>
+          <div class="fg">
+            <div class="fl">📅 Data Fim</div><input class="fi" type="date" id="ra_fim">
+          </div>
+          <div class="fg">
+            <div class="fl">Modelo</div><select class="fs" id="ra_modelo">
+              <option value="">Todos</option>
+            </select>
+          </div>
+          <button class="btn btn-b" onclick="gerarRelArmacoes()" style="margin-bottom:14px;">📊 Gerar Relatório</button>
+          <div id="relArmacoesResult"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="nav">
+      <button class="nb active" id="navHome" data-sec="home" onclick="nav('Home')"><span class="ni">🏠</span><span>Início</span></button>
+      <button class="nb" id="navProducao" data-sec="producao" onclick="nav('Producao')"><span class="ni">🏭</span><span>Produção</span></button>
+      <button class="nb" id="navSaidas" data-sec="saidas" onclick="nav('Saidas')"><span class="ni">📤</span><span>Saída</span></button>
+      <button class="nb" id="navEstoque" data-sec="estoque" onclick="nav('Estoque')"><span class="ni">📦</span><span>Estoque</span></button>
+      <button class="nb" id="navArmacoes" data-sec="armacoes" onclick="nav('Armacoes')"><span class="ni">🔩</span><span>Armações</span></button>
+      <button class="nb" id="navCadastros" data-sec="cadastros" onclick="nav('Cadastros')"><span class="ni">⚙️</span><span>Cadastros</span></button>
+      <button class="nb" id="navRelatorios" data-sec="relatorios" onclick="nav('Relatorios')"><span class="ni">📊</span><span>Relatórios</span></button>
+    </div>
+  </div>
+
+  <div class="load-ov hidden" id="lOv">
+    <div class="spinner"></div>
+    <div class="load-t" id="lTxt">Carregando...</div>
+  </div>
+  <div class="toast-wrap" id="toastWrap"></div>
+<script type="module">
+// ⚙️ CONFIGURE AQUI
+// ============================================================
+// 1. CONFIGURAÇÃO / CONEXÃO SUPABASE
+// ============================================================
+const SUPABASE_URL = 'https://wbsxoffpugmajmzxofid.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_2qHQZTclYZFbskhwoumTvA__enYh_vx';
+
+// ─────────────────────────────────────────────────────────────────────────
+// LOGIN SINCRONIZADO COM O DESKTOP
+// As contas de usuário (nome, e-mail, senha, permissões) são criadas e
+// gerenciadas exclusivamente no app Desktop (SQLite local = fonte da
+// verdade). O Desktop espelha cada conta na tabela "Usuarios" do Supabase
+// (com a senha já hasheada via scrypt — nunca em texto puro). Este app
+// Mobile apenas LÊ essa tabela para autenticar login e escuta mudanças em
+// tempo real, então uma conta criada/editada/desativada no Desktop aparece
+// aqui automaticamente, sem precisar reabrir o app.
+// Nenhum usuário é criado/editado a partir do Mobile — isso continua
+// exclusivo do Desktop, como já era antes.
+// ─────────────────────────────────────────────────────────────────────────
+
+// ============================================================
+// 2. USUÁRIOS DEMO E AUTENTICAÇÃO
+// ============================================================
+const DEMO_USERS = [
+  // Em modo demo (sem Supabase configurado) o operador recebe todas as
+  // seções liberadas, só pra não travar os testes locais. Os ids usados são
+  // os mesmos gravados pelo Desktop (script.js/main.js): producao, saidas,
+  // estoque, armacoes, modelos, funcionarios, cores, relatorios, backup.
+  {
+    email: 'operador@fabrica.com',
+    senha: '1234',
+    nome: 'Operador (demo)',
+    role: 'operador',
+    permissoes: ['producao', 'saidas', 'estoque', 'armacoes', 'modelos', 'funcionarios', 'cores', 'relatorios']
+  },
+  {
+    email: 'admin@fabrica.com',
+    senha: 'dantas3101',
+    nome: 'Administrador (demo)',
+    role: 'admin'
+  },
+];
+
+// Verifica uma senha em texto puro contra o hash scrypt salvo pelo Desktop
+// (formato "salt:hash", gerado por authUtils.js -> crypto.scryptSync).
+// Usa scrypt-js com os mesmos parâmetros padrão do Node (N=16384, r=8, p=1),
+// o que produz byte-a-byte o mesmo hash que o Desktop calcula.
+async function verificarSenhaScrypt(senha, armazenado) {
+  if (!armazenado) return false;
+  if (!armazenado.includes(':')) {
+    // Formato legado (btoa), mantido só por compatibilidade com bancos antigos
+    try {
+      return btoa(senha) === armazenado
+    } catch (e) {
+      return false
+    }
+  }
+  const [salt, hashSalvoHex] = armazenado.split(':');
+  try {
+    const {
+      scrypt
+    } = await import('https://cdn.jsdelivr.net/npm/scrypt-js@3.0.1/+esm');
+    const enc = new TextEncoder();
+    const derivedKey = await scrypt(enc.encode(senha), enc.encode(salt), 16384, 8, 1, 64);
+    const hashTentativa = Array.from(derivedKey).map(b => b.toString(16).padStart(2, '0')).join('');
+    // Comparação simples (sem timing-safe no browser, suficiente para este caso de uso)
+    return hashTentativa === hashSalvoHex;
+  } catch (e) {
+    console.warn('Erro ao verificar senha:', e);
+    return false
+  }
+}
+
+
+// ============================================================
+// 3. FRASES DE LOGIN (UI)
+// ============================================================
+const FRASES_LOGIN = [
+  "A persistência vence o talento. — Elon Musk.",
+  "“Sonhe grande, comece pequeno, aja agora.” — Jeff Bezos",
+  '“Seu tempo é limitado, não o desperdice.” — Steve Jobs',
+  '“O risco vem de não saber o que você está fazendo.” — Warren Buffett',
+  "“Fracassar é parte do processo.” — Elon Musk",
+  '“Feito é melhor que perfeito.” — Mark Zuckerberg',
+  '“Invista em você mesmo.” — Warren Buffett',
+  '“Ideias valem pouco sem execução.” — Larry Page',
+  '“A inovação distingue líderes.” — Steve Jobs',
+  '“Não tenha medo de ousar.” — Richard Branson',
+  '“Aprenda com os erros rapidamente.” — Bill Gates',
+  '“O sucesso vem da disciplina.” — Carlos Slim',
+  '“Grandes coisas levam tempo.” — Jeff Bezos',
+  '“Seja resiliente sempre.” — Elon Musk',
+  '“Trabalhe com propósito.” — Jack Ma',
+  '“Aqui é pressão todo dia, sem moleza! se foda, falou.” - Agrotaigo',
+  '“Nunca pare de aprender.” — Bill Gates',
+  '“Coragem cria oportunidades.” — Richard Branson',
+  '“Simplifique o complicado.” — Steve Jobs',
+  '"Aquietai-vos e sabei que eu sou Deus", - Salmo 46:10',
+  '“Foque no longo prazo.” — Warren Buffett',
+  '"Não temas, porque eu sou contigo; não te assombres, porque eu sou o teu Deus", - Isaías 41:10',
+  '“Execute rápido, ajuste depois.” — Mark Zuckerberg',
+  '“O fracasso ensina mais que o sucesso.” — Jack Ma',
+  '“Construa algo que importe.” — Larry Page',
+  'Bendito o homem que confia no Senhor e cuja esperança é o Senhor", - Jeremias 17:7',
+  '“Seja apaixonado pelo que faz.” — Elon Musk',
+  '“Pense diferente.” — Steve Jobs',
+  '“Comece antes de estar pronto.” — Jeff Bezos',
+  '“Ação gera resultado.” — Carlos Slim',
+  '“Disciplina supera motivação.” — Warren Buffett',
+  '“Seja útil para o mundo.” — Bill Gates',
+  '“Grandes sonhos exigem coragem.” — Richard Branson',
+  '“Quem levanta cedo já sai na frente.”',
+  '"Dor é temporária. Desistir dura para sempre", - Lance Armstrong',
+  '"Faça hoje o que os outros não fazem para ter amanhã o que os outros não têm", - Rai',
+  '"Porque para Deus nada é impossível", - Lucas 1:37',
+];
+
+function exibirFraseLogin() {
+  const el = document.getElementById('fraseDoDia');
+  if (!el) return;
+  const i = Math.floor(Math.random() * FRASES_LOGIN.length);
+  el.textContent = FRASES_LOGIN[i];
+}
+
+
+// ============================================================
+// 4. ESTADO GLOBAL DA APLICAÇÃO (S) E ESTRUTURA DAS TABELAS (DD)
+// ============================================================
+const S = {
+  user: null,
+  sb: null,
+  online: navigator.onLine,
+  demo: !SUPABASE_URL || !SUPABASE_KEY || !SUPABASE_URL.startsWith('http'),
+  idb: null,
+  pecas: [],
+  cores: [],
+  funcionarios: [],
+  producoes: [],
+  movimentacoes: [],
+  armacoes: [],
+  estoqueArmacoes: [],
+  prodNums: {},
+  prodHE: {},
+  sNum: '0',
+  aNum: '0',
+  filtEst: 'todos',
+  itemCount: 1,
+};
+
+const DD = {
+  pecas: [{
+    id: 1,
+    nome: 'Cadeira Executiva 3001',
+    valor: 45
+  }, {
+    id: 2,
+    nome: 'Cadeira Giratória 2500',
+    valor: 38
+  }, {
+    id: 3,
+    nome: 'Poltrona Diretor 4000',
+    valor: 62
+  }, {
+    id: 4,
+    nome: 'Cadeira Fixa CF100',
+    valor: 25
+  }, {
+    id: 5,
+    nome: 'Banqueta Industrial B50',
+    valor: 18
+  }],
+  cores: [{
+    id: 1,
+    nome: 'Preto'
+  }, {
+    id: 2,
+    nome: 'Marrom'
+  }, {
+    id: 3,
+    nome: 'Cinza'
+  }, {
+    id: 4,
+    nome: 'Bege'
+  }, {
+    id: 5,
+    nome: 'Azul Marinho'
+  }],
+  funcionarios: [{
+    id: 1,
+    nome: 'João Silva',
+    cargo: 'Montador'
+  }, {
+    id: 2,
+    nome: 'Maria Santos',
+    cargo: 'Acabamento'
+  }, {
+    id: 3,
+    nome: 'Carlos Oliveira',
+    cargo: 'Montador'
+  }, {
+    id: 4,
+    nome: 'Ana Lima',
+    cargo: 'Costura'
+  }],
+  producoes: [{
+    id: 1,
+    data: hojeISO(),
+    funcionarioId: 1,
+    pecaId: 1,
+    corId: 1,
+    quantidade: 12,
+    horaExtra: 0
+  }, {
+    id: 2,
+    data: hojeISO(),
+    funcionarioId: 2,
+    pecaId: 2,
+    corId: 2,
+    quantidade: 8,
+    horaExtra: 1
+  }],
+  movimentacoes: [{
+      id: 1,
+      tipo: 'entrada',
+      pecaId: 1,
+      corId: 1,
+      quantidade: 50,
+      data: hojeISO(),
+      origem: 'Produção'
+    }, {
+      id: 2,
+      tipo: 'entrada',
+      pecaId: 1,
+      corId: 2,
+      quantidade: 30,
+      data: hojeISO()
+    },
+    {
+      id: 3,
+      tipo: 'entrada',
+      pecaId: 2,
+      corId: 1,
+      quantidade: 80,
+      data: hojeISO()
+    }, {
+      id: 4,
+      tipo: 'saida',
+      pecaId: 1,
+      corId: 1,
+      quantidade: 8,
+      data: hojeISO(),
+      origem: 'Cliente Pedro'
+    },
+    {
+      id: 5,
+      tipo: 'entrada',
+      pecaId: 3,
+      corId: 2,
+      quantidade: 15,
+      data: hojeISO()
+    }, {
+      id: 6,
+      tipo: 'entrada',
+      pecaId: 4,
+      corId: 1,
+      quantidade: 100,
+      data: hojeISO()
+    },
+  ],
+  armacoes: [{
+    id: 1,
+    data: hojeISO(),
+    modeloId: 1,
+    quantidade: 20
+  }, {
+    id: 2,
+    data: hojeISO(),
+    modeloId: 2,
+    quantidade: 15
+  }],
+  estoqueArmacoes: [{
+    id: 1,
+    modeloId: 1,
+    quantidade: 20
+  }, {
+    id: 2,
+    modeloId: 2,
+    quantidade: 15
+  }],
+};
+
+
+// ============================================================
+// 5. HELPERS GERAIS (datas, moeda, saldo, busca por id)
+// ============================================================
+function hojeISO() {
+  return new Date().toISOString().split('T')[0]
+}
+
+function fmtData(d) {
+  if (!d) return '';
+  return new Date(d + 'T00:00:00').toLocaleDateString('pt-BR')
+}
+
+function fmtMoeda(v) {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(v || 0)
+}
+
+function calcSaldo(pId, cId) {
+  return S.movimentacoes.filter(m => (m.pecaid ?? m.pecaId) === pId && (m.corid ?? m.corId) === cId).reduce((a, m) => a + (m.tipo === 'entrada' ? m.quantidade : -m.quantidade), 0)
+}
+
+function byId(arr, id) {
+  return arr.find(x => x.id === parseInt(id))
+}
+
+// IDB
+
+// ============================================================
+// 6. INDEXEDDB (CACHE LOCAL / MODO OFFLINE)
+// ============================================================
+async function openIDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('syscad_m', 2);
+    r.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('fila')) db.createObjectStore('fila', {
+        keyPath: 'id',
+        autoIncrement: true
+      });
+      if (!db.objectStoreNames.contains('hist')) db.createObjectStore('hist', {
+        keyPath: 'id',
+        autoIncrement: true
+      });
+    };
+    r.onsuccess = e => {
+      S.idb = e.target.result;
+      res()
+    };
+    r.onerror = () => rej(r.error);
+  });
+}
+
+function idbAdd(store, data) {
+  return new Promise((res, rej) => {
+    const tx = S.idb.transaction([store], 'readwrite');
+    const req = tx.objectStore(store).add(data);
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error)
+  })
+}
+
+function idbAll(store) {
+  return new Promise((res, rej) => {
+    const tx = S.idb.transaction([store], 'readonly');
+    const req = tx.objectStore(store).getAll();
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error)
+  })
+}
+
+function idbDel(store, id) {
+  return new Promise((res, rej) => {
+    const tx = S.idb.transaction([store], 'readwrite');
+    const req = tx.objectStore(store).delete(id);
+    req.onsuccess = res;
+    req.onerror = () => rej(req.error)
+  })
+}
+
+function idbClear(store) {
+  return new Promise((res, rej) => {
+    const tx = S.idb.transaction([store], 'readwrite');
+    const req = tx.objectStore(store).clear();
+    req.onsuccess = res;
+    req.onerror = () => rej(req.error)
+  })
+}
+
+
+// ============================================================
+// 7. SUPABASE: CONEXÃO, CRUD E CARGA INICIAL DE DADOS
+// ============================================================
+async function updOQ() {
+  const fila = await idbAll('fila');
+  const n = fila.length;
+  document.getElementById('oqN').textContent = n;
+  document.getElementById('oqCard').classList.toggle('hidden', n === 0);
+}
+
+// Supabase
+async function initSB() {
+  if (S.demo) return;
+  try {
+    const {
+      createClient
+    } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
+    S.sb = createClient(SUPABASE_URL, SUPABASE_KEY)
+  } catch (e) {
+    console.warn('SB erro:', e)
+  }
+}
+
+async function sbInsert(tabela, dados) {
+  if (S.demo || !S.sb || !S.online) return null;
+  const {
+    data,
+    error
+  } = await S.sb.from(tabela).insert(dados).select().single();
+  if (error) throw error;
+  return data;
+}
+async function sbUpdate(tabela, id, dados) {
+  if (S.demo || !S.sb || !S.online) return;
+  const {
+    error
+  } = await S.sb.from(tabela).update(dados).eq('id', id);
+  if (error) throw error;
+}
+async function sbDelete(tabela, id) {
+  if (S.demo || !S.sb || !S.online) throw new Error('Deleção requer conexão com o servidor');
+  const {
+    error
+  } = await S.sb.from(tabela).delete().eq('id', id);
+  if (error) throw error;
+}
+
+async function carregarDados() {
+  if (S.demo || !S.sb) {
+    Object.assign(S, {
+      pecas: DD.pecas,
+      cores: DD.cores,
+      funcionarios: DD.funcionarios,
+      producoes: DD.producoes,
+      movimentacoes: DD.movimentacoes,
+      armacoes: DD.armacoes,
+      estoqueArmacoes: DD.estoqueArmacoes
+    });
+    return;
+  }
+  showLoad('Carregando dados...');
+  try {
+    const [p, c, f, pr, mv, ar, ea] = await Promise.all([
+      S.sb.from('Pecas').select('*').order('nome'),
+      S.sb.from('Cores').select('*').order('nome'),
+      S.sb.from('Funcionarios').select('*').order('nome'),
+      S.sb.from('Producoes').select('*').order('data', {
+        ascending: false
+      }),
+      S.sb.from('Movimentacoes').select('*').order('data', {
+        ascending: false
+      }),
+      S.sb.from('Armacoes').select('*').order('data', {
+        ascending: false
+      }),
+      S.sb.from('EstoqueArmacoes').select('*'),
+    ]);
+    S.pecas = p.data || [];
+    S.cores = c.data || [];
+    S.funcionarios = f.data || [];
+    S.producoes = pr.data || [];
+    S.movimentacoes = mv.data || [];
+    S.armacoes = ar.data || [];
+    S.estoqueArmacoes = ea.data || [];
+  } catch (e) {
+    toast('Erro ao carregar dados', 'error')
+  }
+  hideLoad();
+}
+
+let _rtChannel = null;
+
+
+// ============================================================
+// 8. REALTIME (SINCRONIZAÇÃO AO VIVO COM O DESKTOP)
+// ============================================================
+function updRtBadge(status) {
+  const badge = document.getElementById('sBadge');
+  const dot = badge?.querySelector('.dot');
+  const txt = document.getElementById('sTxt');
+  if (status === 'live') {
+    if (dot) {
+      dot.style.background = 'var(--green2)';
+      dot.style.animation = 'pulse 2s infinite'
+    }
+    if (txt) txt.textContent = 'Ao Vivo';
+    badge.className = 'sbadge on';
+  } else if (status === 'connecting') {
+    if (dot) {
+      dot.style.background = 'var(--amber)';
+      dot.style.animation = 'none'
+    }
+    if (txt) txt.textContent = 'Conectando';
+  } else {
+    if (dot) {
+      dot.style.background = 'var(--muted)';
+      dot.style.animation = 'none'
+    }
+    if (txt) txt.textContent = 'Online';
+    badge.className = 'sbadge on';
+  }
+}
+
+function iniciarRealtime() {
+  if (!S.sb) return;
+  if (_rtChannel) {
+    try {
+      S.sb.removeChannel(_rtChannel)
+    } catch (e) {}
+    _rtChannel = null
+  }
+  updRtBadge('connecting');
+  const flash = () => {
+    const tb = document.querySelector('.topbar');
+    if (!tb) return;
+    tb.style.transition = 'background .15s';
+    tb.style.background = 'rgba(39,174,96,.18)';
+    setTimeout(() => {
+      tb.style.background = ''
+    }, 400)
+  };
+  _rtChannel = S.sb.channel('mob-rt-v4', {
+      config: {
+        broadcast: {
+          self: false
+        }
+      }
+    })
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'Producoes'
+    }, async (p) => {
+      await reloadT('Producoes');
+      renderProdHoje();
+      atualizarHome();
+      flash();
+      if (p.eventType === 'INSERT') toast('🏭 Produção atualizada', 'info');
+      if (p.eventType === 'DELETE') toast('🗑 Produção removida', 'warn');
+    })
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'Movimentacoes'
+    }, async (p) => {
+      await reloadT('Movimentacoes');
+      renderEstoque();
+      renderSaidas();
+      atualizarHome();
+      flash();
+      if (p.eventType === 'DELETE') toast('🗑 Movimentação removida', 'warn');
+    })
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'Pecas'
+    }, async () => {
+      await reloadT('Pecas');
+      fillSelects();
+      renderEstoque();
+      flash()
+    })
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'Cores'
+    }, async () => {
+      await reloadT('Cores');
+      fillSelects();
+      flash()
+    })
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'Funcionarios'
+    }, async () => {
+      await reloadT('Funcionarios');
+      fillSelects();
+      flash()
+    })
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'Armacoes'
+    }, async (p) => {
+      await reloadT('Armacoes');
+      await reloadT('EstoqueArmacoes');
+      renderArmacoes();
+      atualizarHome();
+      flash();
+      if (p.eventType === 'INSERT') toast('🔩 Armação registrada', 'info');
+      if (p.eventType === 'DELETE') toast('🗑 Armação removida', 'warn');
+    })
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'EstoqueArmacoes'
+    }, async () => {
+      await reloadT('EstoqueArmacoes');
+      renderArmacoes();
+      renderEstoque()
+    })
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'Usuarios'
+    }, async (p) => {
+      // Conta do próprio usuário logado foi editada/excluída/desativada no Desktop
+      if (!S.user) return;
+      if (p.eventType === 'DELETE' && p.old?.id === S.user.id) {
+        toast('⚠️ Sua conta foi removida. Você será desconectado.', 'warn');
+        setTimeout(() => window.location.reload(), 2500);
+        return;
+      }
+      if ((p.eventType === 'UPDATE' || p.eventType === 'INSERT') && p.new?.id === S.user.id) {
+        if (!p.new.ativo) {
+          toast('⚠️ Sua conta foi desativada. Você será desconectado.', 'warn');
+          setTimeout(() => window.location.reload(), 2500);
+          return;
+        }
+        let permissoes = [];
+        try {
+          permissoes = typeof p.new.permissoes === 'string' ? JSON.parse(p.new.permissoes) : (p.new.permissoes || [])
+        } catch (e) {
+          permissoes = []
+        }
+        // Preserva também funcionarioId — sem isso, uma conta com produção
+        // pessoal restrita perderia essa trava em tempo real assim que o
+        // admin editasse qualquer outra coisa dela pelo Desktop (mesmo tipo
+        // de falha que existia no SELECT de usuários do Desktop).
+        S.user = {
+          ...S.user,
+          nome: p.new.nome,
+          role: p.new.role,
+          permissoes,
+          funcionarioId: p.new.funcionarioid ?? p.new.funcionarioId ?? S.user.funcionarioId ?? null
+        };
+        aplicarPermissoesUI();
+        toast('🔄 Suas permissões foram atualizadas', 'info');
+      }
+    })
+    .subscribe((status, err) => {
+      console.log('[RT]', status, err || '');
+      if (status === 'SUBSCRIBED') updRtBadge('live');
+      else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        updRtBadge('error');
+        setTimeout(() => {
+          if (S.online && S.sb && !S.demo) iniciarRealtime()
+        }, 5000);
+      } else if (status === 'CLOSED') updRtBadge('error');
+    });
+}
+
+async function reloadT(tabela) {
+  if (!S.sb) return;
+  const map = {
+    Pecas: 'pecas',
+    Cores: 'cores',
+    Funcionarios: 'funcionarios',
+    Producoes: 'producoes',
+    Movimentacoes: 'movimentacoes',
+    Armacoes: 'armacoes',
+    EstoqueArmacoes: 'estoqueArmacoes'
+  };
+  const ord = {
+    Pecas: 'nome',
+    Cores: 'nome',
+    Funcionarios: 'nome',
+    Producoes: 'data',
+    Movimentacoes: 'data',
+    Armacoes: 'data'
+  };
+  try {
+    let q = S.sb.from(tabela).select('*');
+    if (ord[tabela]) q = q.order(ord[tabela], {
+      ascending: false
+    });
+    const {
+      data
+    } = await q;
+    S[map[tabela]] = data || []
+  } catch (e) {
+    console.warn('reloadT', tabela, e)
+  }
+}
+
+// LOGIN — autentica contra a tabela Usuarios (gerenciada no Desktop)
+
+// ============================================================
+// 9. LOGIN / BOOT DO APP
+// ============================================================
+window.doLogin = async function() {
+  const email = document.getElementById('lEmail').value.trim().toLowerCase();
+  const senha = document.getElementById('lSenha').value;
+  const errEl = document.getElementById('lErr');
+  errEl.textContent = '';
+  if (!email || !senha) {
+    errEl.textContent = 'Preencha usuário e senha';
+    return
+  }
+  showLoad('Entrando...');
+  try {
+    if (S.demo) {
+      const u = DEMO_USERS.find(u => u.email === email && u.senha === senha);
+      if (!u) {
+        hideLoad();
+        errEl.textContent = '❌ Usuário ou senha incorretos';
+        return
+      }
+      S.user = u;
+    } else {
+      const {
+        data: usuario,
+        error
+      } = await S.sb.from('Usuarios').select('*').eq('email', email).maybeSingle();
+      if (error || !usuario) {
+        hideLoad();
+        errEl.textContent = '❌ Usuário ou senha incorretos';
+        return
+      }
+      if (!usuario.ativo) {
+        hideLoad();
+        errEl.textContent = '❌ Este usuário está bloqueado. Contate um administrador.';
+        return
+      }
+      const senhaOk = await verificarSenhaScrypt(senha, usuario.senha_hash);
+      if (!senhaOk) {
+        hideLoad();
+        errEl.textContent = '❌ Usuário ou senha incorretos';
+        return
+      }
+      let permissoes = [];
+      try {
+        permissoes = typeof usuario.permissoes === 'string' ? JSON.parse(usuario.permissoes) : (usuario.permissoes || [])
+      } catch (e) {
+        permissoes = []
+      }
+      // funcionarioId vincula a conta a um registro de Funcionarios (login
+      // pessoal criado automaticamente no Desktop ao cadastrar o funcionário)
+      // — mesmo campo usado pelo Desktop para restringir produção/relatórios
+      // à própria pessoa. Sem isso aqui, o mobile ignoraria essa regra.
+      S.user = {
+        id: usuario.id,
+        email: usuario.email,
+        nome: usuario.nome,
+        role: usuario.role,
+        permissoes,
+        funcionarioId: usuario.funcionarioid ?? usuario.funcionarioId ?? null
+      };
+    }
+    await carregarDados();
+    iniciarApp();
+    hideLoad();
+  } catch (e) {
+    hideLoad();
+    errEl.textContent = '❌ Erro: ' + e.message
+  }
+};
+
+function iniciarApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appShell').style.display = 'flex';
+  document.getElementById('userLbl').textContent = S.user?.nome || 'Operador';
+  fillSelects();
+  document.getElementById('pData').value = hojeISO();
+  document.getElementById('sData').value = hojeISO();
+  document.getElementById('aData').value = hojeISO();
+  // aplicarPermissoesUI() (que trava pData/pFunc e as pills de relatório)
+  // precisa rodar DEPOIS de fillSelects() ter populado os campos de seleção
+  // — senão a trava tentaria escrever num campo ainda vazio.
+  aplicarPermissoesUI();
+  atualizarHome();
+  if (S.sb) iniciarRealtime();
+  updOQ();
+}
+
+
+// ============================================================
+// 10. HOME (DASHBOARD, SELECTS, RESUMOS)
+// ============================================================
+function fillSelects() {
+  const fO = S.funcionarios.map(f => `<option value="${f.id}">${f.nome} — ${f.cargo}</option>`).join('');
+  const pO = S.pecas.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+  const cO = S.cores.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+  const ph = v => `<option value="">Selecionar...</option>` + v;
+  document.getElementById('pFunc').innerHTML = ph(fO);
+  document.querySelectorAll('.peca-sel').forEach(s => s.innerHTML = ph(pO));
+  document.querySelectorAll('.cor-sel').forEach(s => s.innerHTML = ph(cO));
+  document.getElementById('sModelo').innerHTML = ph(pO);
+  document.getElementById('sCor').innerHTML = ph(cO);
+  document.getElementById('aModelo').innerHTML = ph(pO);
+  const allF = `<option value="">Todos</option>` + fO;
+  const allP = `<option value="">Todos</option>` + pO;
+  const allC = `<option value="">Todas</option>` + cO;
+  document.getElementById('estModelo').innerHTML = allP;
+  document.getElementById('estCor').innerHTML = allC;
+  ['rg_func'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = allF
+  });
+  ['rg_peca', 're_peca', 'ra_modelo'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = allP
+  });
+  ['rg_cor'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = allC
+  });
+  renderCadModelos();
+  renderCadFunc();
+  renderCadCores();
+  // fillSelects() também é chamado pelo realtime (outro dispositivo
+  // cadastrando algo) — sem reforçar a trava aqui, o select de produção e
+  // o filtro do relatório geral voltariam a mostrar todo mundo.
+  if (typeof aplicarRestricaoProducaoMobile === 'function') aplicarRestricaoProducaoMobile();
+  if (typeof aplicarRestricaoFiltroRelatorioMobile === 'function') aplicarRestricaoFiltroRelatorioMobile();
+}
+
+// No relatório Geral, o filtro "Funcionário" não faz sentido para quem só
+// pode ver a si mesmo — trava nele e esconde a escolha (mesma regra do
+// Desktop, ver o trecho de filtroFuncionario em aplicarRestricaoTiposRelatorio).
+function aplicarRestricaoFiltroRelatorioMobile() {
+  const filtroFunc = document.getElementById('rg_func');
+  if (!filtroFunc) return;
+  const linha = filtroFunc.closest('.fg');
+  if (usuarioRestritoAPropriaProducao()) {
+    const meuFuncionario = byId(S.funcionarios, S.user.funcionarioId);
+    filtroFunc.innerHTML = `<option value="${S.user.funcionarioId}">${meuFuncionario?meuFuncionario.nome:S.user.nome}</option>`;
+    filtroFunc.value = String(S.user.funcionarioId);
+    filtroFunc.disabled = true;
+    if (linha) linha.style.display = 'none';
+  } else {
+    filtroFunc.disabled = false;
+    if (linha) linha.style.display = '';
+  }
+}
+
+async function atualizarHome() {
+  const h = new Date().getHours();
+  const sd = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
+  document.getElementById('gTxt').textContent = `${sd}, ${(S.user?.nome||'Operador').split(' ')[0]}! 👋`;
+  document.getElementById('gDate').textContent = new Date().toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long'
+  });
+  const hoje = hojeISO();
+  const ph = S.producoes.filter(p => p.data === hoje).reduce((a, p) => a + (parseInt(p.quantidade) || 0), 0);
+  document.getElementById('sHoje').textContent = ph || '0';
+  document.getElementById('sTotal').textContent = S.producoes.reduce((a, p) => a + (parseInt(p.quantidade) || 0), 0);
+  document.getElementById('sFunc').textContent = S.funcionarios.length;
+  document.getElementById('sMov').textContent = S.movimentacoes.length;
+  // Últimos lançamentos direto do estado Supabase — sem cache local
+  const gid = v => v.pecaid ?? v.pecaId;
+  const gic = v => v.corid ?? v.corId;
+  const gif = v => v.funcionarioid ?? v.funcionarioId;
+  const gim = v => v.modeloid ?? v.modeloId;
+  const gts = v => {
+    try {
+      return new Date(v.created_at || v.data + 'T00:00:00').getTime()
+    } catch {
+      return 0
+    }
+  };
+  const ultProd = (S.producoes || []).slice(0, 5).map(r => ({
+    tipo: 'prod',
+    desc: (S.pecas.find(p => p.id === gid(r))?.nome || '?') + ' · ' + (S.cores.find(c => c.id === gic(r))?.nome || '?'),
+    sub: S.funcionarios.find(f => f.id === gif(r))?.nome || '',
+    qtd: r.quantidade,
+    ts: gts(r)
+  }));
+  const ultMov = (S.movimentacoes || []).filter(r => r.tipo === 'saida').slice(0, 5).map(r => ({
+    tipo: 'saida',
+    desc: (S.pecas.find(p => p.id === gid(r))?.nome || '?') + ' · ' + (S.cores.find(c => c.id === gic(r))?.nome || '?'),
+    sub: r.obs || r.origem || '',
+    qtd: r.quantidade,
+    ts: gts(r)
+  }));
+  const ultArm = (S.armacoes || []).slice(0, 3).map(r => ({
+    tipo: 'arm',
+    desc: 'Armação: ' + (S.pecas.find(p => p.id === gim(r))?.nome || '?'),
+    sub: 'Chegada',
+    qtd: r.quantidade,
+    ts: gts(r)
+  }));
+  const last = [...ultProd, ...ultMov, ...ultArm].sort((a, b) => b.ts - a.ts).slice(0, 5);
+  document.getElementById('homeHist').innerHTML = last.length ? last.map(histRow).join('') : '<div class="empty"><p>Nenhum lançamento ainda</p></div>';
+  await updOQ();
+}
+
+function histRow(it) {
+  const isProd = it.tipo === 'prod';
+  const isAr = it.tipo === 'arm';
+  const hora = new Date(it.ts).toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  const cls = isProd ? 'ip' : isAr ? 'ia' : 'is';
+  const ico = isProd ? '🏭' : isAr ? '🔩' : '📤';
+  return `<div class="hi-row"><div class="hi-ic ${cls}">${ico}</div><div class="hi-inf"><div class="hi-t">${it.desc||'–'}</div><div class="hi-s">${it.sub||''} · ${hora}</div></div><div class="hi-q${isProd||isAr?'':' neg'}">${isProd||isAr?'+':'–'}${it.qtd}</div></div>`;
+}
+
+// NUMPAD
+
+// ============================================================
+// 11. TECLADO NUMÉRICO (NUMPAD) — PRODUÇÃO E SAÍDAS
+// ============================================================
+window.nk = function(idx, key) {
+  if (!S.prodNums[idx]) S.prodNums[idx] = '0';
+  let v = S.prodNums[idx];
+  if (key === 'C') v = '0';
+  else if (key === 'DEL') v = v.length > 1 ? v.slice(0, -1) : '0';
+  else {
+    if (v === '0') v = key;
+    else if (v.length < 5) v += key
+  }
+  S.prodNums[idx] = v;
+  const el = document.getElementById('nv' + idx);
+  const c = document.getElementById('nd' + idx);
+  if (!el || !c) return;
+  el.textContent = parseInt(v).toLocaleString('pt-BR');
+  el.classList.toggle('ph', v === '0');
+  c.classList.toggle('has', v !== '0');
+};
+window.toggleHE = function(idx) {
+  S.prodHE[idx] = !S.prodHE[idx];
+  document.getElementById('heTog' + idx)?.classList.toggle('on', S.prodHE[idx])
+};
+window.nks = function(key) {
+  let v = S.sNum;
+  if (key === 'C') v = '0';
+  else if (key === 'DEL') v = v.length > 1 ? v.slice(0, -1) : '0';
+  else {
+    if (v === '0') v = key;
+    else if (v.length < 5) v += key
+  }
+  S.sNum = v;
+  const el = document.getElementById('sVal');
+  el.textContent = parseInt(v).toLocaleString('pt-BR');
+  el.classList.toggle('ph', v === '0');
+  document.getElementById('sDisp').classList.toggle('has', v !== '0');
+  updSaldo()
+};
+window.nka = function(key) {
+  let v = S.aNum;
+  if (key === 'C') v = '0';
+  else if (key === 'DEL') v = v.length > 1 ? v.slice(0, -1) : '0';
+  else {
+    if (v === '0') v = key;
+    else if (v.length < 5) v += key
+  }
+  S.aNum = v;
+  const el = document.getElementById('aVal');
+  el.textContent = parseInt(v).toLocaleString('pt-BR');
+  el.classList.toggle('ph', v === '0');
+  document.getElementById('aDisp').classList.toggle('has', v !== '0')
+};
+
+// ADD ITEM
+window.addItem = function() {
+  const idx = S.itemCount++;
+  S.prodNums[idx] = '0';
+  S.prodHE[idx] = false;
+  const pO = S.pecas.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+  const cO = S.cores.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+  const div = document.createElement('div');
+  div.className = 'card';
+  div.style.marginBottom = '12px';
+  div.id = 'pItem' + idx;
+  div.innerHTML = `<div class="ctit"><div class="cico cg">🪑</div>Item ${idx+1} <button style="margin-left:auto;background:none;border:none;color:var(--red2);font-size:16px;cursor:pointer;" onclick="remItem(${idx})">🗑️</button></div>
+    <div class="fg"><div class="fl">Modelo</div><select class="fs peca-sel"><option value="">Selecionar...</option>${pO}</select></div>
+    <div class="fg"><div class="fl">Cor</div><select class="fs cor-sel"><option value="">Selecionar...</option>${cO}</select></div>
+    <div class="fg"><div class="fl">📊 Quantidade</div>
+      <div class="np-disp" id="nd${idx}"><div class="np-val ph" id="nv${idx}">0</div><div class="np-lbl">unidades</div></div>
+      <div class="np-grid">
+        <button class="nk" onclick="nk(${idx},'1')">1</button><button class="nk" onclick="nk(${idx},'2')">2</button><button class="nk" onclick="nk(${idx},'3')">3</button>
+        <button class="nk" onclick="nk(${idx},'4')">4</button><button class="nk" onclick="nk(${idx},'5')">5</button><button class="nk" onclick="nk(${idx},'6')">6</button>
+        <button class="nk" onclick="nk(${idx},'7')">7</button><button class="nk" onclick="nk(${idx},'8')">8</button><button class="nk" onclick="nk(${idx},'9')">9</button>
+        <button class="nk clr" onclick="nk(${idx},'C')">CLR</button><button class="nk" onclick="nk(${idx},'0')">0</button><button class="nk del" onclick="nk(${idx},'DEL')">⌫</button>
+      </div>
+    </div>
+    <div class="tog" id="heTog${idx}" onclick="toggleHE(${idx})"><div class="tog-inf"><div class="tog-t">⏰ Hora Extra</div><div class="tog-s">+50%</div></div><div class="sw"></div></div>`;
+  document.getElementById('pItens').appendChild(div);
+};
+window.remItem = function(idx) {
+  document.getElementById('pItem' + idx)?.remove()
+};
+
+// SALVAR PRODUÇÃO
+
+// ============================================================
+// 12. PRODUÇÃO (SALVAR, LIMPAR, LISTAR)
+// ============================================================
+window.salvarProducao = async function() {
+  const data = document.getElementById('pData').value;
+  const funcId = parseInt(document.getElementById('pFunc').value);
+  if (!funcId) {
+    toast('Selecione um funcionário', 'error');
+    return
+  }
+
+  // Defesa em profundidade — mesma regra do Desktop: contas vinculadas a um
+  // funcionário só registram produção com a data de hoje e em nome de si
+  // mesmas. O select/campo já vêm travados (aplicarRestricaoProducaoMobile),
+  // isto aqui barra quem tentar burlar direto pelo console do navegador.
+  if (usuarioRestritoAPropriaProducao()) {
+    if (data !== hojeISO()) {
+      toast('🔒 Você só pode registrar produção com a data de hoje.', 'error');
+      return
+    }
+    if (funcId !== S.user.funcionarioId) {
+      toast('🔒 Você só pode registrar produção em seu próprio nome.', 'error');
+      return
+    }
+  }
+
+  const itens = [];
+  document.querySelectorAll('#pItens .card').forEach((card, i) => {
+    const pecaId = parseInt(card.querySelector('.peca-sel')?.value || '0');
+    const corId = parseInt(card.querySelector('.cor-sel')?.value || '0');
+    const idx = parseInt(card.id?.replace('pItem', '') || i);
+    const qty = parseInt(S.prodNums[idx] || '0');
+    const he = S.prodHE[idx] || false;
+    if (pecaId && corId && qty > 0) itens.push({
+      pecaId,
+      corId,
+      quantidade: qty,
+      horaExtra: he ? 1 : 0
+    });
+  });
+  if (!itens.length) {
+    toast('Adicione pelo menos um item com quantidade', 'error');
+    return
+  }
+
+  // Verificar armações
+  let msg = '📊 VERIFICAÇÃO DE ARMAÇÕES:\n\n';
+  let insuf = false;
+  for (const it of itens) {
+    const ea = S.estoqueArmacoes.find(e => (e.modeloid ?? e.modeloId) === it.pecaId);
+    const peca = byId(S.pecas, it.pecaId);
+    const estq = ea?.quantidade || 0;
+    const ok = estq >= it.quantidade;
+    if (!ok) insuf = true;
+    msg += `${peca?.nome||'?'}: Prod ${it.quantidade} | Est ${estq} ${ok?'✅':'⚠️ INSUF.'}\n`;
+  }
+  msg += insuf ? '\n⚠️ Haverá estoque negativo. Continuar?' : '\n✅ Estoque OK. Confirmar?';
+  if (!confirm(msg)) return;
+
+  showLoad('Registrando produção...');
+  try {
+    for (const it of itens) {
+      const dados = {
+        data,
+        funcionarioid: funcId,
+        pecaid: it.pecaId,
+        corid: it.corId,
+        quantidade: it.quantidade,
+        horaextra: it.horaExtra ? 1 : 0,
+        device_origin: 'mobile'
+      };
+      if (!S.demo && S.sb && S.online) {
+        const r = await sbInsert('Producoes', dados);
+        await sbInsert('Movimentacoes', {
+          data,
+          tipo: 'entrada',
+          pecaid: it.pecaId,
+          corid: it.corId,
+          quantidade: it.quantidade,
+          origem: 'Produção',
+          producaoid: r?.id,
+          funcionarioid: funcId,
+          device_origin: 'mobile'
+        });
+        const eaArm = S.estoqueArmacoes.find(e => (e.modeloid ?? e.modeloId) === it.pecaId);
+        const nova = (eaArm?.quantidade || 0) - it.quantidade;
+        if (eaArm) await sbUpdate('EstoqueArmacoes', eaArm.id, {
+          quantidade: nova
+        });
+        else await sbInsert('EstoqueArmacoes', {
+          modeloid: it.pecaId,
+          quantidade: -it.quantidade
+        });
+        // Realtime atualiza o estado — não mutamos localmente
+      } else {
+        await idbAdd('fila', {
+          tipo: 'producao',
+          dados,
+          movDados: {
+            data,
+            tipo: 'entrada',
+            pecaId: it.pecaId,
+            corId: it.corId,
+            quantidade: it.quantidade,
+            origem: 'Produção',
+            funcionarioId: funcId
+          },
+          ts: Date.now(),
+          key: crypto.randomUUID()
+        });
+        S.producoes.unshift({
+          ...dados,
+          id: Date.now(),
+          pecaid: it.pecaId,
+          corid: it.corId,
+          funcionarioid: funcId
+        });
+        S.movimentacoes.unshift({
+          data,
+          tipo: 'entrada',
+          pecaid: it.pecaId,
+          corid: it.corId,
+          quantidade: it.quantidade,
+          id: Date.now()
+        });
+        const eaLocal = S.estoqueArmacoes.find(e => (e.modeloid ?? e.modeloId) === it.pecaId);
+        if (eaLocal) eaLocal.quantidade -= it.quantidade;
+      }
+    }
+    await updOQ();
+    limparProd();
+    atualizarHome();
+    renderProdHoje();
+    renderEstoque();
+    hideLoad();
+    toast(`✅ Produção registrada!${!S.online||S.demo?' (offline)':''}`, S.online && !S.demo ? 'success' : 'warn');
+    if (navigator.vibrate) navigator.vibrate([50, 50, 100]);
+  } catch (e) {
+    hideLoad();
+    toast('❌ Erro: ' + e.message, 'error')
+  }
+};
+
+window.limparProd = function() {
+  document.getElementById('pFunc').value = '';
+  document.getElementById('pData').value = hojeISO();
+  S.prodNums = {
+    0: '0'
+  };
+  S.prodHE = {};
+  const nv = document.getElementById('nv0');
+  const nd = document.getElementById('nd0');
+  if (nv) {
+    nv.textContent = '0';
+    nv.classList.add('ph')
+  }
+  if (nd) nd.classList.remove('has');
+  document.getElementById('heTog0')?.classList.remove('on');
+  document.querySelectorAll('.peca-sel,.cor-sel').forEach(s => s.value = '');
+  document.querySelectorAll('#pItens .card:not(#pItem0)').forEach(c => c.remove());
+  S.itemCount = 1;
+  // Reaplica a trava de "produção só para hoje/só para si mesmo" — sem
+  // isso o select de funcionário voltaria a mostrar todo mundo após limpar.
+  aplicarRestricaoProducaoMobile();
+};
+
+function renderProdHoje() {
+  const hoje = hojeISO();
+  const prods = producoesVisiveisParaUsuario().filter(p => p.data === hoje);
+  const el = document.getElementById('prodHojeList');
+  if (!prods.length) {
+    el.innerHTML = '<div class="empty"><div class="ei">📋</div><p>Nenhum registro hoje</p></div>';
+    return
+  }
+  let tot = 0;
+  el.innerHTML = prods.map(p => {
+    const f = byId(S.funcionarios, p.funcionarioid ?? p.funcionarioId);
+    const pc = byId(S.pecas, p.pecaid ?? p.pecaId);
+    const c = byId(S.cores, p.corid ?? p.corId);
+    const vu = pc ? ((p.horaextra ?? p.horaExtra) ? pc.valor * 1.5 : pc.valor) : 0;
+    const vt = vu * (parseInt(p.quantidade) || 0);
+    tot += vt;
+    return `<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${pc?.nome||'N/A'}</span>${(p.horaextra??p.horaExtra)?'<span class="badge-he">⏰ HE</span>':''}</div>
+      <div class="mob-rf"><div class="mob-fi">Funcionário<strong>${f?.nome||'N/A'}</strong></div><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div>
+      <div class="mob-fi">Quantidade<strong>${p.quantidade}</strong></div><div class="mob-fi">Valor<strong class="valor">${fmtMoeda(vt)}</strong></div></div></div>`;
+  }).join('') + `<div class="total-row"><span class="tl">Total do Dia</span><span class="tv">${fmtMoeda(tot)}</span></div>`;
+}
+
+// ESTOQUE
+
+// ============================================================
+// 13. ESTOQUE
+// ============================================================
+window.filtEst = function(tipo, btn) {
+  S.filtEst = tipo;
+  document.querySelectorAll('#pageEstoque .pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  renderEstoque()
+};
+window.renderEstoque = function() {
+  const pId = parseInt(document.getElementById('estModelo').value) || null;
+  const cId = parseInt(document.getElementById('estCor').value) || null;
+  const q = document.getElementById('estPesq').value.toLowerCase();
+  const saldos = {};
+  S.movimentacoes.forEach(m => {
+    const _mp = m.pecaid ?? m.pecaId;
+    const _mc = m.corid ?? m.corId;
+    if (pId && _mp !== pId) return;
+    if (cId && _mc !== cId) return;
+    const k = `${_mp}-${_mc}`;
+    if (!saldos[k]) saldos[k] = {
+      pecaId: _mp,
+      corId: _mc,
+      saldo: 0
+    };
+    saldos[k].saldo += m.tipo === 'entrada' ? m.quantidade : -m.quantidade;
+  });
+  let rows = Object.values(saldos);
+  if (S.filtEst === 'baixo') rows = rows.filter(r => r.saldo > 0 && r.saldo < 10);
+  else if (S.filtEst === 'critico') rows = rows.filter(r => r.saldo > 0 && r.saldo < 5);
+  else if (S.filtEst === 'zero') rows = rows.filter(r => r.saldo <= 0);
+  if (q) rows = rows.filter(r => {
+    const p = byId(S.pecas, r.pecaId ?? r.pecaid);
+    const c = byId(S.cores, r.corId ?? r.corid);
+    return (p?.nome || '').toLowerCase().includes(q) || (c?.nome || '').toLowerCase().includes(q)
+  });
+  rows.sort((a, b) => (byId(S.pecas, a.pecaId ?? a.pecaid)?.nome || '').localeCompare(byId(S.pecas, b.pecaId ?? b.pecaid)?.nome || ''));
+  const el = document.getElementById('estoqueList');
+  if (!rows.length) {
+    el.innerHTML = '<div class="empty"><div class="ei">📦</div><p>Nenhum item</p></div>';
+    return
+  }
+  el.innerHTML = rows.map(r => {
+    const p = byId(S.pecas, r.pecaId ?? r.pecaid);
+    const c = byId(S.cores, r.corId ?? r.corid);
+    const cls = r.saldo <= 0 ? 'sn' : r.saldo < 5 ? 'sc2' : r.saldo < 10 ? 'sb2' : 'sk';
+    return `<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'–'}</span><span class="${cls}" style="font-size:20px">${r.saldo}</span></div><div style="font-size:12px;color:var(--muted)">🎨 ${c?.nome||'–'}</div></div>`;
+  }).join('');
+};
+
+// SALDO SAÍDA
+window.updSaldo = function() {
+  const pId = parseInt(document.getElementById('sModelo').value);
+  const cId = parseInt(document.getElementById('sCor').value);
+  const card = document.getElementById('saldoCard');
+  if (!pId || !cId) {
+    card.style.display = 'none';
+    return
+  }
+  const saldo = calcSaldo(pId, cId);
+  const p = byId(S.pecas, pId);
+  const c = byId(S.cores, cId);
+  card.style.display = 'block';
+  document.getElementById('saldoDesc').textContent = `${p?.nome||'–'} · ${c?.nome||'–'}`;
+  const el = document.getElementById('saldoNum');
+  el.textContent = saldo;
+  el.style.color = saldo <= 0 ? 'var(--red2)' : saldo < 10 ? 'var(--amber)' : 'var(--green2)';
+};
+
+// SALVAR SAÍDA
+
+// ============================================================
+// 14. SAÍDAS / MOVIMENTAÇÕES
+// ============================================================
+window.salvarSaida = async function() {
+  const data = document.getElementById('sData').value;
+  const pecaId = parseInt(document.getElementById('sModelo').value);
+  const corId = parseInt(document.getElementById('sCor').value);
+  const quantidade = parseInt(S.sNum);
+  const obs = document.getElementById('sObs').value.trim();
+  if (!pecaId) {
+    toast('Selecione um modelo', 'error');
+    return
+  }
+  if (!corId) {
+    toast('Selecione uma cor', 'error');
+    return
+  }
+  if (!quantidade || quantidade < 1) {
+    toast('Informe a quantidade', 'error');
+    return
+  }
+  const saldo = calcSaldo(pecaId, corId);
+  if (saldo < quantidade && !confirm(`⚠️ Saldo insuficiente!\nSaldo: ${saldo} | Falta: ${quantidade-saldo}\nRegistrar mesmo assim?`)) return;
+  const dados = {
+    data,
+    tipo: 'saida',
+    pecaid: pecaId,
+    corid: corId,
+    quantidade,
+    origem: obs || 'Saída via mobile',
+    device_origin: 'mobile'
+  };
+  showLoad('Registrando saída...');
+  const p = byId(S.pecas, pecaId);
+  const c = byId(S.cores, corId);
+  try {
+    if (!S.demo && S.sb && S.online) {
+      await sbInsert('Movimentacoes', dados);
+      // Realtime atualiza o estado
+    } else {
+      await idbAdd('fila', {
+        tipo: 'saida',
+        dados,
+        ts: Date.now(),
+        key: crypto.randomUUID()
+      });
+      S.movimentacoes.unshift({
+        ...dados,
+        pecaId,
+        corId,
+        id: Date.now()
+      });
+    }
+    await updOQ();
+    limparSaida();
+    renderEstoque();
+    renderSaidas();
+    atualizarHome();
+    hideLoad();
+    toast(`✅ Saída registrada!${!S.online||S.demo?' (offline)':''}`, S.online && !S.demo ? 'success' : 'warn');
+    if (navigator.vibrate) navigator.vibrate([50, 50, 100]);
+  } catch (e) {
+    hideLoad();
+    toast('❌ Erro: ' + e.message, 'error')
+  }
+};
+window.limparSaida = function() {
+  ['sModelo', 'sCor'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('sObs').value = '';
+  document.getElementById('sData').value = hojeISO();
+  S.sNum = '0';
+  const sv = document.getElementById('sVal');
+  sv.textContent = '0';
+  sv.classList.add('ph');
+  document.getElementById('sDisp').classList.remove('has');
+  document.getElementById('saldoCard').style.display = 'none';
+};
+
+function renderSaidas() {
+  const saidas = S.movimentacoes.filter(m => m.tipo === 'saida').slice(0, 20);
+  const el = document.getElementById('saidasList');
+  if (!saidas.length) {
+    el.innerHTML = '<div class="empty"><div class="ei">📤</div><p>Nenhuma saída</p></div>';
+    return
+  }
+  el.innerHTML = saidas.map(m => {
+    const p = byId(S.pecas, m.pecaid ?? m.pecaId);
+    const c = byId(S.cores, m.corid ?? m.corId);
+    return `<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span style="color:var(--red2);font-size:18px;font-weight:800">–${m.quantidade}</span></div>
+      <div class="mob-rf"><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Data<strong>${fmtData(m.data)}</strong></div>
+      <div class="mob-fi" style="grid-column:1/-1">Origem<strong>${m.origem||'–'}</strong></div></div></div>`;
+  }).join('');
+}
+
+// ARMAÇÕES
+
+// ============================================================
+// 15. ARMAÇÕES
+// ============================================================
+window.salvarArmacao = async function() {
+  const data = document.getElementById('aData').value;
+  const modeloId = parseInt(document.getElementById('aModelo').value);
+  const quantidade = parseInt(S.aNum);
+  if (!modeloId) {
+    toast('Selecione um modelo', 'error');
+    return
+  }
+  if (!quantidade || quantidade < 1) {
+    toast('Informe a quantidade', 'error');
+    return
+  }
+  const dadosArm = {
+    data,
+    modeloid: modeloId,
+    quantidade,
+    device_origin: 'mobile'
+  };
+  showLoad('Registrando armação...');
+  const p = byId(S.pecas, modeloId);
+  try {
+    if (!S.demo && S.sb && S.online) {
+      await sbInsert('Armacoes', dadosArm);
+      const eaArm2 = S.estoqueArmacoes.find(e => (e.modeloid ?? e.modeloId) === modeloId);
+      const novoSaldo = (eaArm2?.quantidade || 0) + quantidade;
+      if (eaArm2) await sbUpdate('EstoqueArmacoes', eaArm2.id, {
+        quantidade: novoSaldo
+      });
+      else await sbInsert('EstoqueArmacoes', {
+        modeloid: modeloId,
+        quantidade: novoSaldo
+      });
+      // Realtime atualiza o estado
+    } else {
+      await idbAdd('fila', {
+        tipo: 'armacao',
+        dados: dadosArm,
+        ts: Date.now(),
+        key: crypto.randomUUID()
+      });
+      S.armacoes.unshift({
+        ...dadosArm,
+        id: Date.now()
+      });
+      const eaOffline = S.estoqueArmacoes.find(e => (e.modeloid ?? e.modeloId) === modeloId);
+      if (eaOffline) {
+        eaOffline.quantidade += quantidade;
+      } else S.estoqueArmacoes.push({
+        modeloid: modeloId,
+        quantidade
+      });
+    }
+    document.getElementById('aData').value = hojeISO();
+    document.getElementById('aModelo').value = '';
+    S.aNum = '0';
+    document.getElementById('aVal').textContent = '0';
+    document.getElementById('aVal').classList.add('ph');
+    document.getElementById('aDisp').classList.remove('has');
+    await updOQ();
+    renderArmacoes();
+    atualizarHome();
+    hideLoad();
+    toast(`✅ Chegada registrada!${!S.online||S.demo?' (offline)':''}`, S.online && !S.demo ? 'success' : 'warn');
+  } catch (e) {
+    hideLoad();
+    toast('❌ Erro: ' + e.message, 'error')
+  }
+};
+
+function renderArmacoes() {
+  const eaMap = {};
+  S.estoqueArmacoes.forEach(e => {
+    eaMap[e.modeloid ?? e.modeloId] = e.quantidade
+  });
+  const estEl = document.getElementById('armEstList');
+  const histEl = document.getElementById('armHistList');
+  estEl.innerHTML = Object.keys(eaMap).length ? Object.entries(eaMap).map(([mid, qtd]) => {
+    const p = byId(S.pecas, parseInt(mid));
+    const cls = qtd <= 0 ? 'sn' : qtd < 5 ? 'sc2' : qtd < 10 ? 'sb2' : 'sk';
+    return `<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'–'}</span><span class="${cls}" style="font-size:20px">${qtd}</span></div><div style="font-size:11px;color:var(--muted)">Armações disponíveis</div></div>`;
+  }).join('') : '<div class="empty"><p>Nenhum estoque</p></div>';
+  histEl.innerHTML = S.armacoes.slice(0, 20).map(a => {
+    const p = byId(S.pecas, a.modeloid ?? a.modeloId);
+    return `<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'–'}</span><span style="color:var(--green2);font-size:18px;font-weight:800">+${a.quantidade}</span></div><div style="font-size:11px;color:var(--muted)">📅 ${fmtData(a.data)}</div></div>`;
+  }).join('');
+}
+
+// CADASTROS
+
+// ============================================================
+// 16. CADASTROS: MODELOS
+// ============================================================
+window.cadAba = function(aba, btn) {
+  document.querySelectorAll('#cadPills .pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('cadModelos').style.display = aba === 'modelos' ? 'block' : 'none';
+  document.getElementById('cadFuncionarios').style.display = aba === 'funcionarios' ? 'block' : 'none';
+  document.getElementById('cadCores').style.display = aba === 'cores' ? 'block' : 'none';
+};
+window.salvarModelo = async function() {
+  const id = document.getElementById('pecaId').value;
+  const nome = document.getElementById('nomePeca').value.trim();
+  const valor = parseFloat(document.getElementById('valorPeca').value);
+  if (!nome || isNaN(valor) || valor < 0) {
+    toast('Preencha nome e valor', 'error');
+    return
+  }
+  showLoad(id ? 'Atualizando...' : 'Cadastrando...');
+  try {
+    if (!S.demo && S.sb && S.online) {
+      if (id) await sbUpdate('Pecas', parseInt(id), {
+        nome,
+        valor
+      });
+      else await sbInsert('Pecas', {
+        nome,
+        valor
+      });
+      const {
+        data
+      } = await S.sb.from('Pecas').select('*').order('nome');
+      S.pecas = data || [];
+    } else {
+      if (id) {
+        const p = byId(S.pecas, parseInt(id));
+        if (p) {
+          p.nome = nome;
+          p.valor = valor
+        }
+      } else S.pecas.push({
+        id: Date.now(),
+        nome,
+        valor
+      });
+    }
+    fillSelects();
+    cancelarModelo();
+    renderCadModelos();
+    hideLoad();
+    toast(id ? '✅ Modelo atualizado!' : '✅ Modelo cadastrado!', 'success');
+  } catch (e) {
+    hideLoad();
+    toast('❌ Erro: ' + e.message, 'error')
+  }
+};
+window.editarModelo = function(id) {
+  const p = byId(S.pecas, id);
+  if (!p) return;
+  document.getElementById('pecaId').value = p.id;
+  document.getElementById('nomePeca').value = p.nome;
+  document.getElementById('valorPeca').value = p.valor;
+  document.getElementById('modeloFormTit').innerHTML = '<div class="cico cg">✏️</div>Editar Modelo'
+};
+window.excluirModelo = async function(id) {
+  if (!confirm('⚠️ Excluir modelo?')) return;
+  showLoad('Excluindo...');
+  try {
+    if (!S.demo && S.sb && S.online) await sbDelete('Pecas', id);
+    S.pecas = S.pecas.filter(p => p.id !== id);
+    fillSelects();
+    renderCadModelos();
+    hideLoad();
+    toast('✅ Excluído!', 'success')
+  } catch (e) {
+    hideLoad();
+    toast('❌ Erro: ' + e.message, 'error')
+  }
+};
+window.cancelarModelo = function() {
+  document.getElementById('pecaId').value = '';
+  document.getElementById('nomePeca').value = '';
+  document.getElementById('valorPeca').value = '';
+  document.getElementById('modeloFormTit').innerHTML = '<div class="cico cg">🪑</div>Novo Modelo'
+};
+
+function renderCadModelos() {
+  const el = document.getElementById('modelosList');
+  el.innerHTML = S.pecas.length ? S.pecas.map(p => `<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p.nome}</span><span class="valor">${fmtMoeda(p.valor)}</span></div><div class="mob-acts"><button class="ab ab-e" onclick="editarModelo(${p.id})">✏️ Editar</button><button class="ab ab-d" onclick="excluirModelo(${p.id})">🗑️</button></div></div>`).join('') : '<div class="empty"><div class="ei">🪑</div><p>Nenhum modelo</p></div>'
+}
+
+
+// ============================================================
+// 17. CADASTROS: FUNCIONÁRIOS
+// ============================================================
+window.salvarFuncionario = async function() {
+  const id = document.getElementById('funcId').value;
+  const nome = document.getElementById('nomeFunc').value.trim();
+  const cargo = document.getElementById('cargoFunc').value.trim();
+  if (!nome || !cargo) {
+    toast('Preencha nome e cargo', 'error');
+    return
+  }
+  showLoad(id ? 'Atualizando...' : 'Cadastrando...');
+  try {
+    if (!S.demo && S.sb && S.online) {
+      if (id) await sbUpdate('Funcionarios', parseInt(id), {
+        nome,
+        cargo
+      });
+      else await sbInsert('Funcionarios', {
+        nome,
+        cargo
+      });
+      const {
+        data
+      } = await S.sb.from('Funcionarios').select('*').order('nome');
+      S.funcionarios = data || [];
+    } else {
+      if (id) {
+        const f = byId(S.funcionarios, parseInt(id));
+        if (f) {
+          f.nome = nome;
+          f.cargo = cargo
+        }
+      } else S.funcionarios.push({
+        id: Date.now(),
+        nome,
+        cargo
+      })
+    }
+    fillSelects();
+    cancelarFunc();
+    renderCadFunc();
+    hideLoad();
+    toast(id ? '✅ Atualizado!' : '✅ Cadastrado!', 'success')
+  } catch (e) {
+    hideLoad();
+    toast('❌ Erro: ' + e.message, 'error')
+  }
+};
+window.editarFunc = function(id) {
+  const f = byId(S.funcionarios, id);
+  if (!f) return;
+  document.getElementById('funcId').value = f.id;
+  document.getElementById('nomeFunc').value = f.nome;
+  document.getElementById('cargoFunc').value = f.cargo
+};
+window.excluirFunc = async function(id) {
+  if (!confirm('⚠️ Excluir funcionário?')) return;
+  showLoad('Excluindo...');
+  try {
+    if (!S.demo && S.sb && S.online) await sbDelete('Funcionarios', id);
+    S.funcionarios = S.funcionarios.filter(f => f.id !== id);
+    fillSelects();
+    renderCadFunc();
+    hideLoad();
+    toast('✅ Excluído!', 'success')
+  } catch (e) {
+    hideLoad();
+    toast('❌ Erro: ' + e.message, 'error')
+  }
+};
+window.cancelarFunc = function() {
+  document.getElementById('funcId').value = '';
+  document.getElementById('nomeFunc').value = '';
+  document.getElementById('cargoFunc').value = ''
+};
+
+function renderCadFunc() {
+  const el = document.getElementById('funcList');
+  el.innerHTML = S.funcionarios.length ? S.funcionarios.map(f => `<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${f.nome}</span><span class="badge-e">${f.cargo}</span></div><div class="mob-acts"><button class="ab ab-e" onclick="editarFunc(${f.id})">✏️</button><button class="ab ab-d" onclick="excluirFunc(${f.id})">🗑️</button></div></div>`).join('') : '<div class="empty"><div class="ei">👤</div><p>Nenhum funcionário</p></div>'
+}
+
+
+// ============================================================
+// 18. CADASTROS: CORES
+// ============================================================
+window.salvarCor = async function() {
+  const id = document.getElementById('corId').value;
+  const nome = document.getElementById('nomeCor').value.trim();
+  if (!nome) {
+    toast('Informe a cor', 'error');
+    return
+  }
+  showLoad(id ? 'Atualizando...' : 'Cadastrando...');
+  try {
+    if (!S.demo && S.sb && S.online) {
+      if (id) await sbUpdate('Cores', parseInt(id), {
+        nome
+      });
+      else await sbInsert('Cores', {
+        nome
+      });
+      const {
+        data
+      } = await S.sb.from('Cores').select('*').order('nome');
+      S.cores = data || [];
+    } else {
+      if (id) {
+        const c = byId(S.cores, parseInt(id));
+        if (c) c.nome = nome
+      } else S.cores.push({
+        id: Date.now(),
+        nome
+      })
+    }
+    fillSelects();
+    cancelarCor();
+    renderCadCores();
+    hideLoad();
+    toast(id ? '✅ Atualizada!' : '✅ Cadastrada!', 'success')
+  } catch (e) {
+    hideLoad();
+    toast('❌ Erro: ' + e.message, 'error')
+  }
+};
+window.editarCor = function(id) {
+  const c = byId(S.cores, id);
+  if (!c) return;
+  document.getElementById('corId').value = c.id;
+  document.getElementById('nomeCor').value = c.nome
+};
+window.excluirCor = async function(id) {
+  if (!confirm('⚠️ Excluir cor?')) return;
+  showLoad('Excluindo...');
+  try {
+    if (!S.demo && S.sb && S.online) await sbDelete('Cores', id);
+    S.cores = S.cores.filter(c => c.id !== id);
+    fillSelects();
+    renderCadCores();
+    hideLoad();
+    toast('✅ Excluída!', 'success')
+  } catch (e) {
+    hideLoad();
+    toast('❌ Erro: ' + e.message, 'error')
+  }
+};
+window.cancelarCor = function() {
+  document.getElementById('corId').value = '';
+  document.getElementById('nomeCor').value = ''
+};
+
+function renderCadCores() {
+  const el = document.getElementById('coresList');
+  el.innerHTML = S.cores.length ? S.cores.map(c => `<div class="mob-row"><div class="mob-rh"><span class="mob-rt">🎨 ${c.nome}</span><div class="mob-acts" style="margin:0"><button class="ab ab-e" onclick="editarCor(${c.id})">✏️</button><button class="ab ab-d" onclick="excluirCor(${c.id})">🗑️</button></div></div></div>`).join('') : '<div class="empty"><div class="ei">🎨</div><p>Nenhuma cor</p></div>'
+}
+
+// RELATÓRIOS
+
+// ============================================================
+// 19. RELATÓRIOS
+// ============================================================
+window.relAba = function(aba, btn) {
+  // Defesa em profundidade: mesmo se alguém chamar isto direto pelo
+  // console, a conta não abre uma aba que o admin não liberou pra ela.
+  if (!podeVerAbaRelatorio(aba)) {
+    toast('🚫 Você não tem permissão para ver este relatório', 'error');
+    return;
+  }
+  document.querySelectorAll('#relPills .pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  ['Geral', 'Modelos', 'Estoque', 'Folha', 'Armacoes'].forEach(a => {
+    document.getElementById('rel' + a).style.display = aba === a.toLowerCase() ? 'block' : 'none'
+  });
+};
+
+function filtrarProd(ini, fim, fId, pId, cId) {
+  return producoesVisiveisParaUsuario().filter(p => {
+    if (ini && p.data < ini) return false;
+    if (fim && p.data > fim) return false;
+    if (fId && (p.funcionarioid ?? p.funcionarioId) != fId) return false;
+    if (pId && (p.pecaid ?? p.pecaId) != pId) return false;
+    if (cId && (p.corid ?? p.corId) != cId) return false;
+    return true
+  })
+}
+window.gerarRelGeral = function() {
+  const ini = document.getElementById('rg_ini').value,
+    fim = document.getElementById('rg_fim').value;
+  const fId = document.getElementById('rg_func').value,
+    pId = document.getElementById('rg_peca').value,
+    cId = document.getElementById('rg_cor').value;
+  const prods = filtrarProd(ini, fim, fId, pId, cId);
+  const el = document.getElementById('relGeralResult');
+  if (!prods.length) {
+    el.innerHTML = '<div class="empty"><p>Nenhuma produção no período</p></div>';
+    return
+  }
+  let tot = 0;
+  const grid = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+    <div class="mob-row" style="text-align:center"><div style="font-size:24px;font-weight:800;color:var(--green2)">${prods.length}</div><div style="font-size:11px;color:var(--muted)">Registros</div></div>
+    <div class="mob-row" style="text-align:center"><div style="font-size:24px;font-weight:800;color:var(--green2)">${prods.reduce((a,p)=>a+p.quantidade,0)}</div><div style="font-size:11px;color:var(--muted)">Unidades</div></div>
+  </div>`;
+  el.innerHTML = grid + prods.map(p => {
+    const f = byId(S.funcionarios, p.funcionarioid ?? p.funcionarioId);
+    const pc = byId(S.pecas, p.pecaid ?? p.pecaId);
+    const c = byId(S.cores, p.corid ?? p.corId);
+    const vu = pc ? ((p.horaextra ?? p.horaExtra) ? pc.valor * 1.5 : pc.valor) : 0;
+    const vt = vu * (parseInt(p.quantidade) || 0);
+    tot += vt;
+    return `<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${pc?.nome||'N/A'}</span>${(p.horaextra??p.horaExtra)?'<span class="badge-he">HE</span>':''}</div>
+      <div class="mob-rf"><div class="mob-fi">Funcionário<strong>${f?.nome||'N/A'}</strong></div><div class="mob-fi">Data<strong>${fmtData(p.data)}</strong></div>
+      <div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${p.quantidade}</strong></div>
+      <div class="mob-fi">V.Unit<strong class="valor">${fmtMoeda(vu)}</strong></div><div class="mob-fi">V.Total<strong class="valor">${fmtMoeda(vt)}</strong></div></div></div>`;
+  }).join('') + `<div class="total-row"><span class="tl">Total Geral</span><span class="tv">${fmtMoeda(tot)}</span></div>`;
+};
+window.gerarRelModelos = function() {
+  const ini = document.getElementById('rm_ini').value,
+    fim = document.getElementById('rm_fim').value;
+  // Este relatório mostra o total agregado produzido pela fábrica (por
+  // modelo/cor), não é um relatório pessoal — por isso usa S.producoes
+  // completo, mesmo para contas restritas à própria produção (igual ao
+  // Desktop, ver gerarRelatorioModelos em script.js).
+  const prods = S.producoes.filter(p => {
+    if (ini && p.data < ini) return false;
+    if (fim && p.data > fim) return false;
+    return true
+  });
+  const el = document.getElementById('relModelosResult');
+  const agrup = {};
+  prods.forEach(p => {
+    const pid = p.pecaid ?? p.pecaId;
+    const cid = p.corid ?? p.corId;
+    const k = `${pid}-${cid}`;
+    if (!agrup[k]) agrup[k] = {
+      pecaId: pid,
+      corId: cid,
+      quantidade: 0
+    };
+    agrup[k].quantidade += parseInt(p.quantidade) || 0
+  });
+  const rows = Object.values(agrup);
+  if (!rows.length) {
+    el.innerHTML = '<div class="empty"><p>Nenhum dado</p></div>';
+    return
+  }
+  let tot = 0;
+  el.innerHTML = rows.map(r => {
+    const p = byId(S.pecas, r.pecaId);
+    const c = byId(S.cores, r.corId);
+    const vt = (p?.valor || 0) * r.quantidade;
+    tot += vt;
+    return `<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span class="valor">${fmtMoeda(vt)}</span></div><div class="mob-rf"><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${r.quantidade}</strong></div></div></div>`
+  }).join('') + `<div class="total-row"><span class="tl">Total</span><span class="tv">${fmtMoeda(tot)}</span></div>`;
+};
+window.gerarRelEstoque = function() {
+  const ini = document.getElementById('re_ini').value,
+    fim = document.getElementById('re_fim').value;
+  const tipo = document.getElementById('re_tipo').value,
+    pId = document.getElementById('re_peca').value;
+  let movs = S.movimentacoes.filter(m => {
+    if (ini && m.data < ini) return false;
+    if (fim && m.data > fim) return false;
+    if (tipo && m.tipo !== tipo) return false;
+    const mid = m.pecaid ?? m.pecaId;
+    if (pId && mid != pId) return false;
+    return true
+  });
+  const el = document.getElementById('relEstoqueResult');
+  if (!movs.length) {
+    el.innerHTML = '<div class="empty"><p>Nenhuma movimentação</p></div>';
+    return
+  }
+  let saldo = 0;
+  el.innerHTML = movs.map(m => {
+    const p = byId(S.pecas, m.pecaid ?? m.pecaId);
+    const c = byId(S.cores, m.corid ?? m.corId);
+    saldo += m.tipo === 'entrada' ? parseInt(m.quantidade) || 0 : -(parseInt(m.quantidade) || 0);
+    return `<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span class="${m.tipo==='entrada'?'badge-e':'badge-s'}">${m.tipo==='entrada'?'Entrada':'Saída'}</span></div><div class="mob-rf"><div class="mob-fi">Data<strong>${fmtData(m.data)}</strong></div><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Qtd<strong>${m.quantidade}</strong></div><div class="mob-fi">Origem<strong>${m.origem||'–'}</strong></div></div></div>`
+  }).join('') + `<div class="total-row"><span class="tl">Saldo do Período</span><span class="tv" style="color:${saldo>=0?'var(--green2)':'var(--red2)'}">${saldo}</span></div>`;
+};
+window.gerarFolha = function() {
+  const mesAno = document.getElementById('rf_mes').value;
+  if (!mesAno) {
+    toast('Selecione o mês/ano', 'error');
+    return
+  }
+  const [ano, mes] = mesAno.split('-');
+  const ini = `${ano}-${mes}-01`,
+    fim = `${ano}-${mes}-${new Date(ano,mes,0).getDate()}`;
+  const prods = producoesVisiveisParaUsuario().filter(p => p.data >= ini && p.data <= fim);
+  const el = document.getElementById('relFolhaResult');
+  if (!prods.length) {
+    el.innerHTML = '<div class="empty"><p>Nenhuma produção no período</p></div>';
+    return
+  }
+  const por = {};
+  prods.forEach(p => {
+    const _fid = p.funcionarioid ?? p.funcionarioId;
+    const _pid = p.pecaid ?? p.pecaId;
+    if (!por[_fid]) por[_fid] = {
+      total: 0,
+      itens: 0,
+      registros: 0,
+      he: 0
+    };
+    const pc = byId(S.pecas, _pid);
+    const vu = pc ? ((p.horaextra ?? p.horaExtra) ? pc.valor * 1.5 : pc.valor) : 0;
+    por[_fid].total += vu * (parseInt(p.quantidade) || 0);
+    por[_fid].itens += (parseInt(p.quantidade) || 0);
+    por[_fid].registros++;
+    if (p.horaextra ?? p.horaExtra) por[_fid].he++
+  });
+  let totGeral = 0;
+  el.innerHTML = `<div class="mob-row" style="margin-bottom:14px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--green2)">${Object.keys(por).length} funcionários</div><div style="font-size:12px;color:var(--muted)">Folha ${mes}/${ano}</div></div>` +
+    Object.entries(por).map(([fId, d]) => {
+      const f = byId(S.funcionarios, parseInt(fId));
+      totGeral += d.total;
+      return `<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${f?.nome||'N/A'}</span><span class="valor">${fmtMoeda(d.total)}</span></div><div class="mob-rf"><div class="mob-fi">Itens<strong>${d.itens}</strong></div><div class="mob-fi">Registros<strong>${d.registros}</strong></div><div class="mob-fi">H.Extras<strong>${d.he}</strong></div></div></div>`
+    }).join('') +
+    `<div class="total-row"><span class="tl">Total Geral da Folha</span><span class="tv">${fmtMoeda(totGeral)}</span></div>`;
+};
+window.gerarRelArmacoes = function() {
+  const ini = document.getElementById('ra_ini').value,
+    fim = document.getElementById('ra_fim').value;
+  const mId = document.getElementById('ra_modelo').value;
+  const arm = S.armacoes.filter(a => {
+    if (ini && a.data < ini) return false;
+    if (fim && a.data > fim) return false;
+    if (mId && (a.modeloid ?? a.modeloId) != mId) return false;
+    return true
+  });
+  const el = document.getElementById('relArmacoesResult');
+  if (!arm.length) {
+    el.innerHTML = '<div class="empty"><p>Nenhuma armação</p></div>';
+    return
+  }
+  const totQtd = arm.reduce((a, r) => a + r.quantidade, 0);
+  el.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;"><div class="mob-row" style="text-align:center"><div style="font-size:24px;font-weight:800;color:var(--green2)">${totQtd}</div><div style="font-size:11px;color:var(--muted)">Total Armações</div></div><div class="mob-row" style="text-align:center"><div style="font-size:24px;font-weight:800;color:var(--blue)">${arm.length}</div><div style="font-size:11px;color:var(--muted)">Chegadas</div></div></div>` +
+    arm.map(a => {
+      const p = byId(S.pecas, a.modeloid ?? a.modeloId);
+      return `<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'–'}</span><span style="color:var(--green2);font-size:18px;font-weight:800">+${a.quantidade}</span></div><div style="font-size:11px;color:var(--muted)">📅 ${fmtData(a.data)}</div></div>`
+    }).join('') +
+    `<div class="total-row"><span class="tl">Total do Período</span><span class="tv">${totQtd}</span></div>`;
+};
+
+// SYNC FILA
+
+// ============================================================
+// 20. FILA DE SINCRONIZAÇÃO / STATUS ONLINE-OFFLINE
+// ============================================================
+window.syncFila = async function() {
+  if (!S.online) {
+    toast('Sem internet', 'warn');
+    return
+  }
+  if (S.demo) {
+    toast('Modo demo — configure o Supabase', 'info');
+    return
+  }
+  showLoad('Sincronizando...');
+  const fila = await idbAll('fila');
+  let ok = 0,
+    fail = 0;
+  for (const item of fila) {
+    try {
+      if (item.tipo === 'producao') {
+        const r = await sbInsert('Producoes', item.dados);
+        if (item.movDados) await sbInsert('Movimentacoes', {
+          ...item.movDados,
+          producaoid: r?.id
+        })
+      } else if (item.tipo === 'saida' || item.tipo === 'movimentacao') await sbInsert('Movimentacoes', item.dados);
+      else if (item.tipo === 'armacao') await sbInsert('Armacoes', item.dados);
+      await idbDel('fila', item.id);
+      ok++;
+    } catch (e) {
+      fail++
+    }
+  }
+  await updOQ();
+  hideLoad();
+  if (ok > 0) toast(`✅ ${ok} item(ns) sincronizados!`, 'success');
+  if (fail > 0) toast(`⚠️ ${fail} falha(s)`, 'warn');
+};
+
+// ONLINE/OFFLINE
+window.addEventListener('online', async () => {
+  S.online = true;
+  updBadge();
+  toast('✅ Conexão restaurada!', 'success');
+  await syncFila();
+  if (S.sb && !S.demo) iniciarRealtime()
+});
+window.addEventListener('offline', () => {
+  S.online = false;
+  updBadge();
+  toast('📴 Modo offline ativo', 'warn')
+});
+
+function updBadge() {
+  const b = document.getElementById('sBadge');
+  if (!S.online) {
+    b.className = 'sbadge off';
+    document.getElementById('sTxt').textContent = 'Offline';
+  } else if (!_rtChannel) {
+    b.className = 'sbadge on';
+    document.getElementById('sTxt').textContent = 'Online';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// CONTROLE DE ACESSO POR PERMISSÃO (client-side)
+// Bloqueia no nível do app quem não tem permissão pra ver/usar cada seção.
+// IMPORTANTE: isso protege contra uso normal e uso indevido "por dentro do
+// app", mas NÃO substitui uma trava no banco — a chave pública do Supabase
+// segue exposta no código-fonte da página, então alguém com conhecimento
+// técnico ainda pode chamar a API diretamente pelo DevTools/Postman e
+// contornar isso. Ver Opção 2 (RLS real / Supabase Auth) para a correção
+// definitiva no banco.
+//
+// IDs DE PERMISSÃO — TÊM QUE SER OS MESMOS DO DESKTOP (script.js/main.js):
+// 'producao','modelos','funcionarios','cores','estoque','armacoes','saidas',
+// 'relatorios','backup'. A conta é criada/editada só no Desktop e o array
+// `permissoes` (coluna Usuarios.permissoes) é o que chega aqui via Supabase,
+// então usar qualquer outro nome de id faria a checagem no mobile nunca
+// bater com a permissão real da conta.
+// ─────────────────────────────────────────────────────────────────────────
+
+// Página do mobile (usada no nav(), casa com os ids #page*/#nav*) -> id de
+// permissão real gravado no banco. 'Cadastros' é uma página só no mobile,
+// mas no desktop equivale a 3 permissões distintas (modelos/funcionarios/
+// cores) — por isso é tratada como caso especial em temAcesso().
+
+// ============================================================
+// 21. PERMISSÕES DE USUÁRIO (RBAC)
+// ============================================================
+const SECAO_PARA_PERMISSAO = {
+  Producao: 'producao',
+  Saidas: 'saidas',
+  Estoque: 'estoque',
+  Armacoes: 'armacoes',
+  Relatorios: 'relatorios',
+  Cadastros: 'cadastros'
+};
+
+// Checagem "de baixo nível": recebe direto um id de permissão real
+// ('producao','modelos','backup', etc. — os mesmos data-sec do HTML).
+// 'cadastros' é um id virtual (só existe no mobile) que representa "tem
+// pelo menos uma das 3 permissões de cadastro".
+function temPermissao(idPermissao) {
+  if (!idPermissao || idPermissao === 'home') return true;
+  if (!S.user) return false;
+  if (S.user.role === 'admin') return true; // igual ao desktop: admin sempre libera
+  const p = Array.isArray(S.user.permissoes) ? S.user.permissoes : [];
+  if (p.includes('*')) return true; // igual ao desktop: '*' = acesso total (é o que o Desktop grava pra contas admin)
+  if (idPermissao === 'cadastros') return p.includes('modelos') || p.includes('funcionarios') || p.includes('cores');
+  return p.includes(idPermissao);
+}
+
+// ============================================
+// PRODUÇÃO PESSOAL — mesma regra do Desktop
+// ============================================
+// Uma conta é "pessoal de um funcionário" quando: não é admin, não tem
+// permissão '*', e tem funcionarioId vinculado (login criado automaticamente
+// no Desktop ao cadastrar o funcionário). Contas assim só podem registrar/
+// ver a própria produção — nunca a de outro funcionário — e só no dia de
+// hoje. Idêntico ao Desktop (ver usuarioRestritoAPropriaProducao em script.js).
+function usuarioRestritoAPropriaProducao() {
+  if (!S.user || S.user.role === 'admin') return false;
+  const p = Array.isArray(S.user.permissoes) ? S.user.permissoes : [];
+  if (p.includes('*')) return false;
+  return S.user.funcionarioId != null;
+}
+
+// Fonte única para qualquer tela que liste produções (relatório geral,
+// folha de pagamento, produção do dia): aplica a regra "cada funcionário só
+// vê a própria produção" de forma centralizada. Admin (e contas sem
+// funcionarioId vinculado) continuam vendo tudo.
+function producoesVisiveisParaUsuario() {
+  if (!usuarioRestritoAPropriaProducao()) return S.producoes;
+  return S.producoes.filter(p => (p.funcionarioid ?? p.funcionarioId) === S.user.funcionarioId);
+}
+
+// ============================================
+// SUB-PERMISSÕES DE RELATÓRIO — mesma regra do Desktop
+// ============================================
+// Controla quais TIPOS de relatório (Produção, Modelo/Cor, Folha de
+// Pagamento, Armações, Estoque) a conta pode abrir, dentro da tela de
+// Relatórios (que em si já é liberada pela permissão 'relatorios'). Salvas
+// no mesmo array de permissões com o prefixo "relatorio:" — ex:
+// 'relatorio:producao', 'relatorio:folha' — gravadas pelo Desktop ao editar
+// o usuário (ver TIPOS_RELATORIO_DISPONIVEIS/PREFIXO_PERMISSAO_RELATORIO em
+// script.js). Os ids aqui são EXATAMENTE os mesmos salvos pelo Desktop.
+const PREFIXO_PERMISSAO_RELATORIO = 'relatorio:';
+const TIPOS_RELATORIO_MOBILE = ['producao', 'modelos', 'folha', 'armacoes', 'estoque'];
+// A aba do mobile 'geral' (relAba/pageRelatorios) equivale à permissão
+// 'producao' salva pelo Desktop — mesmo mapeamento que o Desktop faz entre
+// o tipo interno 'geral' e a permissão 'producao' (ver
+// TIPO_RELATORIO_PARA_PERMISSAO em script.js).
+const ABA_RELATORIO_PARA_PERMISSAO = {
+  geral: 'producao',
+  modelos: 'modelos',
+  folha: 'folha',
+  armacoes: 'armacoes',
+  estoque: 'estoque'
+};
+
+function tiposRelatorioPermitidos() {
+  if (!S.user) return [];
+  if (S.user.role === 'admin') return TIPOS_RELATORIO_MOBILE.slice();
+  const p = Array.isArray(S.user.permissoes) ? S.user.permissoes : [];
+  if (p.includes('*')) return TIPOS_RELATORIO_MOBILE.slice();
+  if (!p.includes('relatorios')) return [];
+  const marcados = p.filter(x => x.startsWith(PREFIXO_PERMISSAO_RELATORIO)).map(x => x.slice(PREFIXO_PERMISSAO_RELATORIO.length));
+  // Compatibilidade: contas antigas que tinham 'relatorios' marcado antes
+  // desta funcionalidade existir (sem nenhum sub-tipo salvo) continuam
+  // vendo pelo menos o relatório de Produção, em vez de ficar sem nada.
+  return marcados.length > 0 ? marcados : ['producao'];
+}
+
+function podeVerAbaRelatorio(aba) {
+  return tiposRelatorioPermitidos().includes(ABA_RELATORIO_PARA_PERMISSAO[aba] || aba)
+}
+
+// Checagem usada pelo nav(): recebe o NOME DA PÁGINA ('Producao','Cadastros',
+// 'Home'...) e traduz pro id de permissão real antes de checar.
+function temAcesso(nomePagina) {
+  if (!nomePagina || nomePagina === 'Home') return true;
+  const idPermissao = SECAO_PARA_PERMISSAO[nomePagina];
+  return temPermissao(idPermissao);
+}
+
+// Dentro da página Cadastros, garante que a aba (pill) visível no momento
+// é uma que o usuário realmente pode ver — troca pra primeira permitida
+// se a aba ativa tiver sido escondida (ex.: permissão revogada em tempo real).
+function ajustarAbaCadastros() {
+  const pills = document.querySelectorAll('#cadPills .pill');
+  if (!pills.length) return;
+  const ativa = document.querySelector('#cadPills .pill.active');
+  const abaAtivaId = ativa ? ativa.getAttribute('data-sec') : null;
+  if (abaAtivaId && temPermissao(abaAtivaId)) return; // aba atual ainda é válida
+  const primeiraPermitida = Array.from(pills).find(p => temPermissao(p.getAttribute('data-sec')));
+  if (primeiraPermitida) cadAba(primeiraPermitida.getAttribute('data-sec'), primeiraPermitida);
+}
+
+// Esconde (não só desabilita) os botões de navegação, os atalhos da Home e
+// as abas de Cadastros que o usuário logado não tem permissão de usar.
+// Chamado no login e toda vez que a permissão do usuário muda em tempo real
+// (ver iniciarRealtime).
+function aplicarPermissoesUI() {
+  document.querySelectorAll('[data-sec]').forEach(el => {
+    const sec = el.getAttribute('data-sec');
+    const liberado = temPermissao(sec);
+    el.style.display = liberado ? '' : 'none';
+    el.classList.toggle('sec-bloqueada', !liberado);
+  });
+  ajustarAbaCadastros();
+  aplicarRestricaoProducaoMobile();
+  aplicarRestricaoFiltroRelatorioMobile();
+  aplicarRestricaoRelatoriosMobile();
+  // Se a seção aberta no momento deixou de ser permitida (ex.: admin tirou
+  // a permissão do usuário enquanto ele estava usando o app), joga pra Home.
+  const pgAtiva = document.querySelector('.page.active');
+  if (pgAtiva) {
+    const nomeAtivo = pgAtiva.id.replace('page', '');
+    if (!temAcesso(nomeAtivo)) {
+      toast('🚫 Sua permissão de acesso a esta seção foi removida', 'warn');
+      nav('Home');
+    }
+  }
+}
+
+// Contas não-admin vinculadas a um funcionário (login pessoal criado no
+// cadastro dele, no Desktop) só podem lançar produção:
+//   1) com a data de hoje;
+//   2) em nome de si mesmas.
+// Trava os campos (readonly/disabled) e mostra avisos — mesma regra e
+// mesmos textos do Desktop (ver aplicarRestricaoDataProducao em script.js).
+// IMPORTANTE: como o mobile grava direto no Supabase (sem um processo
+// principal como o main.js do Desktop para validar de verdade), esta é
+// só a barreira de UX — a proteção definitiva contra alguém adulterar
+// os campos via DevTools deve vir de uma política RLS no Supabase que
+// compare o funcionarioId/data enviados com o usuário autenticado.
+function aplicarRestricaoProducaoMobile() {
+  const campoData = document.getElementById('pData');
+  const selectFunc = document.getElementById('pFunc');
+  if (!campoData || !selectFunc) return;
+
+  let avisoData = document.getElementById('avisoDataProducaoMobile');
+  if (!avisoData) {
+    avisoData = document.createElement('div');
+    avisoData.id = 'avisoDataProducaoMobile';
+    avisoData.style.cssText = 'display:none;font-size:11px;color:var(--muted);margin-top:4px;';
+    avisoData.textContent = '🔒 Sua conta só pode registrar produção no dia de hoje.';
+    campoData.closest('.fg')?.appendChild(avisoData);
+  }
+  let avisoFunc = document.getElementById('avisoFuncionarioProducaoMobile');
+  if (!avisoFunc) {
+    avisoFunc = document.createElement('div');
+    avisoFunc.id = 'avisoFuncionarioProducaoMobile';
+    avisoFunc.style.cssText = 'display:none;font-size:11px;color:var(--muted);margin-top:4px;';
+    avisoFunc.textContent = '🔒 Sua conta só pode registrar produção em seu próprio nome.';
+    selectFunc.closest('.fg')?.appendChild(avisoFunc);
+  }
+
+  const restrito = usuarioRestritoAPropriaProducao();
+  if (restrito) {
+    const hoje = hojeISO();
+    campoData.value = hoje;
+    campoData.min = hoje;
+    campoData.max = hoje;
+    campoData.readOnly = true;
+    campoData.style.opacity = '0.7';
+    campoData.style.pointerEvents = 'none';
+    avisoData.style.display = 'block';
+
+    const meuFuncionario = byId(S.funcionarios, S.user.funcionarioId);
+    selectFunc.innerHTML = `<option value="${S.user.funcionarioId}">${meuFuncionario?meuFuncionario.nome:S.user.nome}</option>`;
+    selectFunc.value = String(S.user.funcionarioId);
+    selectFunc.disabled = true;
+    selectFunc.style.opacity = '0.7';
+    avisoFunc.style.display = 'block';
+  } else {
+    campoData.removeAttribute('min');
+    campoData.removeAttribute('max');
+    campoData.readOnly = false;
+    campoData.style.opacity = '';
+    campoData.style.pointerEvents = '';
+    avisoData.style.display = 'none';
+
+    selectFunc.disabled = false;
+    selectFunc.style.opacity = '';
+    avisoFunc.style.display = 'none';
+    // Repopula normalmente com todos os funcionários (caso tivesse ficado
+    // restrito a 1 opção antes, ex.: troca de conta sem reload da página).
+    const fO = S.funcionarios.map(f => `<option value="${f.id}">${f.nome} — ${f.cargo}</option>`).join('');
+    selectFunc.innerHTML = `<option value="">Selecionar...</option>` + fO;
+  }
+}
+
+// Mostra nas pills de Relatórios só os tipos que o admin liberou para esta
+// conta (sub-permissões marcadas no Desktop ao editar o usuário). Se a aba
+// aberta no momento não é mais permitida, troca para a primeira que for —
+// mesma regra do Desktop (ver aplicarRestricaoTiposRelatorio em script.js).
+function aplicarRestricaoRelatoriosMobile() {
+  if (!temPermissao('relatorios')) return; // pills ficam escondidas via [data-sec] mesmo
+  const pills = document.querySelectorAll('#relPills .pill');
+  let algumaVisivelAtiva = false;
+  pills.forEach(btn => {
+    // Extrai o nome da aba diretamente do onclick="relAba('geral',this)"
+    // em vez de indexar por posição — mais robusto a mudanças de ordem.
+    const m = (btn.getAttribute('onclick') || '').match(/relAba\('(\w+)'/);
+    const aba = m ? m[1] : null;
+    if (!aba) return;
+    const liberado = podeVerAbaRelatorio(aba);
+    btn.style.display = liberado ? '' : 'none';
+    if (liberado && btn.classList.contains('active')) algumaVisivelAtiva = true;
+  });
+  if (!algumaVisivelAtiva) {
+    for (const btn of pills) {
+      const m = (btn.getAttribute('onclick') || '').match(/relAba\('(\w+)'/);
+      const aba = m ? m[1] : null;
+      if (aba && podeVerAbaRelatorio(aba)) {
+        relAba(aba, btn);
+        break
+      }
+    }
+  }
+}
+
+// Reforço extra: além de esconder os botões, protege as funções que gravam/
+// editam/excluem dados, chamando temPermissao antes de executar de verdade —
+// assim, mesmo que alguém chame a função direto pelo console do navegador
+// (contornando os botões escondidos), a ação é recusada. Os ids usados aqui
+// são os MESMOS que o main.js do Desktop usa em TABELA_PARA_PERMISSAO, pra
+// manter a regra idêntica dos dois lados.
+const ACOES_PROTEGIDAS = {
+  salvarProducao: 'producao',
+  salvarSaida: 'saidas',
+  salvarArmacao: 'armacoes',
+  salvarModelo: 'modelos',
+  editarModelo: 'modelos',
+  excluirModelo: 'modelos',
+  cancelarModelo: 'modelos',
+  salvarFuncionario: 'funcionarios',
+  editarFunc: 'funcionarios',
+  excluirFunc: 'funcionarios',
+  cancelarFunc: 'funcionarios',
+  salvarCor: 'cores',
+  editarCor: 'cores',
+  excluirCor: 'cores',
+  cancelarCor: 'cores',
+  gerarRelGeral: 'relatorios',
+  gerarRelModelos: 'relatorios',
+  gerarRelEstoque: 'relatorios',
+  gerarFolha: 'relatorios',
+  gerarRelArmacoes: 'relatorios',
+  abrirBackup: 'backup',
+  executarApagar: 'backup',
+};
+
+function protegerAcoes() {
+  Object.entries(ACOES_PROTEGIDAS).forEach(([nomeFn, idPermissao]) => {
+    const original = window[nomeFn];
+    if (typeof original !== 'function' || original.__protegida) return;
+    const protegida = function(...args) {
+      if (!temPermissao(idPermissao)) {
+        toast('🚫 Você não tem permissão para esta ação', 'error');
+        return;
+      }
+      return original.apply(this, args);
+    };
+    protegida.__protegida = true;
+    window[nomeFn] = protegida;
+  });
+}
+// (chamada de protegerAcoes() fica pro final do arquivo — ver boot() — porque
+// abrirBackup/executarApagar só são definidas mais abaixo no script)
+
+// NAVEGAÇÃO
+
+// ============================================================
+// 22. NAVEGAÇÃO ENTRE PÁGINAS / ABAS
+// ============================================================
+window.nav = function(nome) {
+  if (!temAcesso(nome)) {
+    toast('🚫 Você não tem permissão para acessar esta seção', 'error');
+    return;
+  }
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
+  document.getElementById('page' + nome).classList.add('active');
+  document.getElementById('nav' + nome).classList.add('active');
+  document.querySelector('.main').scrollTop = 0;
+  if (nome === 'Estoque') renderEstoque();
+  if (nome === 'Producao') renderProdHoje();
+  if (nome === 'Saidas') renderSaidas();
+  if (nome === 'Armacoes') renderArmacoes();
+  if (nome === 'Cadastros') ajustarAbaCadastros();
+  if (nome === 'Home') atualizarHome();
+};
+
+// Aba de Cadastros também é protegida — reforço igual ao das outras ações,
+// caso alguém chame cadAba('funcionarios',...) direto sem passar pelo clique.
+window.cadAba = (function(original) {
+  return function(aba, btn) {
+    if (!temPermissao(aba)) {
+      toast('🚫 Você não tem permissão para esta seção', 'error');
+      return;
+    }
+    return original(aba, btn);
+  };
+})(window.cadAba);
+
+// TOAST/LOAD
+
+// ============================================================
+// 23. UI HELPERS (TOAST, LOADING)
+// ============================================================
+window.toast = function(msg, tipo = 'info') {
+  const icons = {
+    success: '✅',
+    error: '❌',
+    warn: '⚠️',
+    info: 'ℹ️'
+  };
+  const el = document.createElement('div');
+  el.className = `toast ${tipo}`;
+  el.innerHTML = `<span>${icons[tipo]}</span><span>${msg}</span>`;
+  document.getElementById('toastWrap').appendChild(el);
+  setTimeout(() => el.remove(), 3800);
+};
+
+function showLoad(t = 'Carregando...') {
+  document.getElementById('lTxt').textContent = t;
+  document.getElementById('lOv').classList.remove('hidden')
+}
+
+function hideLoad() {
+  document.getElementById('lOv').classList.add('hidden')
+}
+
+// BACKUP / APAGAR DADOS
+
+// ============================================================
+// 24. BACKUP / LIMPEZA DE DADOS
+// ============================================================
+window.abrirBackup = function() {
+  if (document.getElementById('backupModal')) return;
+  const SENHA_BACKUP = 'dantas3101';
+  const tabelas = [{
+      id: 'Producoes',
+      label: '🏭 Produções'
+    },
+    {
+      id: 'Movimentacoes',
+      label: '📦 Movimentações'
+    },
+    {
+      id: 'Armacoes',
+      label: '🔩 Armações'
+    },
+    {
+      id: 'EstoqueArmacoes',
+      label: '🔩 Estoque de Armações'
+    },
+    {
+      id: 'Pecas',
+      label: '🪑 Modelos / Peças'
+    },
+    {
+      id: 'Cores',
+      label: '🎨 Cores'
+    },
+    {
+      id: 'Funcionarios',
+      label: '👤 Funcionários'
+    },
+  ];
+  const modal = document.createElement('div');
+  modal.id = 'backupModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;';
+  modal.innerHTML = `
+    <div style="width:100%;background:var(--bg2);border-radius:20px 20px 0 0;padding:24px 20px 32px;border-top:1px solid var(--border);max-height:90vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div style="font-size:17px;font-weight:800;color:#fff">🗄️ Backup & Apagar Dados</div>
+        <button onclick="fecharBackup()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1">✕</button>
+      </div>
+
+      <div style="background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.3);border-radius:12px;padding:12px 14px;margin-bottom:18px;font-size:12px;color:#e74c3c;line-height:1.6">
+        ⚠️ <strong>Atenção:</strong> Esta ação apaga dados permanentemente do servidor. Não há desfazer.
+      </div>
+
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:7px">🔒 Senha de Administrador</div>
+        <input id="bkpSenha" type="password" placeholder="Digite a senha..." style="width:100%;background:var(--bg3);border:2px solid var(--border);border-radius:12px;padding:13px 15px;font-size:15px;color:var(--text);-webkit-appearance:none">
+      </div>
+
+      <div style="margin-bottom:18px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:10px">📋 Selecione as tabelas para apagar</div>
+        ${tabelas.map(t=>`
+          <label style="display:flex;align-items:center;gap:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer">
+            <input type="checkbox" id="bkp_${t.id}" style="width:18px;height:18px;accent-color:var(--red2);flex-shrink:0">
+            <span style="font-size:14px;font-weight:600;color:var(--text)">${t.label}</span>
+          </label>`).join('')}
+        <label style="display:flex;align-items:center;gap:12px;background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.3);border-radius:10px;padding:12px 14px;margin-top:4px;cursor:pointer">
+          <input type="checkbox" id="bkp_local" style="width:18px;height:18px;accent-color:var(--amber);flex-shrink:0">
+          <span style="font-size:14px;font-weight:600;color:var(--amber)">🗑️ Cache local (IndexedDB)</span>
+        </label>
+      </div>
+
+      <button onclick="executarApagar()" style="width:100%;padding:15px;background:var(--red2);color:#fff;border:none;border-radius:13px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px">🗑️ Apagar Selecionados</button>
+      <button onclick="fecharBackup()" style="width:100%;padding:13px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:13px;font-size:14px;font-weight:600;cursor:pointer">Cancelar</button>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => {
+    if (e.target === modal) fecharBackup()
+  });
+
+  window._bkpTabelas = tabelas;
+  window._bkpSenha = SENHA_BACKUP;
+};
+
+window.fecharBackup = function() {
+  document.getElementById('backupModal')?.remove();
+};
+
+window.executarApagar = async function() {
+  const senha = document.getElementById('bkpSenha').value;
+  if (senha !== window._bkpSenha) {
+    toast('❌ Senha incorreta', 'error');
+    document.getElementById('bkpSenha').style.borderColor = 'var(--red2)';
+    return;
+  }
+  const selecionadas = window._bkpTabelas.filter(t => document.getElementById('bkp_' + t.id)?.checked);
+  const local = document.getElementById('bkp_local')?.checked;
+  if (!selecionadas.length && !local) {
+    toast('Selecione ao menos uma opção', 'warn');
+    return
+  }
+
+  const nomes = selecionadas.map(t => t.label).join(', ') + (local ? ' + Cache local' : '');
+  if (!confirm(`⚠️ Confirmar apagar permanentemente:\n\n${nomes}\n\nEsta ação não pode ser desfeita!`)) return;
+
+  fecharBackup();
+  showLoad('Apagando dados...');
+  let erros = 0;
+
+  // Apagar tabelas no Supabase
+  for (const t of selecionadas) {
+    try {
+      if (!S.sb || !S.online) throw new Error('Sem conexão');
+      const {
+        error
+      } = await S.sb.from(t.id).delete().neq('id', 0);
+      if (error) throw error;
+      // Limpa estado local
+      const map = {
+        Producoes: 'producoes',
+        Movimentacoes: 'movimentacoes',
+        Armacoes: 'armacoes',
+        EstoqueArmacoes: 'estoqueArmacoes',
+        Pecas: 'pecas',
+        Cores: 'cores',
+        Funcionarios: 'funcionarios'
+      };
+      if (map[t.id]) S[map[t.id]] = [];
+    } catch (e) {
+      console.error('Erro ao apagar ' + t.id, e);
+      erros++
+    }
+  }
+
+  // Apagar cache local
+  if (local) {
+    try {
+      if (S.idb) {
+        S.idb.close();
+        S.idb = null
+      }
+      for (const db of ['syscad_m', 'SysCadeiras']) {
+        await new Promise(r => {
+          const q = indexedDB.deleteDatabase(db);
+          q.onsuccess = r;
+          q.onerror = r;
+          q.onblocked = r
+        });
+      }
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {
+      erros++
+    }
+  }
+
+  hideLoad();
+  if (erros > 0) {
+    toast(`⚠️ Concluído com ${erros} erro(s)`, 'warn');
+  } else {
+    toast('✅ Dados apagados com sucesso!', 'success');
+  }
+
+  // Re-renderiza tudo
+  fillSelects();
+  renderProdHoje();
+  renderEstoque();
+  renderSaidas();
+  renderArmacoes();
+  atualizarHome();
+
+  if (local) {
+    setTimeout(() => window.location.reload(true), 2000);
+  }
+};
+
+// PWA — registra o service worker para permitir instalação no celular
+// ("Adicionar à Tela de Início") e abrir o app mesmo sem internet ou sem o
+// GitHub Pages estar acessível no momento (fica em cache local do aparelho).
+// Usa caminho relativo ao próprio arquivo, então funciona tanto hospedado
+// (GitHub Pages, qualquer outro host, inclusive em subpasta) quanto aberto
+// localmente.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    const swUrl = new URL('sw.js', window.location.href).href;
+    navigator.serviceWorker.register(swUrl).then(reg => {
+      console.log('✅ Service Worker registrado:', reg.scope);
+      // Verifica periodicamente se há uma versão nova do app publicada
+      reg.addEventListener('updatefound', () => {
+        const novo = reg.installing;
+        if (!novo) return;
+        novo.addEventListener('statechange', () => {
+          if (novo.state === 'installed' && navigator.serviceWorker.controller) {
+            toast('🔄 Nova versão disponível — recarregue o app', 'info');
+          }
+        });
+      });
+    }).catch(e => console.warn('⚠️ Falha ao registrar Service Worker:', e));
+  });
+}
+
+// BOOT
+
+// ============================================================
+// 25. BOOT (INICIALIZAÇÃO GERAL DO APP)
+// ============================================================
+async function boot() {
+  protegerAcoes(); // só agora TODAS as funções do script já existem (inclusive backup)
+  await openIDB();
+  await initSB();
+  exibirFraseLogin();
+  updBadge();
+  if (S.demo) {
+    document.getElementById('demoBox').style.display = 'block';
+    const si = document.getElementById('syncInfoBox');
+    if (si) si.style.display = 'none';
+  }
+}
+boot();
+</script>
+</body>
+</html>
