@@ -1336,14 +1336,6 @@ body {
           <h2 id="gTxt">Olá! 👋</h2>
           <p id="gDate">Carregando...</p>
         </div>
-        <div class="oq hidden" id="oqCard">
-          <span style="font-size:26px;flex-shrink:0">📤</span>
-          <div style="flex:1">
-            <div class="oq-t"><span id="oqN">0</span> na fila offline</div>
-            <div class="oq-s">Reconecte para sincronizar</div>
-          </div>
-          <button class="oq-btn" onclick="syncFila()">Sync</button>
-        </div>
         <div class="stats-grid">
           <div class="sc hi">
             <div class="sv" id="sHoje">–</div>
@@ -1780,6 +1772,14 @@ body {
     <div class="spinner"></div>
     <div class="load-t" id="lTxt">Carregando...</div>
   </div>
+  <!-- Bloqueia o app inteiro quando a internet cai. Não existe mais modo
+       offline: o app exige conexão o tempo todo. -->
+  <div class="load-ov hidden" id="offlineOv" style="z-index:9000;text-align:center;padding:24px;">
+    <div style="font-size:42px">📴</div>
+    <div style="font-size:17px;font-weight:800;color:#fff;margin-top:6px">Sem conexão com a internet</div>
+    <div class="load-t" style="max-width:280px">Este aplicativo precisa estar online para funcionar. Reconecte-se e toque em "Recarregar" para continuar.</div>
+    <button class="btn btn-g" style="margin-top:10px;width:auto;padding:10px 26px" onclick="location.reload()">🔄 Recarregar</button>
+  </div>
   <div class="toast-wrap" id="toastWrap"></div>
 <script type="module">
 // ⚙️ CONFIGURE AQUI
@@ -1899,7 +1899,6 @@ const S = {
   sb: null,
   online: navigator.onLine,
   demo: !SUPABASE_URL || !SUPABASE_KEY || !SUPABASE_URL.startsWith('http'),
-  idb: null,
   pecas: [],
   cores: [],
   funcionarios: [],
@@ -2083,80 +2082,6 @@ function calcSaldo(pId, cId) {
 
 function byId(arr, id) {
   return arr.find(x => x.id === parseInt(id))
-}
-
-// IDB
-
-// ============================================================
-// 6. INDEXEDDB (CACHE LOCAL / MODO OFFLINE)
-// ============================================================
-async function openIDB() {
-  return new Promise((res, rej) => {
-    const r = indexedDB.open('syscad_m', 2);
-    r.onupgradeneeded = e => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains('fila')) db.createObjectStore('fila', {
-        keyPath: 'id',
-        autoIncrement: true
-      });
-      if (!db.objectStoreNames.contains('hist')) db.createObjectStore('hist', {
-        keyPath: 'id',
-        autoIncrement: true
-      });
-    };
-    r.onsuccess = e => {
-      S.idb = e.target.result;
-      res()
-    };
-    r.onerror = () => rej(r.error);
-  });
-}
-
-function idbAdd(store, data) {
-  return new Promise((res, rej) => {
-    const tx = S.idb.transaction([store], 'readwrite');
-    const req = tx.objectStore(store).add(data);
-    req.onsuccess = () => res(req.result);
-    req.onerror = () => rej(req.error)
-  })
-}
-
-function idbAll(store) {
-  return new Promise((res, rej) => {
-    const tx = S.idb.transaction([store], 'readonly');
-    const req = tx.objectStore(store).getAll();
-    req.onsuccess = () => res(req.result);
-    req.onerror = () => rej(req.error)
-  })
-}
-
-function idbDel(store, id) {
-  return new Promise((res, rej) => {
-    const tx = S.idb.transaction([store], 'readwrite');
-    const req = tx.objectStore(store).delete(id);
-    req.onsuccess = res;
-    req.onerror = () => rej(req.error)
-  })
-}
-
-function idbClear(store) {
-  return new Promise((res, rej) => {
-    const tx = S.idb.transaction([store], 'readwrite');
-    const req = tx.objectStore(store).clear();
-    req.onsuccess = res;
-    req.onerror = () => rej(req.error)
-  })
-}
-
-
-// ============================================================
-// 7. SUPABASE: CONEXÃO, CRUD E CARGA INICIAL DE DADOS
-// ============================================================
-async function updOQ() {
-  const fila = await idbAll('fila');
-  const n = fila.length;
-  document.getElementById('oqN').textContent = n;
-  document.getElementById('oqCard').classList.toggle('hidden', n === 0);
 }
 
 // Supabase
@@ -2538,7 +2463,6 @@ function iniciarApp() {
   aplicarPermissoesUI();
   atualizarHome();
   if (S.sb) iniciarRealtime();
-  updOQ();
 }
 
 
@@ -2655,7 +2579,6 @@ async function atualizarHome() {
   }));
   const last = [...ultProd, ...ultMov, ...ultArm].sort((a, b) => b.ts - a.ts).slice(0, 5);
   document.getElementById('homeHist').innerHTML = last.length ? last.map(histRow).join('') : '<div class="empty"><p>Nenhum lançamento ainda</p></div>';
-  await updOQ();
 }
 
 function histRow(it) {
@@ -2817,6 +2740,11 @@ window.salvarProducao = async function() {
   msg += insuf ? '\n⚠️ Haverá estoque negativo. Continuar?' : '\n✅ Estoque OK. Confirmar?';
   if (!confirm(msg)) return;
 
+  if (!S.sb || !S.online) {
+    toast('📴 Sem conexão com a internet. Não é possível registrar produção offline.', 'error');
+    return
+  }
+
   showLoad('Registrando produção...');
   try {
     for (const it of itens) {
@@ -2829,71 +2757,35 @@ window.salvarProducao = async function() {
         horaextra: it.horaExtra ? 1 : 0,
         device_origin: 'mobile'
       };
-      if (!S.demo && S.sb && S.online) {
-        const r = await sbInsert('Producoes', dados);
-        await sbInsert('Movimentacoes', {
-          data,
-          tipo: 'entrada',
-          pecaid: it.pecaId,
-          corid: it.corId,
-          quantidade: it.quantidade,
-          origem: 'Produção',
-          producaoid: r?.id,
-          funcionarioid: funcId,
-          device_origin: 'mobile'
-        });
-        const eaArm = S.estoqueArmacoes.find(e => (e.modeloid ?? e.modeloId) === it.pecaId);
-        const nova = (eaArm?.quantidade || 0) - it.quantidade;
-        if (eaArm) await sbUpdate('EstoqueArmacoes', eaArm.id, {
-          quantidade: nova
-        });
-        else await sbInsert('EstoqueArmacoes', {
-          modeloid: it.pecaId,
-          quantidade: -it.quantidade
-        });
-        // Realtime atualiza o estado — não mutamos localmente
-      } else {
-        await idbAdd('fila', {
-          tipo: 'producao',
-          dados,
-          movDados: {
-            data,
-            tipo: 'entrada',
-            pecaId: it.pecaId,
-            corId: it.corId,
-            quantidade: it.quantidade,
-            origem: 'Produção',
-            funcionarioId: funcId
-          },
-          ts: Date.now(),
-          key: crypto.randomUUID()
-        });
-        S.producoes.unshift({
-          ...dados,
-          id: Date.now(),
-          pecaid: it.pecaId,
-          corid: it.corId,
-          funcionarioid: funcId
-        });
-        S.movimentacoes.unshift({
-          data,
-          tipo: 'entrada',
-          pecaid: it.pecaId,
-          corid: it.corId,
-          quantidade: it.quantidade,
-          id: Date.now()
-        });
-        const eaLocal = S.estoqueArmacoes.find(e => (e.modeloid ?? e.modeloId) === it.pecaId);
-        if (eaLocal) eaLocal.quantidade -= it.quantidade;
-      }
+      const r = await sbInsert('Producoes', dados);
+      await sbInsert('Movimentacoes', {
+        data,
+        tipo: 'entrada',
+        pecaid: it.pecaId,
+        corid: it.corId,
+        quantidade: it.quantidade,
+        origem: 'Produção',
+        producaoid: r?.id,
+        funcionarioid: funcId,
+        device_origin: 'mobile'
+      });
+      const eaArm = S.estoqueArmacoes.find(e => (e.modeloid ?? e.modeloId) === it.pecaId);
+      const nova = (eaArm?.quantidade || 0) - it.quantidade;
+      if (eaArm) await sbUpdate('EstoqueArmacoes', eaArm.id, {
+        quantidade: nova
+      });
+      else await sbInsert('EstoqueArmacoes', {
+        modeloid: it.pecaId,
+        quantidade: -it.quantidade
+      });
+      // Realtime atualiza o estado — não mutamos localmente
     }
-    await updOQ();
     limparProd();
     atualizarHome();
     renderProdHoje();
     renderEstoque();
     hideLoad();
-    toast(`✅ Produção registrada!${!S.online||S.demo?' (offline)':''}`, S.online && !S.demo ? 'success' : 'warn');
+    toast('✅ Produção registrada!', 'success');
     if (navigator.vibrate) navigator.vibrate([50, 50, 100]);
   } catch (e) {
     hideLoad();
@@ -3051,34 +2943,22 @@ window.salvarSaida = async function() {
     origem: obs || 'Saída via mobile',
     device_origin: 'mobile'
   };
+  if (!S.sb || !S.online) {
+    toast('📴 Sem conexão com a internet. Não é possível registrar saída offline.', 'error');
+    return
+  }
   showLoad('Registrando saída...');
   const p = byId(S.pecas, pecaId);
   const c = byId(S.cores, corId);
   try {
-    if (!S.demo && S.sb && S.online) {
-      await sbInsert('Movimentacoes', dados);
-      // Realtime atualiza o estado
-    } else {
-      await idbAdd('fila', {
-        tipo: 'saida',
-        dados,
-        ts: Date.now(),
-        key: crypto.randomUUID()
-      });
-      S.movimentacoes.unshift({
-        ...dados,
-        pecaId,
-        corId,
-        id: Date.now()
-      });
-    }
-    await updOQ();
+    await sbInsert('Movimentacoes', dados);
+    // Realtime atualiza o estado
     limparSaida();
     renderEstoque();
     renderSaidas();
     atualizarHome();
     hideLoad();
-    toast(`✅ Saída registrada!${!S.online||S.demo?' (offline)':''}`, S.online && !S.demo ? 'success' : 'warn');
+    toast('✅ Saída registrada!', 'success');
     if (navigator.vibrate) navigator.vibrate([50, 50, 100]);
   } catch (e) {
     hideLoad();
@@ -3136,51 +3016,34 @@ window.salvarArmacao = async function() {
     quantidade,
     device_origin: 'mobile'
   };
+  if (!S.sb || !S.online) {
+    toast('📴 Sem conexão com a internet. Não é possível registrar chegada offline.', 'error');
+    return
+  }
   showLoad('Registrando armação...');
   const p = byId(S.pecas, modeloId);
   try {
-    if (!S.demo && S.sb && S.online) {
-      await sbInsert('Armacoes', dadosArm);
-      const eaArm2 = S.estoqueArmacoes.find(e => (e.modeloid ?? e.modeloId) === modeloId);
-      const novoSaldo = (eaArm2?.quantidade || 0) + quantidade;
-      if (eaArm2) await sbUpdate('EstoqueArmacoes', eaArm2.id, {
-        quantidade: novoSaldo
-      });
-      else await sbInsert('EstoqueArmacoes', {
-        modeloid: modeloId,
-        quantidade: novoSaldo
-      });
-      // Realtime atualiza o estado
-    } else {
-      await idbAdd('fila', {
-        tipo: 'armacao',
-        dados: dadosArm,
-        ts: Date.now(),
-        key: crypto.randomUUID()
-      });
-      S.armacoes.unshift({
-        ...dadosArm,
-        id: Date.now()
-      });
-      const eaOffline = S.estoqueArmacoes.find(e => (e.modeloid ?? e.modeloId) === modeloId);
-      if (eaOffline) {
-        eaOffline.quantidade += quantidade;
-      } else S.estoqueArmacoes.push({
-        modeloid: modeloId,
-        quantidade
-      });
-    }
+    await sbInsert('Armacoes', dadosArm);
+    const eaArm2 = S.estoqueArmacoes.find(e => (e.modeloid ?? e.modeloId) === modeloId);
+    const novoSaldo = (eaArm2?.quantidade || 0) + quantidade;
+    if (eaArm2) await sbUpdate('EstoqueArmacoes', eaArm2.id, {
+      quantidade: novoSaldo
+    });
+    else await sbInsert('EstoqueArmacoes', {
+      modeloid: modeloId,
+      quantidade: novoSaldo
+    });
+    // Realtime atualiza o estado
     document.getElementById('aData').value = hojeISO();
     document.getElementById('aModelo').value = '';
     S.aNum = '0';
     document.getElementById('aVal').textContent = '0';
     document.getElementById('aVal').classList.add('ph');
     document.getElementById('aDisp').classList.remove('has');
-    await updOQ();
     renderArmacoes();
     atualizarHome();
     hideLoad();
-    toast(`✅ Chegada registrada!${!S.online||S.demo?' (offline)':''}`, S.online && !S.demo ? 'success' : 'warn');
+    toast('✅ Chegada registrada!', 'success');
   } catch (e) {
     hideLoad();
     toast('❌ Erro: ' + e.message, 'error')
@@ -3644,59 +3507,29 @@ window.gerarRelArmacoes = function() {
     `<div class="total-row"><span class="tl">Total do Período</span><span class="tv">${totQtd}</span></div>`;
 };
 
-// SYNC FILA
+// STATUS ONLINE/OFFLINE — SEM MODO OFFLINE
 
 // ============================================================
-// 20. FILA DE SINCRONIZAÇÃO / STATUS ONLINE-OFFLINE
+// 20. STATUS ONLINE/OFFLINE
 // ============================================================
-window.syncFila = async function() {
-  if (!S.online) {
-    toast('Sem internet', 'warn');
-    return
-  }
-  if (S.demo) {
-    toast('Modo demo — configure o Supabase', 'info');
-    return
-  }
-  showLoad('Sincronizando...');
-  const fila = await idbAll('fila');
-  let ok = 0,
-    fail = 0;
-  for (const item of fila) {
-    try {
-      if (item.tipo === 'producao') {
-        const r = await sbInsert('Producoes', item.dados);
-        if (item.movDados) await sbInsert('Movimentacoes', {
-          ...item.movDados,
-          producaoid: r?.id
-        })
-      } else if (item.tipo === 'saida' || item.tipo === 'movimentacao') await sbInsert('Movimentacoes', item.dados);
-      else if (item.tipo === 'armacao') await sbInsert('Armacoes', item.dados);
-      await idbDel('fila', item.id);
-      ok++;
-    } catch (e) {
-      fail++
-    }
-  }
-  await updOQ();
-  hideLoad();
-  if (ok > 0) toast(`✅ ${ok} item(ns) sincronizados!`, 'success');
-  if (fail > 0) toast(`⚠️ ${fail} falha(s)`, 'warn');
-};
+// Não existe mais fila de sincronização nem modo offline: se a internet
+// cair, o app trava tudo com um aviso em tela cheia e exige recarregar
+// (o que devolve para a tela de login) assim que a conexão voltar.
+function mostrarBloqueioOffline() {
+  document.getElementById('offlineOv').classList.remove('hidden');
+}
 
-// ONLINE/OFFLINE
-window.addEventListener('online', async () => {
+window.addEventListener('online', () => {
   S.online = true;
   updBadge();
-  toast('✅ Conexão restaurada!', 'success');
-  await syncFila();
-  if (S.sb && !S.demo) iniciarRealtime()
+  toast('✅ Conexão restaurada! Recarregue para continuar.', 'success');
 });
 window.addEventListener('offline', () => {
   S.online = false;
   updBadge();
-  toast('📴 Modo offline ativo', 'warn')
+  mostrarBloqueioOffline();
 });
+
 
 function updBadge() {
   const b = document.getElementById('sBadge');
@@ -4214,13 +4047,10 @@ window.executarApagar = async function() {
     }
   }
 
-  // Apagar cache local
+  // Apagar cache local (bancos antigos do modo offline, se ainda existirem no
+  // aparelho, mais localStorage/sessionStorage)
   if (local) {
     try {
-      if (S.idb) {
-        S.idb.close();
-        S.idb = null
-      }
       for (const db of ['syscad_m', 'SysCadeiras']) {
         await new Promise(r => {
           const q = indexedDB.deleteDatabase(db);
@@ -4256,29 +4086,15 @@ window.executarApagar = async function() {
   }
 };
 
-// PWA — registra o service worker para permitir instalação no celular
-// ("Adicionar à Tela de Início") e abrir o app mesmo sem internet ou sem o
-// GitHub Pages estar acessível no momento (fica em cache local do aparelho).
-// Usa caminho relativo ao próprio arquivo, então funciona tanto hospedado
-// (GitHub Pages, qualquer outro host, inclusive em subpasta) quanto aberto
-// localmente.
+// O Service Worker foi removido de propósito: ele existia para deixar o
+// app abrir mesmo sem internet (cache local do "app shell"), e isso não é
+// mais permitido — o app agora exige conexão o tempo todo. Se um Service
+// Worker de uma versão antiga ainda estiver registrado no aparelho do
+// usuário, desregistra para não continuar servindo a versão em cache.
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    const swUrl = new URL('sw.js', window.location.href).href;
-    navigator.serviceWorker.register(swUrl).then(reg => {
-      console.log('✅ Service Worker registrado:', reg.scope);
-      // Verifica periodicamente se há uma versão nova do app publicada
-      reg.addEventListener('updatefound', () => {
-        const novo = reg.installing;
-        if (!novo) return;
-        novo.addEventListener('statechange', () => {
-          if (novo.state === 'installed' && navigator.serviceWorker.controller) {
-            toast('🔄 Nova versão disponível — recarregue o app', 'info');
-          }
-        });
-      });
-    }).catch(e => console.warn('⚠️ Falha ao registrar Service Worker:', e));
-  });
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(reg => reg.unregister());
+  }).catch(() => {});
 }
 
 // BOOT
@@ -4288,7 +4104,12 @@ if ('serviceWorker' in navigator) {
 // ============================================================
 async function boot() {
   protegerAcoes(); // só agora TODAS as funções do script já existem (inclusive backup)
-  await openIDB();
+  if (!navigator.onLine) {
+    // Sem internet já na abertura do app — não existe mais modo offline,
+    // então nem deixa chegar na tela de login.
+    mostrarBloqueioOffline();
+    return;
+  }
   await initSB();
   exibirFraseLogin();
   updBadge();
