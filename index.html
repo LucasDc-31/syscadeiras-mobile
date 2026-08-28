@@ -1943,6 +1943,150 @@ const S = {
   itemCount: 1,
 };
 
+
+// ============================================================
+// FOTOS DOS MODELOS — MOBILE
+// Admin pode tirar/carregar/remover; demais usuários apenas visualizam.
+// ============================================================
+const PhotoManager = (() => {
+  const box = () => document.getElementById('fotoModeloBox');
+  const hidden = () => document.getElementById('imagemPeca');
+  const preview = () => document.getElementById('previewImagemPeca');
+  const removeBtn = () => document.getElementById('btnRemoverFotoPeca');
+
+  function isAdmin() {
+    return !!S.user && S.user.role === 'admin';
+  }
+
+  function syncAdminControls() {
+    const b = box();
+    if (!b) return;
+    // A área de foto fica disponível somente para o administrador.
+    b.style.display = isAdmin() ? 'block' : 'none';
+    const rb = removeBtn();
+    if (rb) rb.style.display = (isAdmin() && hidden()?.value) ? 'inline-flex' : 'none';
+  }
+
+  function setValue(value) {
+    const v = value || '';
+    if (hidden()) hidden().value = v;
+    if (preview()) {
+      preview().innerHTML = v
+        ? `<img src="${v}" alt="Foto do modelo">`
+        : '<div class="photo-placeholder">🪑<span>Sem foto</span></div>';
+    }
+    const rb = removeBtn();
+    if (rb) rb.style.display = (isAdmin() && v) ? 'inline-flex' : 'none';
+  }
+
+  function compress(fileOrBlob) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(fileOrBlob);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const max = 900;
+        let w = img.naturalWidth, h = img.naturalHeight;
+        if (w > max || h > max) {
+          const ratio = Math.min(max / w, max / h);
+          w = Math.round(w * ratio); h = Math.round(h * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.78));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Não foi possível ler a imagem.')); };
+      img.src = url;
+    });
+  }
+
+  async function processFile(file) {
+    if (!isAdmin() || !file) return;
+    if (!file.type.startsWith('image/')) {
+      toast('Selecione uma imagem válida.', 'error'); return;
+    }
+    try {
+      showLoad('Processando foto...');
+      const data = await compress(file);
+      setValue(data);
+      hideLoad();
+    } catch (e) {
+      hideLoad();
+      toast('❌ Erro ao processar foto: ' + e.message, 'error');
+    }
+  }
+
+  function chooseDevice() {
+    if (!isAdmin()) {
+      toast('🔒 Apenas administradores podem alterar fotos.', 'error'); return;
+    }
+    document.getElementById('inputFotoDispositivo')?.click();
+  }
+
+  async function openCameraWeb() {
+    if (!isAdmin()) {
+      toast('🔒 Apenas administradores podem alterar fotos.', 'error'); return;
+    }
+    // Primeiro tenta câmera via getUserMedia (Chrome/Android).
+    if (!navigator.mediaDevices?.getUserMedia) {
+      document.getElementById('inputFotoCamera')?.click();
+      return;
+    }
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false
+      });
+      const modal = document.getElementById('modalCameraPeca');
+      const video = document.getElementById('cameraVideoPeca');
+      const canvas = document.getElementById('cameraCanvasPeca');
+      const ok = document.getElementById('btnCapturarFotoPeca');
+      modal.style.display = 'flex';
+      video.srcObject = stream;
+      await video.play();
+
+      const fechar = () => {
+        stream.getTracks().forEach(t => t.stop());
+        video.srcObject = null;
+        modal.style.display = 'none';
+      };
+      document.getElementById('btnFecharCameraPeca').onclick = fechar;
+      ok.onclick = async () => {
+        canvas.width = video.videoWidth || 1280;
+        canvas.height = video.videoHeight || 720;
+        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(async blob => {
+          fechar();
+          await processFile(blob);
+        }, 'image/jpeg', 0.88);
+      };
+    } catch (e) {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      // No Android, o input com capture abre a câmera nativa como fallback.
+      document.getElementById('inputFotoCamera')?.click();
+    }
+  }
+
+  function reset() {
+    if (!isAdmin()) return;
+    if (hidden()) hidden().value = '';
+    const f1 = document.getElementById('inputFotoDispositivo');
+    const f2 = document.getElementById('inputFotoCamera');
+    if (f1) f1.value = '';
+    if (f2) f2.value = '';
+    setValue('');
+  }
+
+  return {
+    isAdmin, syncAdminControls, setValue, chooseDevice, openCameraWeb, reset,
+    processFile: e => processFile(e?.target?.files?.[0])
+  };
+})();
+
+window.processarFotoModelo = e => PhotoManager.processFile(e);
+
 const DD = {
   pecas: [{
     id: 1,
@@ -2917,7 +3061,7 @@ window.renderEstoque = function() {
     const p = byId(S.pecas, r.pecaId ?? r.pecaid);
     const c = byId(S.cores, r.corId ?? r.corid);
     const cls = r.saldo <= 0 ? 'sn' : r.saldo < 5 ? 'sc2' : r.saldo < 10 ? 'sb2' : 'sk';
-    return `<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'–'}</span><span class="${cls}" style="font-size:20px">${r.saldo}</span></div><div style="font-size:12px;color:var(--muted)">🎨 ${c?.nome||'–'}</div></div>`;
+    return `<div class="mob-row"><div style="display:flex;gap:10px;align-items:center;"><div class="preview-foto-modelo" style="width:58px;height:58px;flex:none;">${p?.imagem ? `<img src="${p.imagem}" alt="Foto">` : '<div class="photo-placeholder">🪑</div>'}</div><div style="flex:1;"><div class="mob-rh"><span class="mob-rt">${p?.nome||'–'}</span><span class="${cls}" style="font-size:20px">${r.saldo}</span></div></div></div><div style="font-size:12px;color:var(--muted)">🎨 ${c?.nome||'–'}</div></div>`;
   }).join('');
 };
 
@@ -4168,5 +4312,17 @@ async function boot() {
 }
 boot();
 </script>
+
+  <!-- CÂMERA DO MODELO -->
+  <div class="modal-camera-peca" id="modalCameraPeca">
+    <div class="camera-card">
+      <video id="cameraVideoPeca" playsinline autoplay></video>
+      <canvas id="cameraCanvasPeca" style="display:none"></canvas>
+      <div class="row-btns" style="margin-top:10px;">
+        <button type="button" class="btn btn-g" id="btnCapturarFotoPeca">📷 Capturar foto</button>
+        <button type="button" class="btn btn-sec" id="btnFecharCameraPeca">❌ Fechar</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
