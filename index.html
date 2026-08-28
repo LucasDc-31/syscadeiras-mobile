@@ -1288,6 +1288,21 @@ body {
   color: var(--green2)
 }
 </style>
+
+<style id="photo-modelo-css">
+.foto-modelo-box{margin-top:12px;padding:14px;border:1px solid var(--border);border-radius:13px;background:rgba(255,255,255,.025)}
+.foto-modelo-grid{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.preview-foto-modelo{width:110px;height:110px;border-radius:14px;overflow:hidden;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center}
+.preview-foto-modelo img{width:100%;height:100%;object-fit:cover}
+.photo-placeholder{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--muted);font-size:28px}
+.photo-placeholder span{font-size:10px}
+.foto-acoes{display:flex;gap:7px;flex-wrap:wrap;flex:1}
+.foto-acoes button{width:auto!important}
+.img-modelo-mini{width:52px;height:52px;border-radius:10px;object-fit:cover;border:1px solid var(--border)}
+.modal-camera-peca{display:none;position:fixed;inset:0;z-index:30000;background:rgba(0,0,0,.86);align-items:center;justify-content:center;padding:14px}
+.modal-camera-peca .camera-card{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:14px}
+.modal-camera-peca video{width:100%;max-height:65vh;object-fit:cover;border-radius:12px;background:#000}
+</style>
 </head>
 
 <body>
@@ -1600,6 +1615,20 @@ body {
             </div>
             <div class="fg">
               <div class="fl">💰 Valor Unitário (R$)</div><input class="fi" type="number" id="valorPeca" step="0.01" min="0" placeholder="0,00">
+            </div>
+            <div class="foto-modelo-box" id="fotoModeloBox" style="display:none;">
+              <div class="fl">📷 Foto do Modelo <span style="font-weight:400;text-transform:none;letter-spacing:0;">(somente administrador)</span></div>
+              <input type="hidden" id="imagemPeca" value="">
+              <input type="file" id="inputFotoDispositivo" accept="image/*" style="display:none" onchange="processarFotoModelo(event)">
+              <input type="file" id="inputFotoCamera" accept="image/*" capture="environment" style="display:none" onchange="processarFotoModelo(event)">
+              <div class="foto-modelo-grid">
+                <div class="preview-foto-modelo" id="previewImagemPeca"><div class="photo-placeholder">🪑<span>Sem foto</span></div></div>
+                <div class="foto-acoes">
+                  <button type="button" class="btn btn-b btn-sm" onclick="PhotoManager.openCameraWeb()">📷 Tirar foto</button>
+                  <button type="button" class="btn btn-sec btn-sm" onclick="PhotoManager.chooseDevice()">🖼️ Carregar foto</button>
+                  <button type="button" id="btnRemoverFotoPeca" class="btn btn-r btn-sm" style="display:none" onclick="PhotoManager.reset()">🗑️ Remover</button>
+                </div>
+              </div>
             </div>
             <div class="row-btns">
               <button class="btn btn-g btn-sm" onclick="salvarModelo()">💾 Salvar</button>
@@ -2332,6 +2361,7 @@ function iniciarRealtime() {
           funcionarioId: p.new.funcionarioid ?? p.new.funcionarioId ?? S.user.funcionarioId ?? null
         };
         aplicarPermissoesUI();
+        PhotoManager.syncAdminControls();
         toast('🔄 Suas permissões foram atualizadas', 'info');
       }
     })
@@ -2461,6 +2491,7 @@ function iniciarApp() {
   // precisa rodar DEPOIS de fillSelects() ter populado os campos de seleção
   // — senão a trava tentaria escrever num campo ainda vazio.
   aplicarPermissoesUI();
+  PhotoManager.syncAdminControls();
   atualizarHome();
   if (S.sb) iniciarRealtime();
 }
@@ -3084,20 +3115,27 @@ window.salvarModelo = async function() {
   const id = document.getElementById('pecaId').value;
   const nome = document.getElementById('nomePeca').value.trim();
   const valor = parseFloat(document.getElementById('valorPeca').value);
+  const imagem = document.getElementById('imagemPeca')?.value || '';
   if (!nome || isNaN(valor) || valor < 0) {
     toast('Preencha nome e valor', 'error');
     return
   }
+  if (!PhotoManager.isAdmin() && imagem) {
+    toast('🔒 Apenas administradores podem adicionar ou editar fotos.', 'error');
+    return;
+  }
   showLoad(id ? 'Atualizando...' : 'Cadastrando...');
   try {
     if (!S.demo && S.sb && S.online) {
-      if (id) await sbUpdate('Pecas', parseInt(id), {
-        nome,
-        valor
-      });
+      if (id) {
+        const dadosModelo = { nome, valor };
+        if (PhotoManager.isAdmin()) dadosModelo.imagem = imagem;
+        await sbUpdate('Pecas', parseInt(id), dadosModelo);
+      }
       else await sbInsert('Pecas', {
         nome,
-        valor
+        valor,
+        imagem: PhotoManager.isAdmin() ? imagem : ''
       });
       const {
         data
@@ -3108,12 +3146,14 @@ window.salvarModelo = async function() {
         const p = byId(S.pecas, parseInt(id));
         if (p) {
           p.nome = nome;
-          p.valor = valor
+          p.valor = valor;
+          if (PhotoManager.isAdmin()) p.imagem = imagem;
         }
       } else S.pecas.push({
         id: Date.now(),
         nome,
-        valor
+        valor,
+        imagem: PhotoManager.isAdmin() ? imagem : ''
       });
     }
     fillSelects();
@@ -3132,6 +3172,8 @@ window.editarModelo = function(id) {
   document.getElementById('pecaId').value = p.id;
   document.getElementById('nomePeca').value = p.nome;
   document.getElementById('valorPeca').value = p.valor;
+  PhotoManager.syncAdminControls();
+  PhotoManager.setValue(p.imagem || '');
   document.getElementById('modeloFormTit').innerHTML = '<div class="cico cg">✏️</div>Editar Modelo'
 };
 window.excluirModelo = async function(id) {
@@ -3153,12 +3195,14 @@ window.cancelarModelo = function() {
   document.getElementById('pecaId').value = '';
   document.getElementById('nomePeca').value = '';
   document.getElementById('valorPeca').value = '';
+  PhotoManager.reset();
+  PhotoManager.syncAdminControls();
   document.getElementById('modeloFormTit').innerHTML = '<div class="cico cg">🪑</div>Novo Modelo'
 };
 
 function renderCadModelos() {
   const el = document.getElementById('modelosList');
-  el.innerHTML = S.pecas.length ? S.pecas.map(p => `<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p.nome}</span><span class="valor">${fmtMoeda(p.valor)}</span></div><div class="mob-acts"><button class="ab ab-e" onclick="editarModelo(${p.id})">✏️ Editar</button><button class="ab ab-d" onclick="excluirModelo(${p.id})">🗑️</button></div></div>`).join('') : '<div class="empty"><div class="ei">🪑</div><p>Nenhum modelo</p></div>'
+  el.innerHTML = S.pecas.length ? S.pecas.map(p => `<div class="mob-row"><div style="display:flex;gap:10px;align-items:center;"><div class="preview-foto-modelo" style="width:58px;height:58px;flex:none;">${p.imagem ? `<img src="${p.imagem}" alt="Foto">` : '<div class="photo-placeholder">🪑</div>'}</div><div style="flex:1;"><div class="mob-rh"><span class="mob-rt">${p.nome}</span><span class="valor">${fmtMoeda(p.valor)}</span></div></div></div><div class="mob-acts"><button class="ab ab-e" onclick="editarModelo(${p.id})">✏️ Editar</button><button class="ab ab-d" onclick="excluirModelo(${p.id})">🗑️</button></div></div>`).join('') : '<div class="empty"><div class="ei">🪑</div><p>Nenhum modelo</p></div>'
 }
 
 
