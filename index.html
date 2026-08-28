@@ -1300,6 +1300,7 @@ body {
 .foto-acoes button{width:auto!important}
 .img-modelo-mini{width:52px;height:52px;border-radius:10px;object-fit:cover;border:1px solid var(--border)}
 .modal-camera-peca{display:none;position:fixed;inset:0;z-index:30000;background:rgba(0,0,0,.86);align-items:center;justify-content:center;padding:14px}
+.modal-camera-peca.active{display:flex}
 .modal-camera-peca .camera-card{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:14px}
 .modal-camera-peca video{width:100%;max-height:65vh;object-fit:cover;border-radius:12px;background:#000}
 </style>
@@ -1810,6 +1811,19 @@ body {
     <button class="btn btn-g" style="margin-top:10px;width:auto;padding:10px 26px" onclick="location.reload()">🔄 Recarregar</button>
   </div>
   <div class="toast-wrap" id="toastWrap"></div>
+
+  <!-- MODAL CÂMERA (foto do modelo) -->
+  <div class="modal-camera-peca" id="modalCameraPeca">
+    <div class="camera-card">
+      <video id="videoCameraPeca" autoplay playsinline muted></video>
+      <canvas id="canvasCameraPeca" style="display:none;"></canvas>
+      <div class="row-btns" style="margin-top:12px;">
+        <button type="button" class="btn btn-g btn-sm" onclick="PhotoManager.capturar()">📸 Capturar</button>
+        <button type="button" class="btn btn-sec btn-sm" onclick="PhotoManager.fecharCamera()">❌ Cancelar</button>
+      </div>
+    </div>
+  </div>
+
 <script type="module">
 // ⚙️ CONFIGURE AQUI
 // ============================================================
@@ -1942,150 +1956,6 @@ const S = {
   filtEst: 'todos',
   itemCount: 1,
 };
-
-
-// ============================================================
-// FOTOS DOS MODELOS — MOBILE
-// Admin pode tirar/carregar/remover; demais usuários apenas visualizam.
-// ============================================================
-const PhotoManager = (() => {
-  const box = () => document.getElementById('fotoModeloBox');
-  const hidden = () => document.getElementById('imagemPeca');
-  const preview = () => document.getElementById('previewImagemPeca');
-  const removeBtn = () => document.getElementById('btnRemoverFotoPeca');
-
-  function isAdmin() {
-    return !!S.user && S.user.role === 'admin';
-  }
-
-  function syncAdminControls() {
-    const b = box();
-    if (!b) return;
-    // A área de foto fica disponível somente para o administrador.
-    b.style.display = isAdmin() ? 'block' : 'none';
-    const rb = removeBtn();
-    if (rb) rb.style.display = (isAdmin() && hidden()?.value) ? 'inline-flex' : 'none';
-  }
-
-  function setValue(value) {
-    const v = value || '';
-    if (hidden()) hidden().value = v;
-    if (preview()) {
-      preview().innerHTML = v
-        ? `<img src="${v}" alt="Foto do modelo">`
-        : '<div class="photo-placeholder">🪑<span>Sem foto</span></div>';
-    }
-    const rb = removeBtn();
-    if (rb) rb.style.display = (isAdmin() && v) ? 'inline-flex' : 'none';
-  }
-
-  function compress(fileOrBlob) {
-    return new Promise((resolve, reject) => {
-      const url = URL.createObjectURL(fileOrBlob);
-      const img = new Image();
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-        const max = 900;
-        let w = img.naturalWidth, h = img.naturalHeight;
-        if (w > max || h > max) {
-          const ratio = Math.min(max / w, max / h);
-          w = Math.round(w * ratio); h = Math.round(h * ratio);
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', 0.78));
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Não foi possível ler a imagem.')); };
-      img.src = url;
-    });
-  }
-
-  async function processFile(file) {
-    if (!isAdmin() || !file) return;
-    if (!file.type.startsWith('image/')) {
-      toast('Selecione uma imagem válida.', 'error'); return;
-    }
-    try {
-      showLoad('Processando foto...');
-      const data = await compress(file);
-      setValue(data);
-      hideLoad();
-    } catch (e) {
-      hideLoad();
-      toast('❌ Erro ao processar foto: ' + e.message, 'error');
-    }
-  }
-
-  function chooseDevice() {
-    if (!isAdmin()) {
-      toast('🔒 Apenas administradores podem alterar fotos.', 'error'); return;
-    }
-    document.getElementById('inputFotoDispositivo')?.click();
-  }
-
-  async function openCameraWeb() {
-    if (!isAdmin()) {
-      toast('🔒 Apenas administradores podem alterar fotos.', 'error'); return;
-    }
-    // Primeiro tenta câmera via getUserMedia (Chrome/Android).
-    if (!navigator.mediaDevices?.getUserMedia) {
-      document.getElementById('inputFotoCamera')?.click();
-      return;
-    }
-    let stream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
-        audio: false
-      });
-      const modal = document.getElementById('modalCameraPeca');
-      const video = document.getElementById('cameraVideoPeca');
-      const canvas = document.getElementById('cameraCanvasPeca');
-      const ok = document.getElementById('btnCapturarFotoPeca');
-      modal.style.display = 'flex';
-      video.srcObject = stream;
-      await video.play();
-
-      const fechar = () => {
-        stream.getTracks().forEach(t => t.stop());
-        video.srcObject = null;
-        modal.style.display = 'none';
-      };
-      document.getElementById('btnFecharCameraPeca').onclick = fechar;
-      ok.onclick = async () => {
-        canvas.width = video.videoWidth || 1280;
-        canvas.height = video.videoHeight || 720;
-        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(async blob => {
-          fechar();
-          await processFile(blob);
-        }, 'image/jpeg', 0.88);
-      };
-    } catch (e) {
-      if (stream) stream.getTracks().forEach(t => t.stop());
-      // No Android, o input com capture abre a câmera nativa como fallback.
-      document.getElementById('inputFotoCamera')?.click();
-    }
-  }
-
-  function reset() {
-    if (!isAdmin()) return;
-    if (hidden()) hidden().value = '';
-    const f1 = document.getElementById('inputFotoDispositivo');
-    const f2 = document.getElementById('inputFotoCamera');
-    if (f1) f1.value = '';
-    if (f2) f2.value = '';
-    setValue('');
-  }
-
-  return {
-    isAdmin, syncAdminControls, setValue, chooseDevice, openCameraWeb, reset,
-    processFile: e => processFile(e?.target?.files?.[0])
-  };
-})();
-
-window.processarFotoModelo = e => PhotoManager.processFile(e);
 
 const DD = {
   pecas: [{
@@ -3061,7 +2931,7 @@ window.renderEstoque = function() {
     const p = byId(S.pecas, r.pecaId ?? r.pecaid);
     const c = byId(S.cores, r.corId ?? r.corid);
     const cls = r.saldo <= 0 ? 'sn' : r.saldo < 5 ? 'sc2' : r.saldo < 10 ? 'sb2' : 'sk';
-    return `<div class="mob-row"><div style="display:flex;gap:10px;align-items:center;"><div class="preview-foto-modelo" style="width:58px;height:58px;flex:none;">${p?.imagem ? `<img src="${p.imagem}" alt="Foto">` : '<div class="photo-placeholder">🪑</div>'}</div><div style="flex:1;"><div class="mob-rh"><span class="mob-rt">${p?.nome||'–'}</span><span class="${cls}" style="font-size:20px">${r.saldo}</span></div></div></div><div style="font-size:12px;color:var(--muted)">🎨 ${c?.nome||'–'}</div></div>`;
+    return `<div class="mob-row"><div style="display:flex;gap:10px;align-items:center;"><div class="preview-foto-modelo" style="width:44px;height:44px;flex:none;border-radius:9px;">${p?.imagem ? `<img src="${p.imagem}" alt="Foto">` : '<div class="photo-placeholder" style="font-size:18px;">🪑</div>'}</div><div style="flex:1;"><div class="mob-rh"><span class="mob-rt">${p?.nome||'–'}</span><span class="${cls}" style="font-size:20px">${r.saldo}</span></div><div style="font-size:12px;color:var(--muted)">🎨 ${c?.nome||'–'}</div></div></div></div>`;
   }).join('');
 };
 
@@ -3248,6 +3118,149 @@ function renderArmacoes() {
 // ============================================================
 // 16. CADASTROS: MODELOS
 // ============================================================
+// ============================================================
+// PHOTO MANAGER — foto do modelo (câmera web + upload do dispositivo)
+// ============================================================
+// Fotos são comprimidas/redimensionadas antes de virar base64: isso evita
+// que fotos de celular (3-8MB) sejam guardadas cruas no estado (S.pecas)
+// e re-renderizadas em toda lista/estoque, o que pesava e deixava o app
+// lento após a foto ser adicionada.
+const PhotoManager = {
+  _stream: null,
+  MAX_LADO: 640, // px — suficiente para o preview de 110px e a mini de 52px
+  QUALIDADE: 0.72,
+
+  isAdmin() {
+    return !!(S && S.user && S.user.role === 'admin');
+  },
+
+  // Mostra/esconde a caixa de foto e os controles conforme o usuário é admin
+  syncAdminControls() {
+    const box = document.getElementById('fotoModeloBox');
+    if (!box) return;
+    box.style.display = this.isAdmin() ? 'block' : 'none';
+  },
+
+  chooseDevice() {
+    if (!this.isAdmin()) {
+      toast('🔒 Apenas administradores podem adicionar ou editar fotos.', 'error');
+      return;
+    }
+    const input = document.getElementById('inputFotoDispositivo');
+    if (input) input.click();
+  },
+
+  async openCameraWeb() {
+    if (!this.isAdmin()) {
+      toast('🔒 Apenas administradores podem adicionar ou editar fotos.', 'error');
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      // Sem suporte a getUserMedia (ou contexto não seguro/http): cai para
+      // o input de arquivo com capture, que abre a câmera nativa do celular.
+      const input = document.getElementById('inputFotoCamera');
+      if (input) input.click();
+      return;
+    }
+    try {
+      this._stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false
+      });
+      const video = document.getElementById('videoCameraPeca');
+      video.srcObject = this._stream;
+      document.getElementById('modalCameraPeca').classList.add('active');
+    } catch (e) {
+      // Câmera negada/indisponível: usa o input com capture como alternativa
+      toast('⚠️ Não foi possível acessar a câmera. Tente "Carregar foto".', 'error');
+      const input = document.getElementById('inputFotoCamera');
+      if (input) input.click();
+    }
+  },
+
+  fecharCamera() {
+    if (this._stream) {
+      this._stream.getTracks().forEach(t => t.stop());
+      this._stream = null;
+    }
+    document.getElementById('modalCameraPeca').classList.remove('active');
+  },
+
+  capturar() {
+    const video = document.getElementById('videoCameraPeca');
+    const canvas = document.getElementById('canvasCameraPeca');
+    if (!video || !video.videoWidth) return;
+    const { w, h } = this._tamanhoReduzido(video.videoWidth, video.videoHeight);
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+    const dataUrl = canvas.toDataURL('image/jpeg', this.QUALIDADE);
+    this.setValue(dataUrl);
+    this.fecharCamera();
+  },
+
+  _tamanhoReduzido(w, h) {
+    const maior = Math.max(w, h);
+    if (maior <= this.MAX_LADO) return { w, h };
+    const escala = this.MAX_LADO / maior;
+    return { w: Math.round(w * escala), h: Math.round(h * escala) };
+  },
+
+  // Recebe um File (do input de arquivo/câmera nativa), redimensiona via
+  // canvas e grava o resultado comprimido no campo oculto + preview.
+  processarArquivo(file) {
+    if (!file || !file.type.startsWith('image/')) {
+      toast('⚠️ Selecione um arquivo de imagem válido.', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const { w, h } = this._tamanhoReduzido(img.width, img.height);
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', this.QUALIDADE);
+        this.setValue(dataUrl);
+      };
+      img.onerror = () => toast('❌ Não foi possível ler a imagem.', 'error');
+      img.src = ev.target.result;
+    };
+    reader.onerror = () => toast('❌ Não foi possível ler o arquivo.', 'error');
+    reader.readAsDataURL(file);
+  },
+
+  setValue(dataUrl) {
+    const hidden = document.getElementById('imagemPeca');
+    const preview = document.getElementById('previewImagemPeca');
+    const btnRemover = document.getElementById('btnRemoverFotoPeca');
+    if (hidden) hidden.value = dataUrl || '';
+    if (preview) {
+      preview.innerHTML = dataUrl
+        ? `<img src="${dataUrl}" alt="Foto do modelo">`
+        : '<div class="photo-placeholder">🪑<span>Sem foto</span></div>';
+    }
+    if (btnRemover) btnRemover.style.display = dataUrl ? 'inline-flex' : 'none';
+  },
+
+  reset() {
+    this.setValue('');
+    const inputDisp = document.getElementById('inputFotoDispositivo');
+    const inputCam = document.getElementById('inputFotoCamera');
+    if (inputDisp) inputDisp.value = '';
+    if (inputCam) inputCam.value = '';
+  }
+};
+window.PhotoManager = PhotoManager;
+
+window.processarFotoModelo = function(event) {
+  const file = event?.target?.files?.[0];
+  if (file) PhotoManager.processarArquivo(file);
+  event.target.value = ''; // permite selecionar o mesmo arquivo de novo depois
+};
+
 window.cadAba = function(aba, btn) {
   document.querySelectorAll('#cadPills .pill').forEach(p => p.classList.remove('active'));
   btn.classList.add('active');
@@ -4312,17 +4325,5 @@ async function boot() {
 }
 boot();
 </script>
-
-  <!-- CÂMERA DO MODELO -->
-  <div class="modal-camera-peca" id="modalCameraPeca">
-    <div class="camera-card">
-      <video id="cameraVideoPeca" playsinline autoplay></video>
-      <canvas id="cameraCanvasPeca" style="display:none"></canvas>
-      <div class="row-btns" style="margin-top:10px;">
-        <button type="button" class="btn btn-g" id="btnCapturarFotoPeca">📷 Capturar foto</button>
-        <button type="button" class="btn btn-sec" id="btnFecharCameraPeca">❌ Fechar</button>
-      </div>
-    </div>
-  </div>
 </body>
 </html>
