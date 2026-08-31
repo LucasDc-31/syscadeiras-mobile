@@ -2149,6 +2149,78 @@ async function sbInsert(tabela, dados) {
   if (error) throw error;
   return data;
 }
+
+// ============================================================
+// 5b. CONTRATO DE SINCRONIZAÇÃO (espelha montarPayloadEnriquecido do
+// Desktop — src/main/services/sync.js). O Desktop só resolve os ids
+// locais de uma linha vinda de outra máquina se ela chegar com uuid
+// próprio + empresaid + deviceid + os *uuid de cada FK (funcionário/
+// peça/cor). Sem isso a linha é ignorada (uuid ausente) ou tenta usar
+// o id numérico do Supabase como se fosse o id local do SQLite —
+// quebrando a sincronização com o Desktop. Ver FKS_POR_TABELA lá.
+// ============================================================
+const FKS_POR_TABELA_MOBILE = {
+  Producoes: [
+    { campoId: 'funcionarioid', campoUuid: 'funcionariouuid', lista: 'funcionarios' },
+    { campoId: 'pecaid',        campoUuid: 'pecauuid',        lista: 'pecas' },
+    { campoId: 'corid',         campoUuid: 'coruuid',         lista: 'cores' },
+  ],
+  Movimentacoes: [
+    { campoId: 'pecaid',        campoUuid: 'pecauuid',        lista: 'pecas' },
+    { campoId: 'corid',         campoUuid: 'coruuid',         lista: 'cores' },
+    { campoId: 'funcionarioid', campoUuid: 'funcionariouuid', lista: 'funcionarios' },
+    // producaouuid não entra aqui: vem direto do uuid já gerado para a
+    // linha de Producoes recém-inserida (ver salvarProducao).
+  ],
+  Armacoes: [
+    { campoId: 'modeloid', campoUuid: 'modelouuid', lista: 'pecas' },
+  ],
+  EstoqueArmacoes: [
+    { campoId: 'modeloid', campoUuid: 'modelouuid', lista: 'pecas' },
+  ],
+};
+
+// Identificador único e persistente deste aparelho/instalação do mobile.
+// Gerado uma vez e guardado no localStorage — mesmo papel do deviceId
+// gravado em config.json pelo Desktop (config.js:getDeviceId).
+function getDeviceId() {
+  let id = null;
+  try { id = localStorage.getItem('sc_deviceId'); } catch (e) {}
+  if (!id) {
+    id = 'mobile-' + (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(16).slice(2)));
+    try { localStorage.setItem('sc_deviceId', id); } catch (e) {}
+  }
+  return id;
+}
+
+function getEmpresaId() {
+  return S.user?.empresaId || 'default';
+}
+
+// Monta o mesmo payload que o Desktop monta antes de espelhar no
+// Supabase (uuid próprio + empresaid + deviceid + *uuid de cada FK,
+// resolvidos a partir dos registros já carregados em S.funcionarios /
+// S.pecas / S.cores — que já vêm com uuid do Supabase). Use isto antes
+// de qualquer sbInsert em Producoes, Movimentacoes, Armacoes ou
+// EstoqueArmacoes.
+function montarPayloadEnriquecido(tabela, dados) {
+  const payload = {
+    ...dados,
+    uuid: crypto.randomUUID ? crypto.randomUUID() : getDeviceId() + '-' + Date.now(),
+    empresaid: getEmpresaId(),
+    deviceid: getDeviceId(),
+    updatedat: new Date().toISOString(),
+  };
+  const fks = FKS_POR_TABELA_MOBILE[tabela] || [];
+  for (const fk of fks) {
+    const valorId = dados[fk.campoId];
+    if (valorId != null) {
+      const ref = byId(S[fk.lista], valorId);
+      if (ref?.uuid) payload[fk.campoUuid] = ref.uuid;
+    }
+  }
+  return payload;
+}
 async function sbUpdate(tabela, id, dados) {
   if (S.demo || !S.sb || !S.online) return;
   const {
@@ -2476,13 +2548,18 @@ window.doLogin = async function() {
     // pessoal criado automaticamente no Desktop ao cadastrar o funcionário)
     // — mesmo campo usado pelo Desktop para restringir produção/relatórios
     // à própria pessoa. Sem isso aqui, o mobile ignoraria essa regra.
+    // empresaId identifica a empresa dona destes dados (mesmo conceito do
+    // config.getEmpresaId() do Desktop) — necessário para que as linhas
+    // criadas pelo mobile sejam isoladas/roteadas para a empresa correta
+    // e não fiquem de fora do índice idx_*_empresaid no Supabase.
     S.user = {
       id: usuario.id,
       email: usuario.email,
       nome: usuario.nome,
       role: usuario.role,
       permissoes,
-      funcionarioId: usuario.funcionarioid ?? usuario.funcionarioId ?? null
+      funcionarioId: usuario.funcionarioid ?? usuario.funcionarioId ?? null,
+      empresaId: usuario.empresaid ?? usuario.empresaId ?? 'default'
     };
     await carregarDados();
     iniciarApp();
@@ -2793,7 +2870,7 @@ window.salvarProducao = async function() {
   showLoad('Registrando produção...');
   try {
     for (const it of itens) {
-      const dados = {
+      const dados = montarPayloadEnriquecido('Producoes', {
         data,
         funcionarioid: funcId,
         pecaid: it.pecaId,
@@ -2801,9 +2878,9 @@ window.salvarProducao = async function() {
         quantidade: it.quantidade,
         horaextra: it.horaExtra ? 1 : 0,
         device_origin: 'mobile'
-      };
+      });
       const r = await sbInsert('Producoes', dados);
-      await sbInsert('Movimentacoes', {
+      const dadosMov = montarPayloadEnriquecido('Movimentacoes', {
         data,
         tipo: 'entrada',
         pecaid: it.pecaId,
@@ -2814,15 +2891,22 @@ window.salvarProducao = async function() {
         funcionarioid: funcId,
         device_origin: 'mobile'
       });
+      // producaouuid vem direto do uuid que acabamos de gravar em
+      // Producoes (mais confiável que procurar em S.producoes, que só
+      // será atualizado quando o Realtime devolver esta mesma linha).
+      if (r?.uuid) dadosMov.producaouuid = r.uuid;
+      else if (dados.uuid) dadosMov.producaouuid = dados.uuid;
+      await sbInsert('Movimentacoes', dadosMov);
       const eaArm = S.estoqueArmacoes.find(e => (e.modeloid ?? e.modeloId) === it.pecaId);
       const nova = (eaArm?.quantidade || 0) - it.quantidade;
       if (eaArm) await sbUpdate('EstoqueArmacoes', eaArm.id, {
         quantidade: nova
       });
-      else await sbInsert('EstoqueArmacoes', {
+      else await sbInsert('EstoqueArmacoes', montarPayloadEnriquecido('EstoqueArmacoes', {
         modeloid: it.pecaId,
-        quantidade: -it.quantidade
-      });
+        quantidade: -it.quantidade,
+        device_origin: 'mobile'
+      }));
       // Realtime atualiza o estado — não mutamos localmente
     }
     limparProd();
@@ -2979,7 +3063,7 @@ window.salvarSaida = async function() {
   }
   const saldo = calcSaldo(pecaId, corId);
   if (saldo < quantidade && !confirm(`⚠️ Saldo insuficiente!\nSaldo: ${saldo} | Falta: ${quantidade-saldo}\nRegistrar mesmo assim?`)) return;
-  const dados = {
+  const dados = montarPayloadEnriquecido('Movimentacoes', {
     data,
     tipo: 'saida',
     pecaid: pecaId,
@@ -2987,7 +3071,7 @@ window.salvarSaida = async function() {
     quantidade,
     origem: obs || 'Saída via mobile',
     device_origin: 'mobile'
-  };
+  });
   if (!S.sb || !S.online) {
     toast('📴 Sem conexão com a internet. Não é possível registrar saída offline.', 'error');
     return
@@ -3055,12 +3139,12 @@ window.salvarArmacao = async function() {
     toast('Informe a quantidade', 'error');
     return
   }
-  const dadosArm = {
+  const dadosArm = montarPayloadEnriquecido('Armacoes', {
     data,
     modeloid: modeloId,
     quantidade,
     device_origin: 'mobile'
-  };
+  });
   if (!S.sb || !S.online) {
     toast('📴 Sem conexão com a internet. Não é possível registrar chegada offline.', 'error');
     return
@@ -3074,10 +3158,11 @@ window.salvarArmacao = async function() {
     if (eaArm2) await sbUpdate('EstoqueArmacoes', eaArm2.id, {
       quantidade: novoSaldo
     });
-    else await sbInsert('EstoqueArmacoes', {
+    else await sbInsert('EstoqueArmacoes', montarPayloadEnriquecido('EstoqueArmacoes', {
       modeloid: modeloId,
-      quantidade: novoSaldo
-    });
+      quantidade: novoSaldo,
+      device_origin: 'mobile'
+    }));
     // Realtime atualiza o estado
     document.getElementById('aData').value = hojeISO();
     document.getElementById('aModelo').value = '';
