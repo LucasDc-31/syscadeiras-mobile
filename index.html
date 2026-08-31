@@ -2193,7 +2193,29 @@ function getDeviceId() {
   return id;
 }
 
+// O Desktop DESCARTA em silêncio (sem log, sem registrar conflito) toda
+// linha recebida cujo empresaid não bata exatamente com o
+// config.getEmpresaId() dele (ver sync.js:salvarNoSQLite, linha do guard
+// de empresa). Se usuarios.empresaid não estiver preenchido no Supabase
+// para este login (ex: conta criada antes da migração multiempresa), usar
+// só isso faria toda produção do mobile sumir sem nenhum aviso. Por
+// segurança, preferimos o empresaid do usuário quando ele vier
+// preenchido e, se não vier, usamos o empresaid predominante entre os
+// dados que o próprio Desktop já sincronizou (funcionários/peças/cores) —
+// assim o mobile sempre grava na mesma empresa que o Desktop está
+// configurado, mesmo que o cadastro do usuário ainda esteja desatualizado.
 function getEmpresaId() {
+  if (S.user?.empresaId && S.user.empresaId !== 'default') return S.user.empresaId;
+  const candidatos = [
+    ...(S.funcionarios || []),
+    ...(S.pecas || []),
+    ...(S.cores || []),
+  ].map(r => r.empresaid ?? r.empresaId).filter(Boolean);
+  if (candidatos.length) {
+    const contagem = {};
+    for (const e of candidatos) contagem[e] = (contagem[e] || 0) + 1;
+    return Object.entries(contagem).sort((a, b) => b[1] - a[1])[0][0];
+  }
   return S.user?.empresaId || 'default';
 }
 
