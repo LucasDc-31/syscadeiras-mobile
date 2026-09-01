@@ -195,7 +195,7 @@ body {
 .topbar {
   background: var(--bg2);
   border-bottom: 1px solid var(--border);
-  padding: calc(var(--st)+10px) 14px 10px;
+  padding: calc(var(--st) + 10px) 14px 10px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2142,22 +2142,28 @@ async function initSB() {
 
 async function sbInsert(tabela, dados) {
   if (S.demo || !S.sb || !S.online) return null;
+  // Importante: NÃO usar .single() aqui. .single() lança erro se o
+  // select-back do insert retornar 0 ou mais de 1 linha (ex.: política de
+  // RLS de SELECT mais restrita que a de INSERT, ou triggers de
+  // sincronização). Isso fazia a operação inteira cair no catch — e
+  // aparecer um toast de erro — mesmo quando o registro JÁ TINHA SIDO
+  // gravado com sucesso no Supabase (era o caso do cadastro de cores).
   const {
     data,
     error
-  } = await S.sb.from(tabela).insert(dados).select().single();
+  } = await S.sb.from(tabela).insert(dados).select();
   if (error) throw error;
-  return data;
+  return Array.isArray(data) ? data[0] : (data || null);
 }
 
 // ============================================================
 // 5b. CONTRATO DE SINCRONIZAÇÃO (espelha montarPayloadEnriquecido do
 // Desktop — src/main/services/sync.js). O Desktop só resolve os ids
 // locais de uma linha vinda de outra máquina se ela chegar com uuid
-// próprio + empresaid + deviceid + os *uuid de cada FK (funcionário/
-// peça/cor). Sem isso a linha é ignorada (uuid ausente) ou tenta usar
-// o id numérico do Supabase como se fosse o id local do SQLite —
-// quebrando a sincronização com o Desktop. Ver FKS_POR_TABELA lá.
+// próprio + deviceid + os *uuid de cada FK (funcionário/peça/cor). Sem
+// isso a linha é ignorada (uuid ausente) ou tenta usar o id numérico do
+// Supabase como se fosse o id local do SQLite — quebrando a sincronização
+// com o Desktop. Ver FKS_POR_TABELA lá.
 // ============================================================
 const FKS_POR_TABELA_MOBILE = {
   Producoes: [
@@ -2193,43 +2199,31 @@ function getDeviceId() {
   return id;
 }
 
-// O Desktop DESCARTA em silêncio (sem log, sem registrar conflito) toda
-// linha recebida cujo empresaid não bata exatamente com o
-// config.getEmpresaId() dele (ver sync.js:salvarNoSQLite, linha do guard
-// de empresa). Se usuarios.empresaid não estiver preenchido no Supabase
-// para este login (ex: conta criada antes da migração multiempresa), usar
-// só isso faria toda produção do mobile sumir sem nenhum aviso. Por
-// segurança, preferimos o empresaid do usuário quando ele vier
-// preenchido e, se não vier, usamos o empresaid predominante entre os
-// dados que o próprio Desktop já sincronizou (funcionários/peças/cores) —
-// assim o mobile sempre grava na mesma empresa que o Desktop está
-// configurado, mesmo que o cadastro do usuário ainda esteja desatualizado.
-function getEmpresaId() {
-  if (S.user?.empresaId && S.user.empresaId !== 'default') return S.user.empresaId;
-  const candidatos = [
-    ...(S.funcionarios || []),
-    ...(S.pecas || []),
-    ...(S.cores || []),
-  ].map(r => r.empresaid ?? r.empresaId).filter(Boolean);
-  if (candidatos.length) {
-    const contagem = {};
-    for (const e of candidatos) contagem[e] = (contagem[e] || 0) + 1;
-    return Object.entries(contagem).sort((a, b) => b[1] - a[1])[0][0];
-  }
-  return S.user?.empresaId || 'default';
-}
+// Este app é usado por uma única empresa, então o campo "empresaid" (que
+// no Desktop só serve para isolar dados entre múltiplas empresas
+// compartilhando o mesmo projeto Supabase — ver config.js/sync.js) não é
+// necessário aqui. Mesmo assim, seguimos GRAVANDO o valor padrão que o
+// Desktop usa quando nenhuma empresa é configurada explicitamente
+// ('default', ver config.js:valoresPadrao) para que uma linha criada pelo
+// mobile continue batendo com o filtro `.eq('empresaid', ...)` que o
+// Desktop ainda faz ao sincronizar (sync.js:sincronizarInicial) — sem
+// isso, cadastros feitos pelo celular ficariam de fora da sincronização
+// inicial do Desktop.
+const EMPRESA_ID = 'default';
 
 // Monta o mesmo payload que o Desktop monta antes de espelhar no
 // Supabase (uuid próprio + empresaid + deviceid + *uuid de cada FK,
 // resolvidos a partir dos registros já carregados em S.funcionarios /
-// S.pecas / S.cores — que já vêm com uuid do Supabase). Use isto antes
-// de qualquer sbInsert em Producoes, Movimentacoes, Armacoes ou
-// EstoqueArmacoes.
+// S.pecas / S.cores — que já vêm com uuid do Supabase). Use isto em TODO
+// sbInsert (Pecas, Cores, Funcionarios, Producoes, Movimentacoes,
+// Armacoes e EstoqueArmacoes) — sem isso a linha nasce sem uuid/empresaid
+// e o Desktop não consegue tratá-la pela chave estável (ver comentário
+// da seção 5b acima).
 function montarPayloadEnriquecido(tabela, dados) {
   const payload = {
     ...dados,
     uuid: crypto.randomUUID ? crypto.randomUUID() : getDeviceId() + '-' + Date.now(),
-    empresaid: getEmpresaId(),
+    empresaid: EMPRESA_ID,
     deviceid: getDeviceId(),
     updatedat: new Date().toISOString(),
   };
@@ -2242,6 +2236,20 @@ function montarPayloadEnriquecido(tabela, dados) {
     }
   }
   return payload;
+}
+
+// Metadados para UPDATE de um registro já existente (Pecas/Funcionarios/
+// Cores/EstoqueArmacoes). Diferente de montarPayloadEnriquecido, NÃO gera
+// um novo uuid (o uuid de um registro existente nunca deve mudar — trocá-lo
+// faria o Desktop enxergar a edição como uma linha nova, perdendo o
+// vínculo com o registro local já sincronizado). Só atualiza quem fez a
+// mudança e quando, para o guard de eco e a resolução de conflito por
+// data no Desktop funcionarem corretamente (ver sync.js:salvarNoSQLite).
+function montarMetadadosEdicao() {
+  return {
+    deviceid: getDeviceId(),
+    updatedat: new Date().toISOString(),
+  };
 }
 async function sbUpdate(tabela, id, dados) {
   if (S.demo || !S.sb || !S.online) return;
@@ -2570,18 +2578,13 @@ window.doLogin = async function() {
     // pessoal criado automaticamente no Desktop ao cadastrar o funcionário)
     // — mesmo campo usado pelo Desktop para restringir produção/relatórios
     // à própria pessoa. Sem isso aqui, o mobile ignoraria essa regra.
-    // empresaId identifica a empresa dona destes dados (mesmo conceito do
-    // config.getEmpresaId() do Desktop) — necessário para que as linhas
-    // criadas pelo mobile sejam isoladas/roteadas para a empresa correta
-    // e não fiquem de fora do índice idx_*_empresaid no Supabase.
     S.user = {
       id: usuario.id,
       email: usuario.email,
       nome: usuario.nome,
       role: usuario.role,
       permissoes,
-      funcionarioId: usuario.funcionarioid ?? usuario.funcionarioId ?? null,
-      empresaId: usuario.empresaid ?? usuario.empresaId ?? 'default'
+      funcionarioId: usuario.funcionarioid ?? usuario.funcionarioId ?? null
     };
     await carregarDados();
     iniciarApp();
@@ -2922,7 +2925,8 @@ window.salvarProducao = async function() {
       const eaArm = S.estoqueArmacoes.find(e => (e.modeloid ?? e.modeloId) === it.pecaId);
       const nova = (eaArm?.quantidade || 0) - it.quantidade;
       if (eaArm) await sbUpdate('EstoqueArmacoes', eaArm.id, {
-        quantidade: nova
+        quantidade: nova,
+        ...montarMetadadosEdicao()
       });
       else await sbInsert('EstoqueArmacoes', montarPayloadEnriquecido('EstoqueArmacoes', {
         modeloid: it.pecaId,
@@ -3178,7 +3182,8 @@ window.salvarArmacao = async function() {
     const eaArm2 = S.estoqueArmacoes.find(e => (e.modeloid ?? e.modeloId) === modeloId);
     const novoSaldo = (eaArm2?.quantidade || 0) + quantidade;
     if (eaArm2) await sbUpdate('EstoqueArmacoes', eaArm2.id, {
-      quantidade: novoSaldo
+      quantidade: novoSaldo,
+      ...montarMetadadosEdicao()
     });
     else await sbInsert('EstoqueArmacoes', montarPayloadEnriquecido('EstoqueArmacoes', {
       modeloid: modeloId,
@@ -3392,15 +3397,19 @@ window.salvarModelo = async function() {
   try {
     if (!S.demo && S.sb && S.online) {
       if (id) {
-        const dadosModelo = { nome, valor };
+        const dadosModelo = { nome, valor, ...montarMetadadosEdicao() };
         if (PhotoManager.isAdmin()) dadosModelo.imagem = imagem;
         await sbUpdate('Pecas', parseInt(id), dadosModelo);
       }
-      else await sbInsert('Pecas', {
+      // Insere sempre com uuid/empresaid/deviceid/updatedat (ver 5b) —
+      // sem isso o Desktop não consegue tratar este cadastro pela chave
+      // estável e uma Produção/Armação que referencie este modelo não
+      // consegue levar o "pecauuid"/"modelouuid" correspondente.
+      else await sbInsert('Pecas', montarPayloadEnriquecido('Pecas', {
         nome,
         valor,
         imagem: PhotoManager.isAdmin() ? imagem : ''
-      });
+      }));
       const {
         data
       } = await S.sb.from('Pecas').select('*').order('nome');
@@ -3486,12 +3495,13 @@ window.salvarFuncionario = async function() {
     if (!S.demo && S.sb && S.online) {
       if (id) await sbUpdate('Funcionarios', parseInt(id), {
         nome,
-        cargo
+        cargo,
+        ...montarMetadadosEdicao()
       });
-      else await sbInsert('Funcionarios', {
+      else await sbInsert('Funcionarios', montarPayloadEnriquecido('Funcionarios', {
         nome,
         cargo
-      });
+      }));
       const {
         data
       } = await S.sb.from('Funcionarios').select('*').order('nome');
@@ -3567,11 +3577,12 @@ window.salvarCor = async function() {
   try {
     if (!S.demo && S.sb && S.online) {
       if (id) await sbUpdate('Cores', parseInt(id), {
-        nome
+        nome,
+        ...montarMetadadosEdicao()
       });
-      else await sbInsert('Cores', {
+      else await sbInsert('Cores', montarPayloadEnriquecido('Cores', {
         nome
-      });
+      }));
       const {
         data
       } = await S.sb.from('Cores').select('*').order('nome');
