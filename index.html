@@ -1337,6 +1337,7 @@ body {
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
+        <button class="rbtn" id="uBtn" onclick="atualizarSistema()" title="Atualizar" style="font-size:18px">🔄</button>
         <button class="rbtn" id="rBtn" data-sec="backup" onclick="abrirBackup()" title="Backup / Apagar dados" style="font-size:18px">🗄️</button>
         <div class="sbadge on" id="sBadge">
           <div class="dot"></div><span id="sTxt">Online</span>
@@ -2293,6 +2294,35 @@ async function carregarDados() {
     toast('Erro ao carregar dados', 'error')
   }
   hideLoad();
+}
+
+// Botão "🔄 Atualizar" da topbar (equivalente ao do Desktop, ver
+// helpers.js:atualizarSistema). Busca no Supabase o estado mais recente de
+// todas as tabelas — não só relê o que já está em S — e redesenha as
+// telas já abertas (home, produção de hoje, estoque, saídas, armações e os
+// selects de peça/cor/funcionário). Sem isso, um cadastro feito por outra
+// máquina/celular enquanto o Realtime estava caído (app em segundo plano,
+// Wi-Fi caiu e voltou) só apareceria aqui depois de sair e entrar de novo.
+async function atualizarSistema() {
+  const btn = document.getElementById('uBtn');
+  if (btn) btn.classList.add('spin');
+  try {
+    if (S.demo || !S.sb) {
+      toast('⚠️ Modo demo/offline — nada para buscar no servidor.', 'warn');
+    }
+    await carregarDados();
+    fillSelects();
+    renderProdHoje();
+    renderEstoque();
+    renderSaidas();
+    renderArmacoes();
+    await atualizarHome();
+    if (!S.demo && S.sb) toast('✅ Sistema atualizado!', 'success');
+  } catch (e) {
+    toast('Erro ao atualizar: ' + e.message, 'error');
+  } finally {
+    setTimeout(() => { if (btn) btn.classList.remove('spin'); }, 700);
+  }
 }
 
 let _rtChannel = null;
