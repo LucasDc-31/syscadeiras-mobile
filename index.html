@@ -2199,31 +2199,17 @@ function getDeviceId() {
   return id;
 }
 
-// Este app é usado por uma única empresa, então o campo "empresaid" (que
-// no Desktop só serve para isolar dados entre múltiplas empresas
-// compartilhando o mesmo projeto Supabase — ver config.js/sync.js) não é
-// necessário aqui. Mesmo assim, seguimos GRAVANDO o valor padrão que o
-// Desktop usa quando nenhuma empresa é configurada explicitamente
-// ('default', ver config.js:valoresPadrao) para que uma linha criada pelo
-// mobile continue batendo com o filtro `.eq('empresaid', ...)` que o
-// Desktop ainda faz ao sincronizar (sync.js:sincronizarInicial) — sem
-// isso, cadastros feitos pelo celular ficariam de fora da sincronização
-// inicial do Desktop.
-const EMPRESA_ID = 'default';
-
 // Monta o mesmo payload que o Desktop monta antes de espelhar no
-// Supabase (uuid próprio + empresaid + deviceid + *uuid de cada FK,
-// resolvidos a partir dos registros já carregados em S.funcionarios /
-// S.pecas / S.cores — que já vêm com uuid do Supabase). Use isto em TODO
-// sbInsert (Pecas, Cores, Funcionarios, Producoes, Movimentacoes,
-// Armacoes e EstoqueArmacoes) — sem isso a linha nasce sem uuid/empresaid
-// e o Desktop não consegue tratá-la pela chave estável (ver comentário
-// da seção 5b acima).
+// Supabase (uuid próprio + deviceid + *uuid de cada FK, resolvidos a
+// partir dos registros já carregados em S.funcionarios / S.pecas /
+// S.cores — que já vêm com uuid do Supabase). Use isto em TODO sbInsert
+// (Pecas, Cores, Funcionarios, Producoes, Movimentacoes, Armacoes e
+// EstoqueArmacoes) — sem isso a linha nasce sem uuid e o Desktop não
+// consegue tratá-la pela chave estável (ver comentário da seção 5b acima).
 function montarPayloadEnriquecido(tabela, dados) {
   const payload = {
     ...dados,
     uuid: crypto.randomUUID ? crypto.randomUUID() : getDeviceId() + '-' + Date.now(),
-    empresaid: EMPRESA_ID,
     deviceid: getDeviceId(),
     updatedat: new Date().toISOString(),
   };
@@ -3401,8 +3387,7 @@ window.salvarModelo = async function() {
         if (PhotoManager.isAdmin()) dadosModelo.imagem = imagem;
         await sbUpdate('Pecas', parseInt(id), dadosModelo);
       }
-      // Insere sempre com uuid/empresaid/deviceid/updatedat (ver 5b) —
-      // sem isso o Desktop não consegue tratar este cadastro pela chave
+      // Insere sempre com uuid/deviceid/updatedat (ver 5b) — sem isso o Desktop não consegue tratar este cadastro pela chave
       // estável e uma Produção/Armação que referencie este modelo não
       // consegue levar o "pecauuid"/"modelouuid" correspondente.
       else await sbInsert('Pecas', montarPayloadEnriquecido('Pecas', {
