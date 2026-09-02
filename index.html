@@ -990,6 +990,17 @@ body {
   margin-top: 1px
 }
 
+/* Autor do registro — só exibido para admins (ver renderProdHoje,
+   renderSaidas, renderArmacoes). Aditivo: não altera o layout existente
+   dos cards, só acrescenta uma linha discreta ao final. */
+.card-autor {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border, rgba(255,255,255,.08));
+}
+
 .mob-acts {
   display: flex;
   gap: 8px
@@ -1338,6 +1349,7 @@ body {
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <button class="rbtn" id="uBtn" onclick="atualizarSistema()" title="Atualizar" style="font-size:18px">🔄</button>
+        <button class="rbtn" id="reconBtn" data-sec="reconciliacao" onclick="abrirReconciliacao()" title="Reconciliação" style="font-size:18px;display:none">🔁</button>
         <button class="rbtn" id="rBtn" data-sec="backup" onclick="abrirBackup()" title="Backup / Apagar dados" style="font-size:18px">🗄️</button>
         <div class="sbadge on" id="sBadge">
           <div class="dot"></div><span id="sTxt">Online</span>
@@ -2213,6 +2225,10 @@ function montarPayloadEnriquecido(tabela, dados) {
     uuid: crypto.randomUUID ? crypto.randomUUID() : getDeviceId() + '-' + Date.now(),
     deviceid: getDeviceId(),
     updatedat: new Date().toISOString(),
+    // Autor da operação, mesmo par de campos que o Desktop grava (ver
+    // montarPayloadEnriquecido em src/main/services/sync.js).
+    usuarioid: S.user?.id ?? null,
+    usuarionome: S.user?.nome ?? null,
   };
   const fks = FKS_POR_TABELA_MOBILE[tabela] || [];
   for (const fk of fks) {
@@ -2236,6 +2252,9 @@ function montarMetadadosEdicao() {
   return {
     deviceid: getDeviceId(),
     updatedat: new Date().toISOString(),
+    // NOVO: autor da edição — mesmo par de campos do payload de inserção.
+    usuarioid: S.user?.id ?? null,
+    usuarionome: S.user?.nome ?? null,
   };
 }
 async function sbUpdate(tabela, id, dados) {
@@ -2624,6 +2643,8 @@ function iniciarApp() {
   // — senão a trava tentaria escrever num campo ainda vazio.
   aplicarPermissoesUI();
   PhotoManager.syncAdminControls();
+  const reconBtn = document.getElementById('reconBtn');
+  if (reconBtn) reconBtn.style.display = (S.user?.role === 'admin') ? '' : 'none';
   atualizarHome();
   if (S.sb) iniciarRealtime();
 }
@@ -3005,7 +3026,7 @@ function renderProdHoje() {
     tot += vt;
     return `<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${pc?.nome||'N/A'}</span>${(p.horaextra??p.horaExtra)?'<span class="badge-he">⏰ HE</span>':''}</div>
       <div class="mob-rf"><div class="mob-fi">Funcionário<strong>${f?.nome||'N/A'}</strong></div><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div>
-      <div class="mob-fi">Quantidade<strong>${p.quantidade}</strong></div><div class="mob-fi">Valor<strong class="valor">${fmtMoeda(vt)}</strong></div></div></div>`;
+      <div class="mob-fi">Quantidade<strong>${p.quantidade}</strong></div><div class="mob-fi">Valor<strong class="valor">${fmtMoeda(vt)}</strong></div></div>${ (S.user?.role === 'admin') ? `<div class="card-autor">Registrado por: ${p.usuarionome || p.usuarioNome || 'Desconhecido'}</div>` : '' }</div>`;
   }).join('') + `<div class="total-row"><span class="tl">Total do Dia</span><span class="tv">${fmtMoeda(tot)}</span></div>`;
 }
 
@@ -3160,7 +3181,7 @@ function renderSaidas() {
     const c = byId(S.cores, m.corid ?? m.corId);
     return `<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'N/A'}</span><span style="color:var(--red2);font-size:18px;font-weight:800">–${m.quantidade}</span></div>
       <div class="mob-rf"><div class="mob-fi">Cor<strong>${c?.nome||'N/A'}</strong></div><div class="mob-fi">Data<strong>${fmtData(m.data)}</strong></div>
-      <div class="mob-fi" style="grid-column:1/-1">Origem<strong>${m.origem||'–'}</strong></div></div></div>`;
+      <div class="mob-fi" style="grid-column:1/-1">Origem<strong>${m.origem||'–'}</strong></div></div>${ (S.user?.role === 'admin') ? `<div class="card-autor">Registrado por: ${m.usuarionome || m.usuarioNome || 'Desconhecido'}</div>` : '' }</div>`;
   }).join('');
 }
 
@@ -3237,7 +3258,7 @@ function renderArmacoes() {
   }).join('') : '<div class="empty"><p>Nenhum estoque</p></div>';
   histEl.innerHTML = S.armacoes.slice(0, 20).map(a => {
     const p = byId(S.pecas, a.modeloid ?? a.modeloId);
-    return `<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'–'}</span><span style="color:var(--green2);font-size:18px;font-weight:800">+${a.quantidade}</span></div><div style="font-size:11px;color:var(--muted)">📅 ${fmtData(a.data)}</div></div>`;
+    return `<div class="mob-row"><div class="mob-rh"><span class="mob-rt">${p?.nome||'–'}</span><span style="color:var(--green2);font-size:18px;font-weight:800">+${a.quantidade}</span></div><div style="font-size:11px;color:var(--muted)">📅 ${fmtData(a.data)}</div>${ (S.user?.role === 'admin') ? `<div class="card-autor">Registrado por: ${a.usuarionome || a.usuarioNome || 'Desconhecido'}</div>` : '' }</div>`;
   }).join('');
 }
 
@@ -3876,6 +3897,33 @@ function updBadge() {
   }
 }
 
+// ============================================================
+// Reconciliação leve (mobile): sem banco local, o mobile já reflete o
+// Supabase quase em tempo real via Realtime. O risco real aqui é o app
+// ficar em segundo plano no celular e perder eventos enquanto estava
+// suspenso. Recarrega tudo do zero (carregarDados() já busca as 7
+// tabelas) sempre que o app volta ao primeiro plano ou a conexão volta —
+// aditivo, não substitui o bloqueio de tela cheia acima.
+// ============================================================
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && S.online && S.sb && !S.demo && S.user) {
+    carregarDados().then(() => {
+      fillSelects();
+      renderEstoque();
+      atualizarHome();
+    });
+  }
+});
+window.addEventListener('online', () => {
+  if (S.sb && !S.demo && S.user) {
+    carregarDados().then(() => {
+      fillSelects();
+      renderEstoque();
+      atualizarHome();
+    });
+  }
+});
+
 // ─────────────────────────────────────────────────────────────────────────
 // CONTROLE DE ACESSO POR PERMISSÃO (client-side)
 // Bloqueia no nível do app quem não tem permissão pra ver/usar cada seção.
@@ -4333,6 +4381,68 @@ window.abrirBackup = function() {
 
 window.fecharBackup = function() {
   document.getElementById('backupModal')?.remove();
+};
+
+// RECONCILIAÇÃO (admin only)
+
+// ============================================================
+// 25. PAINEL DE RECONCILIAÇÃO (leitura — Parte 4.2)
+// ============================================================
+// O mobile não roda a reconciliação em si (não tem banco local para
+// comparar contra o Supabase — ver reconcile.js no Desktop, que é quem
+// grava aqui). Este painel só lê e exibe os últimos registros de
+// ReconciliacaoLog, mesma consulta que o painel do Desktop usa.
+function fmtDataHoraRecon(iso) {
+  if (!iso) return '—';
+  try { return new Date(iso).toLocaleString('pt-BR'); } catch (e) { return iso; }
+}
+
+window.abrirReconciliacao = async function() {
+  if (S.user?.role !== 'admin') return;
+  if (document.getElementById('reconModal')) return;
+
+  const modal = document.createElement('div');
+  modal.id = 'reconModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;';
+  modal.innerHTML = `
+    <div style="width:100%;background:var(--bg2);border-radius:20px 20px 0 0;padding:24px 20px 32px;border-top:1px solid var(--border);max-height:85vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-size:17px;font-weight:800;color:#fff">🔁 Reconciliação Automática</div>
+        <button onclick="fecharReconciliacao()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1">✕</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.5">
+        Últimas corridas da varredura automática (Desktop ↔ Supabase) que corrige divergências sozinha, a cada 5 minutos.
+      </div>
+      <div id="reconLista"><p style="color:var(--muted);text-align:center;padding:20px;">Carregando...</p></div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) fecharReconciliacao(); });
+
+  const lista = document.getElementById('reconLista');
+  if (!S.sb) { lista.innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px;">Sem conexão com o servidor.</p>'; return; }
+  try {
+    const { data, error } = await S.sb.from('ReconciliacaoLog').select('*').order('iniciadoem', { ascending: false }).limit(20);
+    if (error) throw error;
+    if (!data || !data.length) {
+      lista.innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px;">📭 Nenhuma reconciliação registrada ainda.</p>';
+      return;
+    }
+    lista.innerHTML = data.map(r => {
+      const teveDivergencia = (r.divergenciasencontradas || 0) > 0;
+      const cor = r.status === 'erro' ? 'var(--red2)' : (teveDivergencia ? 'var(--amber)' : 'var(--green2)');
+      return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">${fmtDataHoraRecon(r.iniciadoem)} · 📟 ${r.deviceid || '—'}</div>
+          <div style="font-size:13px;font-weight:700;color:${cor};">${teveDivergencia ? '⚠️' : '✅'} ${r.divergenciasencontradas || 0} divergência(s)</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">${r.corrigidasauto || 0} corrigida(s) automaticamente · ${r.enviadasparaconflito || 0} em Conflitos</div>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    lista.innerHTML = `<p style="color:var(--red2);text-align:center;padding:20px;">❌ ${e.message}</p>`;
+  }
+};
+
+window.fecharReconciliacao = function() {
+  document.getElementById('reconModal')?.remove();
 };
 
 window.executarApagar = async function() {
