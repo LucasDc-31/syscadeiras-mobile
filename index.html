@@ -3,13 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<meta name="theme-color" content="#2c3e50">
+<meta name="theme-color" id="metaThemeColor" content="#2c3e50">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SysCadeiras">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>SysCadeiras Mobile</title>
+<!-- Aplica o tema salvo antes do CSS pintar a tela, evitando "flash" de tema errado -->
+<script>
+  (function () {
+    try {
+      if (localStorage.getItem('syscadeiras_tema') === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    } catch (e) {}
+  })();
+</script>
 <style>
 *,
 *::before,
@@ -35,7 +45,30 @@
   --text: #ecf0f1;
   --muted: #7f8c8d;
   --sb: env(safe-area-inset-bottom, 0px);
-  --st: env(safe-area-inset-top, 0px)
+  --st: env(safe-area-inset-top, 0px);
+  --tint-1: rgba(255,255,255,.025);
+  --scrim: rgba(15,25,35,.88);
+  --scheme: dark
+}
+
+/* Modo Claro — mesma paleta usada no Desktop (guia SysCadeiras 2026) */
+html[data-theme="light"] {
+  --bg: #f6f8fa;
+  --bg2: #ffffff;
+  --bg3: #f9fafb;
+  --card: #ffffff;
+  --border: #e5e7eb;
+  --green: #159a68;
+  --green2: #0f7a54;
+  --blue: #2878b5;
+  --amber: #c78313;
+  --red: #a83a33;
+  --red2: #c84a42;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --tint-1: rgba(31,41,55,.03);
+  --scrim: rgba(246,248,250,.9);
+  --scheme: light
 }
 
 .frase-dia {
@@ -79,7 +112,8 @@ body {
   font-size: 15px;
   line-height: 1.5;
   display: flex;
-  flex-direction: column
+  flex-direction: column;
+  transition: background-color .25s ease, color .25s ease
 }
 
 
@@ -224,7 +258,7 @@ body {
 .tlogo h1 {
   font-size: 16px;
   font-weight: 800;
-  color: #fff
+  color: var(--text)
 }
 
 .tlogo small {
@@ -538,7 +572,7 @@ body {
 
 .fi[type=date],
 .fi[type=month] {
-  color-scheme: dark
+  color-scheme: var(--scheme)
 }
 
 
@@ -622,7 +656,7 @@ body {
 .np-val {
   font-size: 44px;
   font-weight: 800;
-  color: #fff;
+  color: var(--text);
   line-height: 1;
   letter-spacing: -2px;
   min-height: 52px
@@ -748,7 +782,7 @@ body {
 .greeting h2 {
   font-size: 21px;
   font-weight: 800;
-  color: #fff;
+  color: var(--text);
   letter-spacing: -.4px
 }
 
@@ -774,7 +808,7 @@ body {
 .sv {
   font-size: 30px;
   font-weight: 800;
-  color: #fff;
+  color: var(--text);
   letter-spacing: -1px;
   line-height: 1;
   margin-bottom: 3px
@@ -881,7 +915,7 @@ body {
   align-items: center;
   gap: 12px;
   padding: 12px 0;
-  border-bottom: 1px solid rgba(36, 51, 68, .6)
+  border-bottom: 1px solid var(--border)
 }
 
 .hi-row:last-child {
@@ -933,7 +967,7 @@ body {
 .hi-q {
   font-size: 18px;
   font-weight: 800;
-  color: #fff;
+  color: var(--text);
   flex-shrink: 0
 }
 
@@ -998,7 +1032,7 @@ body {
   color: var(--muted);
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px dashed var(--border, rgba(255,255,255,.08));
+  border-top: 1px dashed var(--tint-1);
 }
 
 .mob-acts {
@@ -1172,7 +1206,7 @@ body {
 .load-ov {
   position: fixed;
   inset: 0;
-  background: rgba(15, 25, 35, .88);
+  background: var(--scrim);
   backdrop-filter: blur(4px);
   z-index: 8000;
   display: flex;
@@ -1198,7 +1232,7 @@ body {
 .ph2 {
   font-size: 20px;
   font-weight: 800;
-  color: #fff;
+  color: var(--text);
   letter-spacing: -.4px;
   margin-bottom: 3px
 }
@@ -1301,7 +1335,7 @@ body {
 </style>
 
 <style id="photo-modelo-css">
-.foto-modelo-box{margin-top:12px;padding:14px;border:1px solid var(--border);border-radius:13px;background:rgba(255,255,255,.025)}
+.foto-modelo-box{margin-top:12px;padding:14px;border:1px solid var(--border);border-radius:13px;background:var(--tint-1)}
 .foto-modelo-grid{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .preview-foto-modelo{width:110px;height:110px;border-radius:14px;overflow:hidden;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center}
 .preview-foto-modelo img{width:100%;height:100%;object-fit:cover}
@@ -1348,9 +1382,11 @@ body {
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
+        <button class="rbtn" id="btnTema" onclick="alternarTema()" title="Mudar para modo claro" style="font-size:18px">🌙</button>
         <button class="rbtn" id="uBtn" onclick="atualizarSistema()" title="Atualizar" style="font-size:18px">🔄</button>
         <button class="rbtn" id="reconBtn" data-sec="reconciliacao" onclick="abrirReconciliacao()" title="Reconciliação" style="font-size:18px;display:none">🔁</button>
         <button class="rbtn" id="rBtn" data-sec="backup" onclick="abrirBackup()" title="Backup / Apagar dados" style="font-size:18px">🗄️</button>
+        <button class="rbtn" onclick="if(confirm('Sair da conta?'))fazerLogout()" title="Sair" style="font-size:18px">🚪</button>
         <div class="sbadge on" id="sBadge">
           <div class="dot"></div><span id="sTxt">Online</span>
         </div>
@@ -1819,7 +1855,7 @@ body {
        offline: o app exige conexão o tempo todo. -->
   <div class="load-ov hidden" id="offlineOv" style="z-index:9000;text-align:center;padding:24px;">
     <div style="font-size:42px">📴</div>
-    <div style="font-size:17px;font-weight:800;color:#fff;margin-top:6px">Sem conexão com a internet</div>
+    <div style="font-size:17px;font-weight:800;color:var(--text);margin-top:6px">Sem conexão com a internet</div>
     <div class="load-t" style="max-width:280px">Este aplicativo precisa estar online para funcionar. Reconecte-se e toque em "Recarregar" para continuar.</div>
     <button class="btn btn-g" style="margin-top:10px;width:auto;padding:10px 26px" onclick="location.reload()">🔄 Recarregar</button>
   </div>
@@ -1836,6 +1872,61 @@ body {
       </div>
     </div>
   </div>
+
+<script>
+/**
+ * Alternância entre Modo Escuro (padrão) e Modo Claro.
+ * A preferência fica salva em localStorage e é reaplicada automaticamente
+ * na próxima abertura (ver script no <head> que evita o "flash" do tema errado).
+ */
+(function () {
+  const CHAVE_TEMA = 'syscadeiras_tema';
+
+  function temaSalvo() {
+    try { return localStorage.getItem(CHAVE_TEMA); } catch (e) { return null; }
+  }
+  function salvarTema(tema) {
+    try { localStorage.setItem(CHAVE_TEMA, tema); } catch (e) {}
+  }
+  function atualizarBotao(tema) {
+    const btn = document.getElementById('btnTema');
+    if (!btn) return;
+    btn.textContent = tema === 'light' ? '🌙' : '☀️';
+    btn.title = tema === 'light' ? 'Mudar para modo escuro' : 'Mudar para modo claro';
+  }
+  function atualizarMetaThemeColor(tema) {
+    const meta = document.getElementById('metaThemeColor');
+    if (meta) meta.setAttribute('content', tema === 'light' ? '#f6f8fa' : '#2c3e50');
+  }
+
+  function aplicarTema(tema, opts) {
+    opts = opts || {};
+    const html = document.documentElement;
+    if (tema === 'light') {
+      html.setAttribute('data-theme', 'light');
+    } else {
+      html.removeAttribute('data-theme');
+      tema = 'dark';
+    }
+    salvarTema(tema);
+    atualizarBotao(tema);
+    atualizarMetaThemeColor(tema);
+    if (!opts.silencioso && typeof window.toast === 'function') {
+      window.toast(`Modo ${tema === 'light' ? 'claro' : 'escuro'} ativado`, 'info');
+    }
+  }
+
+  function alternarTema() {
+    const atual = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    aplicarTema(atual === 'light' ? 'dark' : 'light');
+  }
+
+  aplicarTema(temaSalvo() === 'light' ? 'light' : 'dark', { silencioso: true });
+
+  window.alternarTema = alternarTema;
+  window.aplicarTema = aplicarTema;
+})();
+</script>
 
 <script type="module">
 // ⚙️ CONFIGURE AQUI
@@ -1865,34 +1956,19 @@ const SUPABASE_KEY = 'sb_publishable_2qHQZTclYZFbskhwoumTvA__enYh_vx';
 // sem validar contra o servidor) foi removida — login agora exige sempre
 // uma conta real, validada contra a tabela "Usuarios" no Supabase.
 
-// Verifica uma senha em texto puro contra o hash scrypt salvo pelo Desktop
-// (formato "salt:hash", gerado por authUtils.js -> crypto.scryptSync).
-// Usa scrypt-js com os mesmos parâmetros padrão do Node (N=16384, r=8, p=1),
-// o que produz byte-a-byte o mesmo hash que o Desktop calcula.
-async function verificarSenhaScrypt(senha, armazenado) {
-  if (!armazenado) return false;
-  if (!armazenado.includes(':')) {
-    // Formato legado (btoa), mantido só por compatibilidade com bancos antigos
-    try {
-      return btoa(senha) === armazenado
-    } catch (e) {
-      return false
-    }
-  }
-  const [salt, hashSalvoHex] = armazenado.split(':');
-  try {
-    const {
-      scrypt
-    } = await import('https://cdn.jsdelivr.net/npm/scrypt-js@3.0.1/+esm');
-    const enc = new TextEncoder();
-    const derivedKey = await scrypt(enc.encode(senha), enc.encode(salt), 16384, 8, 1, 64);
-    const hashTentativa = Array.from(derivedKey).map(b => b.toString(16).padStart(2, '0')).join('');
-    // Comparação simples (sem timing-safe no browser, suficiente para este caso de uso)
-    return hashTentativa === hashSalvoHex;
-  } catch (e) {
-    console.warn('Erro ao verificar senha:', e);
-    return false
-  }
+// A verificação de senha agora acontece inteiramente no servidor (Edge
+// Function `autenticar-mobile`) — senha_hash nunca mais trafega até este
+// app. Ver AUDITORIA_SysCadeiras.md, item 1.1, e supabase/functions/.
+const AUTH_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/autenticar-mobile`;
+
+async function autenticarNoServidor(email, senha) {
+  const resp = await fetch(AUTH_FUNCTION_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+    body: JSON.stringify({ email, senha }),
+  });
+  const json = await resp.json().catch(() => ({ success: false, error: 'Resposta inválida do servidor.' }));
+  return json;
 }
 
 
@@ -2147,26 +2223,115 @@ async function initSB() {
     const {
       createClient
     } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
-    S.sb = createClient(SUPABASE_URL, SUPABASE_KEY)
+    S.sbCreateClient = createClient; // guardado para recriar o client após login (ver doLogin)
+    S.sb = criarClienteSupabase();
   } catch (e) {
     console.warn('SB erro:', e)
   }
 }
 
+// Cria o client do Supabase, anexando o token de sessão assinado (se
+// houver) como header em toda chamada — exigido pelas políticas de RLS
+// desde migration_v3_seguranca.sql (ver sessao_atual() no banco). Sem
+// isso, SELECT/INSERT/UPDATE nas tabelas de negócio voltam vazios/negados.
+function criarClienteSupabase() {
+  const headers = S.sessionToken ? { 'x-app-session': S.sessionToken } : {};
+  return S.sbCreateClient(SUPABASE_URL, SUPABASE_KEY, { global: { headers } });
+}
+
+// ============================================================
+// FILA OFFLINE (item 2.3 da auditoria): se a conexão cair bem no
+// instante de um INSERT/UPDATE (ex.: Wi-Fi caiu no meio do clique de
+// salvar), a gravação falhava e a única saída era o operador perceber o
+// erro e tentar de novo manualmente. Agora, quando a falha é claramente
+// de rede (não de permissão/validação), a operação já resolvida (com
+// uuid/FKs já calculados) é guardada aqui e reenviada sozinha assim que a
+// conexão voltar — na mesma ordem em que foi criada.
+// ============================================================
+const CHAVE_FILA_OFFLINE = 'sc_fila_offline';
+
+function lerFilaOffline() {
+  try { return JSON.parse(localStorage.getItem(CHAVE_FILA_OFFLINE) || '[]'); }
+  catch (_) { return []; }
+}
+function salvarFilaOffline(fila) {
+  try { localStorage.setItem(CHAVE_FILA_OFFLINE, JSON.stringify(fila)); } catch (_) {}
+}
+function enfileirarOffline(item) {
+  const fila = lerFilaOffline();
+  fila.push({ ...item, _enfileiradoEm: new Date().toISOString() });
+  salvarFilaOffline(fila);
+  toast('📴 Sem conexão — salvo neste aparelho, será enviado automaticamente quando a internet voltar.', 'error');
+}
+
+// Um erro "de rede" (offline de verdade, DNS falhou, timeout) é diferente
+// de um erro de validação/permissão que o Supabase devolveu normalmente —
+// só o primeiro caso deve entrar na fila (o segundo entraria em loop
+// tentando reenviar algo que o servidor sempre vai recusar).
+function ehErroDeRede(e) {
+  if (!S.online) return true;
+  const msg = String(e?.message || e || '').toLowerCase();
+  return msg.includes('failed to fetch') || msg.includes('network') || msg.includes('load failed') || msg.includes('timeout');
+}
+
+async function processarFilaOffline() {
+  if (!S.online || !S.sb || S.demo) return;
+  let fila = lerFilaOffline();
+  if (!fila.length) return;
+
+  while (fila.length) {
+    const item = fila[0];
+    try {
+      if (item.op === 'insert') {
+        const { error } = await S.sb.from(item.tabela).insert(item.dados);
+        if (error) throw error;
+      } else if (item.op === 'update') {
+        const { error } = await S.sb.from(item.tabela).update(item.dados).eq('id', item.targetId);
+        if (error) throw error;
+      }
+      fila.shift(); // sucesso — remove e segue para o próximo
+      salvarFilaOffline(fila);
+    } catch (e) {
+      if (ehErroDeRede(e)) {
+        // ainda sem conexão de verdade — para e tenta de novo na próxima
+        // vez que 'online'/visibilitychange disparar.
+        return;
+      }
+      // Erro que não é de rede (ex.: registro relacionado foi apagado
+      // enquanto estava na fila) — não trava a fila inteira por causa de
+      // um item ruim; descarta esse item e avisa, segue com o resto.
+      console.warn('Item da fila offline descartado:', item, e);
+      fila.shift();
+      salvarFilaOffline(fila);
+    }
+  }
+  toast('✅ Itens pendentes enviados.', 'success');
+  await carregarDados();
+  fillSelects();
+  renderEstoque();
+  atualizarHome();
+}
+
 async function sbInsert(tabela, dados) {
-  if (S.demo || !S.sb || !S.online) return null;
-  // Importante: NÃO usar .single() aqui. .single() lança erro se o
-  // select-back do insert retornar 0 ou mais de 1 linha (ex.: política de
-  // RLS de SELECT mais restrita que a de INSERT, ou triggers de
-  // sincronização). Isso fazia a operação inteira cair no catch — e
-  // aparecer um toast de erro — mesmo quando o registro JÁ TINHA SIDO
-  // gravado com sucesso no Supabase (era o caso do cadastro de cores).
-  const {
-    data,
-    error
-  } = await S.sb.from(tabela).insert(dados).select();
-  if (error) throw error;
-  return Array.isArray(data) ? data[0] : (data || null);
+  if (S.demo || !S.sb) return null;
+  if (!S.online) { enfileirarOffline({ op: 'insert', tabela, dados }); return dados; }
+  try {
+    // Importante: NÃO usar .single() aqui. .single() lança erro se o
+    // select-back do insert retornar 0 ou mais de 1 linha (ex.: política de
+    // RLS de SELECT mais restrita que a de INSERT, ou triggers de
+    // sincronização). Isso fazia a operação inteira cair no catch — e
+    // aparecer um toast de erro — mesmo quando o registro JÁ TINHA SIDO
+    // gravado com sucesso no Supabase (era o caso do cadastro de cores).
+    const {
+      data,
+      error
+    } = await S.sb.from(tabela).insert(dados).select();
+    if (error) throw error;
+    return Array.isArray(data) ? data[0] : (data || null);
+  } catch (e) {
+    if (ehErroDeRede(e)) { enfileirarOffline({ op: 'insert', tabela, dados }); return dados; }
+    throw e;
+  }
 }
 
 // ============================================================
@@ -2258,11 +2423,17 @@ function montarMetadadosEdicao() {
   };
 }
 async function sbUpdate(tabela, id, dados) {
-  if (S.demo || !S.sb || !S.online) return;
-  const {
-    error
-  } = await S.sb.from(tabela).update(dados).eq('id', id);
-  if (error) throw error;
+  if (S.demo || !S.sb) return;
+  if (!S.online) { enfileirarOffline({ op: 'update', tabela, targetId: id, dados }); return; }
+  try {
+    const {
+      error
+    } = await S.sb.from(tabela).update(dados).eq('id', id);
+    if (error) throw error;
+  } catch (e) {
+    if (ehErroDeRede(e)) { enfileirarOffline({ op: 'update', tabela, targetId: id, dados }); return; }
+    throw e;
+  }
 }
 async function sbDelete(tabela, id) {
   if (S.demo || !S.sb || !S.online) throw new Error('Deleção requer conexão com o servidor');
@@ -2581,54 +2752,97 @@ window.doLogin = async function() {
   }
   showLoad('Entrando...');
   try {
-    // Login sempre validado contra o Supabase — não existe mais um modo
-    // offline/demo que permitisse entrar sem checar usuário/senha reais.
-    const {
-      data: usuario,
-      error
-    } = await S.sb.from('Usuarios').select('*').eq('email', email).maybeSingle();
-    if (error || !usuario) {
-      hideLoad();
-      errEl.textContent = '❌ Usuário ou senha incorretos';
-      return
+    const resultado = await autenticarNoServidor(email, senha);
+    hideLoad();
+    if (!resultado.success) {
+      errEl.textContent = '❌ ' + (resultado.error || 'Usuário ou senha incorretos');
+      return;
     }
-    if (!usuario.ativo) {
-      hideLoad();
-      errEl.textContent = '❌ Este usuário está bloqueado. Contate um administrador.';
-      return
-    }
-    const senhaOk = await verificarSenhaScrypt(senha, usuario.senha_hash);
-    if (!senhaOk) {
-      hideLoad();
-      errEl.textContent = '❌ Usuário ou senha incorretos';
-      return
-    }
-    let permissoes = [];
-    try {
-      permissoes = typeof usuario.permissoes === 'string' ? JSON.parse(usuario.permissoes) : (usuario.permissoes || [])
-    } catch (e) {
-      permissoes = []
-    }
-    // funcionarioId vincula a conta a um registro de Funcionarios (login
-    // pessoal criado automaticamente no Desktop ao cadastrar o funcionário)
-    // — mesmo campo usado pelo Desktop para restringir produção/relatórios
-    // à própria pessoa. Sem isso aqui, o mobile ignoraria essa regra.
-    S.user = {
-      id: usuario.id,
-      email: usuario.email,
-      nome: usuario.nome,
-      role: usuario.role,
-      permissoes,
-      funcionarioId: usuario.funcionarioid ?? usuario.funcionarioId ?? null
-    };
+    aplicarSessao(resultado.token, resultado.user);
+    salvarSessaoLocal(resultado.token, resultado.user);
     await carregarDados();
     iniciarApp();
-    hideLoad();
   } catch (e) {
     hideLoad();
     errEl.textContent = '❌ Erro: ' + e.message
   }
 };
+
+// Aplica uma sessão (token + dados do usuário) ao estado global e
+// recria o client do Supabase com o header assinado — as tabelas de
+// negócio exigem esse header desde migration_v3_seguranca.sql (RLS).
+function aplicarSessao(token, user) {
+  S.sessionToken = token;
+  S.sessionExp = user?.exp ?? null;
+  S.user = {
+    id: user.id,
+    email: user.email,
+    nome: user.nome,
+    role: user.role,
+    permissoes: user.permissoes || [],
+    funcionarioId: user.funcionarioId ?? null,
+  };
+  if (S.sbCreateClient) S.sb = criarClienteSupabase();
+}
+
+// ── Sessão persistida (item 6.1 da auditoria: mobile não guardava login
+// nenhum, exigindo entrar de novo a cada recarregamento de página) ──
+// Guarda só o token assinado (nunca senha/hash) e o perfil do usuário,
+// com expiração de 12h decidida pelo SERVIDOR (campo "exp" do token,
+// validado a cada chamada pelo RLS) — mesmo que alguém adultere o valor
+// salvo aqui no localStorage, o servidor rejeita um token expirado ou
+// malformado, então isso não é um jeito de burlar login.
+const CHAVE_SESSAO_LOCAL = 'sc_sessao';
+
+function salvarSessaoLocal(token, user) {
+  try {
+    localStorage.setItem(CHAVE_SESSAO_LOCAL, JSON.stringify({ token, user }));
+  } catch (_) { /* localStorage indisponível (modo privado etc.) — só não persiste */ }
+}
+
+function lerSessaoLocal() {
+  try {
+    const bruto = localStorage.getItem(CHAVE_SESSAO_LOCAL);
+    if (!bruto) return null;
+    const { token, user } = JSON.parse(bruto);
+    if (!token || !user?.exp) return null;
+    if (user.exp * 1000 < Date.now()) { limparSessaoLocal(); return null; } // expirado localmente já, nem tenta
+    return { token, user };
+  } catch (_) {
+    return null;
+  }
+}
+
+function limparSessaoLocal() {
+  try { localStorage.removeItem(CHAVE_SESSAO_LOCAL); } catch (_) {}
+}
+
+window.fazerLogout = function() {
+  limparSessaoLocal();
+  S.sessionToken = null;
+  S.user = null;
+  location.reload();
+};
+
+// Tenta retomar uma sessão salva assim que o Supabase estiver pronto —
+// chamado no boot do app (ver DOMContentLoaded no final do arquivo).
+async function tentarRetomarSessao() {
+  const sessao = lerSessaoLocal();
+  if (!sessao) return false;
+  aplicarSessao(sessao.token, sessao.user);
+  try {
+    await carregarDados();
+  } catch (e) {
+    // Token pode ter sido revogado/expirado no servidor mesmo parecendo
+    // válido localmente (ex: relógio do aparelho errado) — volta pro login.
+    limparSessaoLocal();
+    S.sessionToken = null;
+    S.user = null;
+    return false;
+  }
+  iniciarApp();
+  return true;
+}
 
 function iniciarApp() {
   document.getElementById('loginScreen').style.display = 'none';
@@ -3907,6 +4121,7 @@ function updBadge() {
 // ============================================================
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && S.online && S.sb && !S.demo && S.user) {
+    processarFilaOffline();
     carregarDados().then(() => {
       fillSelects();
       renderEstoque();
@@ -3916,6 +4131,7 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('online', () => {
   if (S.sb && !S.demo && S.user) {
+    processarFilaOffline();
     carregarDados().then(() => {
       fillSelects();
       renderEstoque();
@@ -4341,7 +4557,7 @@ window.abrirBackup = function() {
   modal.innerHTML = `
     <div style="width:100%;background:var(--bg2);border-radius:20px 20px 0 0;padding:24px 20px 32px;border-top:1px solid var(--border);max-height:90vh;overflow-y:auto">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-        <div style="font-size:17px;font-weight:800;color:#fff">🗄️ Backup & Apagar Dados</div>
+        <div style="font-size:17px;font-weight:800;color:var(--text)">🗄️ Backup & Apagar Dados</div>
         <button onclick="fecharBackup()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1">✕</button>
       </div>
 
@@ -4407,7 +4623,7 @@ window.abrirReconciliacao = async function() {
   modal.innerHTML = `
     <div style="width:100%;background:var(--bg2);border-radius:20px 20px 0 0;padding:24px 20px 32px;border-top:1px solid var(--border);max-height:85vh;overflow-y:auto">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <div style="font-size:17px;font-weight:800;color:#fff">🔁 Reconciliação Automática</div>
+        <div style="font-size:17px;font-weight:800;color:var(--text)">🔁 Reconciliação Automática</div>
         <button onclick="fecharReconciliacao()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1">✕</button>
       </div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.5">
@@ -4429,11 +4645,19 @@ window.abrirReconciliacao = async function() {
     }
     lista.innerHTML = data.map(r => {
       const teveDivergencia = (r.divergenciasencontradas || 0) > 0;
-      const cor = r.status === 'erro' ? 'var(--red2)' : (teveDivergencia ? 'var(--amber)' : 'var(--green2)');
+      const teveErro = r.status === 'erro';
+      const cor = teveErro ? 'var(--red2)' : (teveDivergencia ? 'var(--amber)' : 'var(--green2)');
+      const modoMatch = /\((incremental|completa)\)/.exec(r.tabelasverificadas || '');
+      const modo = modoMatch ? modoMatch[1] : null;
+      let erros = [];
+      if (teveErro) {
+        try { erros = (JSON.parse(r.detalhe || '[]') || []).filter(d => d.acao === 'erro'); } catch (e) {}
+      }
       return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;">
-          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">${fmtDataHoraRecon(r.iniciadoem)} · 📟 ${r.deviceid || '—'}</div>
-          <div style="font-size:13px;font-weight:700;color:${cor};">${teveDivergencia ? '⚠️' : '✅'} ${r.divergenciasencontradas || 0} divergência(s)</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">${fmtDataHoraRecon(r.iniciadoem)} · 📟 ${r.deviceid || '—'}${modo ? ` · ${modo}` : ''}</div>
+          <div style="font-size:13px;font-weight:700;color:${cor};">${teveErro ? '🚫' : (teveDivergencia ? '⚠️' : '✅')} ${r.divergenciasencontradas || 0} divergência(s)</div>
           <div style="font-size:12px;color:var(--muted);margin-top:2px;">${r.corrigidasauto || 0} corrigida(s) automaticamente · ${r.enviadasparaconflito || 0} em Conflitos</div>
+          ${erros.length ? `<div style="margin-top:6px;font-size:11px;color:var(--red2);">${erros.map(e => `❌ ${e.tabela}: ${e.mensagem || 'falha desconhecida'}`).join('<br>')}</div>` : ''}
         </div>`;
     }).join('');
   } catch (e) {
@@ -4564,6 +4788,16 @@ async function boot() {
     if (si) si.style.display = 'none';
     const errEl = document.getElementById('lErr');
     if (errEl) errEl.textContent = '⚠️ Servidor não configurado. Contate o administrador.';
+    return;
+  }
+  // Tenta retomar sessão salva (evita pedir login de novo a cada
+  // recarregamento de página — ver tentarRetomarSessao). Se não houver
+  // sessão válida, cai normalmente na tela de login.
+  showLoad('Verificando sessão...');
+  const retomou = await tentarRetomarSessao();
+  hideLoad();
+  if (!retomou) {
+    // segue normalmente para a tela de login (já visível por padrão)
   }
 }
 boot();
